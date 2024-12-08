@@ -8,7 +8,7 @@
      "endpoint": [
       {
         "type": "sip",
-        "uri": "5t4n6j0wnrl.sip.livekit.cloud"
+        "uri": "sip:5t4n6j0wnrl.sip.livekit.cloud"
       }
     ]
   }
