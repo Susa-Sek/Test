@@ -3,8 +3,8 @@
     "action": "connect",
      "endpoint": [
       {
-        "type": "sip",
-        "uri": "sip:4970468009500@burakersoy.sip.vonage.com"
+        "type": "phone",
+        "number": "4917655744540"
       }
     ]
   }
