@@ -23,6 +23,9 @@ Dazu eine Übersicht mit geschätzter Zeitersparnis und den letzten sieben Tagen
 Kein Play Store, keine Konten, **keine Internet-Berechtigung**. Die App kann technisch
 nichts nach außen senden.
 
+> Wer am Code arbeitet: `CLAUDE.md` im Wurzelverzeichnis fasst Architektur und die Fallstricke
+> zusammen, die hier schon einmal wehgetan haben.
+
 ## Was der Browser damit zu tun hat
 
 Ein Blocker, der nur Apps kennt, ist eine Papiertür: `youtube.com/shorts` in Chrome liefert
