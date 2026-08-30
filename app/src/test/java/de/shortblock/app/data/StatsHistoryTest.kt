@@ -10,51 +10,86 @@ class StatsHistoryTest {
     private val today = 20_000L
 
     @Test
-    fun `round trip keeps the counts`() {
+    fun `round trip keeps counts and seconds`() {
         val history = mapOf(
-            today to mapOf(Feature.INSTAGRAM_REELS to 3, Feature.YOUTUBE_SHORTS to 7),
-            today - 1 to mapOf(Feature.TIKTOK_FYP to 2),
+            today to mapOf(
+                Feature.INSTAGRAM_REELS to FeatureStat(count = 3, seconds = 240),
+                Feature.YOUTUBE_SHORTS to FeatureStat(count = 7),
+            ),
+            today - 1 to mapOf(Feature.TIKTOK_FYP to FeatureStat(seconds = 95)),
         )
         assertEquals(history, StatsHistory.decode(StatsHistory.encode(history)))
     }
 
-    /** Nach einem Absturz kann alles im Speicher stehen — nur abstürzen darf es nicht. */
+    /**
+     * Die Migration von v0.3 auf v0.4.
+     *
+     * Bis v0.3 stand je Feature nur eine Zahl im Speicher. Wer aktualisiert, soll seine Woche
+     * behalten — eine blanke Zahl wird deshalb als Zähler ohne Sehdauer gelesen.
+     */
+    @Test
+    fun `the old plain-number format is still readable`() {
+        val legacy = """{"$today":{"INSTAGRAM_REELS":4,"YOUTUBE_SHORTS":2}}"""
+        val decoded = StatsHistory.decode(legacy)
+
+        assertEquals(FeatureStat(count = 4, seconds = 0), decoded[today]?.get(Feature.INSTAGRAM_REELS))
+        assertEquals(FeatureStat(count = 2, seconds = 0), decoded[today]?.get(Feature.YOUTUBE_SHORTS))
+    }
+
+    @Test
+    fun `both formats can appear side by side during a migration`() {
+        val mixed = """{"$today":{"INSTAGRAM_REELS":4,"YOUTUBE_SHORTS":{"n":1,"s":30}}}"""
+        val decoded = StatsHistory.decode(mixed)
+
+        assertEquals(4, decoded[today]?.get(Feature.INSTAGRAM_REELS)?.count)
+        assertEquals(30, decoded[today]?.get(Feature.YOUTUBE_SHORTS)?.seconds)
+    }
+
     @Test
     fun `broken json yields an empty history instead of throwing`() {
-        assertEquals(emptyMap<Long, Map<Feature, Int>>(), StatsHistory.decode("{kein json"))
-        assertEquals(emptyMap<Long, Map<Feature, Int>>(), StatsHistory.decode(""))
-        assertEquals(emptyMap<Long, Map<Feature, Int>>(), StatsHistory.decode(null))
+        assertTrue(StatsHistory.decode("{kein json").isEmpty())
+        assertTrue(StatsHistory.decode("").isEmpty())
+        assertTrue(StatsHistory.decode(null).isEmpty())
     }
 
     /** Ein umbenanntes oder entferntes Feature darf die restliche Historie nicht mitreißen. */
     @Test
     fun `unknown feature names are skipped`() {
-        val raw = """{"$today":{"INSTAGRAM_REELS":4,"WAS_AUCH_IMMER":9}}"""
-        assertEquals(mapOf(Feature.INSTAGRAM_REELS to 4), StatsHistory.decode(raw)[today])
+        val raw = """{"$today":{"INSTAGRAM_REELS":{"n":4,"s":0},"WAS_AUCH_IMMER":{"n":9,"s":9}}}"""
+        assertEquals(setOf(Feature.INSTAGRAM_REELS), StatsHistory.decode(raw)[today]?.keys)
     }
 
     @Test
-    fun `increment counts on the current day only`() {
-        val once = StatsHistory.increment(emptyMap(), today, Feature.YOUTUBE_SHORTS)
-        val twice = StatsHistory.increment(once, today, Feature.YOUTUBE_SHORTS)
+    fun `counting and watch time are tracked separately`() {
+        var history = StatsHistory.incrementCount(emptyMap(), today, Feature.YOUTUBE_SHORTS)
+        history = StatsHistory.addSeconds(history, today, Feature.YOUTUBE_SHORTS, 45)
+        history = StatsHistory.addSeconds(history, today, Feature.YOUTUBE_SHORTS, 15)
 
-        assertEquals(2, twice[today]?.get(Feature.YOUTUBE_SHORTS))
-        assertEquals(setOf(today), twice.keys)
+        assertEquals(1, StatsHistory.countsFor(history, today)[Feature.YOUTUBE_SHORTS])
+        assertEquals(60, StatsHistory.secondsFor(history, today)[Feature.YOUTUBE_SHORTS])
+    }
+
+    @Test
+    fun `adding zero or negative seconds changes nothing`() {
+        val history = StatsHistory.addSeconds(emptyMap(), today, Feature.TIKTOK_FYP, 0)
+        assertTrue(history.isEmpty())
     }
 
     @Test
     fun `a new day starts at zero without losing yesterday`() {
-        val yesterday = StatsHistory.increment(emptyMap(), today - 1, Feature.INSTAGRAM_REELS)
-        val nextDay = StatsHistory.increment(yesterday, today, Feature.INSTAGRAM_REELS)
+        var history = StatsHistory.incrementCount(emptyMap(), today - 1, Feature.INSTAGRAM_REELS)
+        history = StatsHistory.addSeconds(history, today - 1, Feature.INSTAGRAM_REELS, 120)
+        history = StatsHistory.incrementCount(history, today, Feature.INSTAGRAM_REELS)
 
-        assertEquals(1, StatsHistory.countsFor(nextDay, today)[Feature.INSTAGRAM_REELS])
-        assertEquals(1, StatsHistory.countsFor(nextDay, today - 1)[Feature.INSTAGRAM_REELS])
+        assertEquals(0, StatsHistory.secondsFor(history, today)[Feature.INSTAGRAM_REELS])
+        assertEquals(120, StatsHistory.secondsFor(history, today - 1)[Feature.INSTAGRAM_REELS])
+        assertEquals(1, StatsHistory.countsFor(history, today)[Feature.INSTAGRAM_REELS])
     }
 
     @Test
     fun `pruning keeps exactly the retention window`() {
         val history = (0L until 40L).associate { back ->
-            (today - back) to mapOf(Feature.INSTAGRAM_REELS to 1)
+            (today - back) to mapOf(Feature.INSTAGRAM_REELS to FeatureStat(count = 1))
         }
         val pruned = StatsHistory.prune(history, today)
 
@@ -65,7 +100,7 @@ class StatsHistoryTest {
     /** Ein falsch gestelltes Gerätedatum darf keine Tage in der Zukunft hinterlassen. */
     @Test
     fun `pruning drops days from the future`() {
-        val history = mapOf(today + 5 to mapOf(Feature.INSTAGRAM_REELS to 1))
+        val history = mapOf(today + 5 to mapOf(Feature.INSTAGRAM_REELS to FeatureStat(count = 1)))
         assertTrue(StatsHistory.prune(history, today).isEmpty())
     }
 
@@ -75,7 +110,7 @@ class StatsHistoryTest {
      */
     @Test
     fun `lastDays fills gaps with zero and ends today`() {
-        val history = mapOf(today - 3 to mapOf(Feature.YOUTUBE_SHORTS to 5))
+        val history = mapOf(today - 3 to mapOf(Feature.YOUTUBE_SHORTS to FeatureStat(count = 5)))
         val week = StatsHistory.lastDays(history, today)
 
         assertEquals(7, week.size)

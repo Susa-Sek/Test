@@ -33,6 +33,9 @@ import de.shortblock.app.data.StatsRepository
 import de.shortblock.app.service.BlockLog
 import de.shortblock.app.service.DiagnosticsBuffer
 import de.shortblock.app.service.Feature
+import de.shortblock.app.service.Health
+import de.shortblock.app.service.ServiceHealth
+import de.shortblock.app.service.classifyHealth
 import de.shortblock.app.system.SystemSettings
 import kotlinx.coroutines.launch
 
@@ -50,6 +53,8 @@ fun AppRoot() {
     val week by statsRepository.week.collectAsStateWithLifecycle(emptyList())
     val diagnostics by DiagnosticsBuffer.entries.collectAsStateWithLifecycle()
     val blockLog by BlockLog.entries.collectAsStateWithLifecycle()
+    val secondsToday by statsRepository.secondsToday.collectAsStateWithLifecycle(emptyMap())
+    val healthSnapshot by ServiceHealth.state.collectAsStateWithLifecycle()
 
     var serviceEnabled by remember { mutableStateOf(SystemSettings.isServiceEnabled(context)) }
     var batteryExempt by remember { mutableStateOf(SystemSettings.isIgnoringBatteryOptimizations(context)) }
@@ -63,6 +68,8 @@ fun AppRoot() {
         batteryExempt = SystemSettings.isIgnoringBatteryOptimizations(context)
         onPauseOrDispose { }
     }
+
+    val health = classifyHealth(serviceEnabled, healthSnapshot, System.currentTimeMillis())
 
     // Solange der Dienst aus ist und der Nutzer die Einrichtung noch nicht weggetippt hat,
     // ist sie das Startziel — eine Übersicht ohne laufenden Dienst zeigt nur Nullen.
@@ -101,13 +108,23 @@ fun AppRoot() {
 
                 Screen.HOME -> HomeScreen(
                     serviceEnabled = serviceEnabled,
+                    health = health,
                     settings = settings,
                     counts = counts,
+                    secondsToday = secondsToday,
                     week = week,
                     lastBlock = blockLog.lastOrNull(),
                     onToggle = { feature: Feature, enabled: Boolean ->
                         scope.launch { settingsRepository.setFeatureEnabled(feature, enabled) }
                     },
+                    onBudgetChange = { feature, minutes ->
+                        scope.launch { settingsRepository.setBudgetMinutes(feature, minutes) }
+                    },
+                    onToggleKeepAlive = { enabled ->
+                        scope.launch { settingsRepository.setKeepAlive(enabled) }
+                    },
+                    onOpenBattery = { SystemSettings.openBatterySettings(context) },
+                    onOpenAccessibility = { SystemSettings.openAccessibilitySettings(context) },
                     onOpenSetup = {
                         onboardingSeen = true
                         screen = Screen.ONBOARDING

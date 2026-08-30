@@ -45,6 +45,32 @@ einen mitten aus der Google-Suche werfen. Genau dieser Fall ist als Test festgeh
 > alte Version einmal deinstalliert werden. Wer das dauerhaft vermeiden will, hinterlegt einen
 > eigenen Keystore als GitHub Secret und baut `assembleRelease`.
 
+## Wenn der Blocker nach Stunden verstummt
+
+Bekanntes Verhalten, an dem fast jede Bedienungshilfe leidet: Nach ein paar Stunden blockt
+nichts mehr, und erst Aus- und Wiedereinschalten hilft. Dahinter stecken zwei Zustände, die von
+außen gleich aussehen:
+
+| Zustand | Ursache | Was hilft |
+|---|---|---|
+| Prozess abgeräumt | Energieverwaltung des Herstellers | Akku-Ausnahme, „Dienst am Leben halten" |
+| Prozess lebt, keine Ereignisse mehr | eingeschlafene Android-Pipeline | wird automatisch alle 5 Min repariert |
+
+Was ShortBlock ab v0.4 dagegen tut:
+
+- **Alle 5 Minuten** setzt der Dienst seine eigene Konfiguration neu (`setServiceInfo`). Das ist
+  der dokumentierte Weg, eine eingeschlafene Ereignis-Pipeline anzustoßen, und kostet nichts,
+  wenn alles läuft.
+- **Rückfall auf den Ereignisknoten**, wenn `rootInActiveWindow` null liefert. Vorher stieg die
+  App in dem Fall einfach aus und blockte stillschweigend nichts mehr.
+- **„Dienst am Leben halten"** (Schalter, standardmäßig aus): ein Vordergrunddienst mit stummer
+  Dauerbenachrichtigung. Bedienungshilfe und dieser Dienst teilen sich den Prozess — für Android
+  ist ein Vordergrunddienst ein starkes Signal, ihn zu verschonen.
+- **Gesundheitskarte** auf der Startseite: Meldet Android den Dienst als an, läuft in diesem
+  Prozess aber keiner, erscheint eine Warnung mit genau diesem Befund. Bloße Stille — weil man
+  Instagram vier Stunden nicht geöffnet hat — löst sie ausdrücklich *nicht* aus. Eine App, die
+  ständig falschen Alarm gibt, wird bei der einen wichtigen Warnung nicht mehr gelesen.
+
 ## Einrichtung — die Reihenfolge ist wichtig
 
 1. **Eingeschränkte Einstellungen zulassen.** Ab Android 13 sperrt das System Bedienungshilfen
@@ -54,6 +80,25 @@ einen mitten aus der Google-Suche werfen. Genau dieser Fall ist als Test festgeh
    Ohne Schritt 1 ist dieser Schalter ausgegraut — das ist der häufigste Grund, warum solche
    Apps „nicht funktionieren“.
 3. **Akku-Optimierung ausnehmen** (optional). Auf Xiaomi, Samsung und OnePlus empfohlen.
+
+## Tageskontingent
+
+Statt ganz-oder-gar-nicht kann jeder Kurzvideo-Blocker ein Tagesbudget bekommen: Unter der
+Schalterzeile stehen `Immer · 5 · 10 · 20 · 30 Min`. Bis das Budget aufgebraucht ist, läuft das
+Video; danach blockt die App wie bisher. Je App ein eigenes Kontingent.
+
+**Voreinstellung ist „Immer".** Ein Zeitkontingent macht aus einer geschlossenen Tür eine
+Verhandlung, und Verhandeln ist der Mechanismus, den diese App eigentlich abschafft. Wer eins
+will, wählt es bewusst.
+
+Gemessen wird ohne die Berechtigung *Nutzungsdaten*: Die Uhr läuft nur, solange eine Blockregel
+gerade zuträfe. Entscheidend ist die Schrittgrenze von 2 Sekunden — wer die App wechselt oder
+den Bildschirm ausschaltet, erzeugt keine Ereignisse mehr, und ohne diese Grenze wäre das
+Kontingent nach einer Nacht Standby aufgebraucht. Die Uhr kann dadurch nur zu wenig zählen, nie
+zu viel.
+
+Bekannte Ungenauigkeit: Steht das Video still, feuert Android kaum Ereignisse und die Uhr
+stockt.
 
 ## Wenn etwas falsch geblockt wird
 
@@ -122,7 +167,9 @@ AccessibilityEvent  →  UiNode  →  RuleMatcher / FeedPolicy  →  Zurück ode
 | `service/BlockerAccessibilityService.kt` | Ereignis-Eingang, Drosselung, Cooldowns, Zähler. |
 | `service/TikTokPolicy.kt` | Tabwechsel „Für dich“ → „Folge ich“, rein textbasiert. |
 | `service/UiNode.kt` | Abstraktion über `AccessibilityNodeInfo` — macht die Logik JVM-testbar. |
-| `data/StatsHistory.kt` | Tageshistorie und Zeitersparnis, reine Funktionen, JVM-testbar. |
+| `data/StatsHistory.kt` | Tageshistorie, Sehdauer und Zeitersparnis, reine Funktionen, JVM-testbar. |
+| `data/WatchBudget.kt` | Rechenregeln fürs Kontingent, inklusive Schrittgrenze. |
+| `service/ServiceHealth.kt` | Lebenszeichen und Befund, warum der Dienst stumm ist. |
 
 Die drei Zeitschranken im Service sind kein Feintuning, sondern tragen die Stabilität:
 höchstens ein Baum-Scan pro 150 ms, 800 ms Ruhe nach jedem Zurück (sonst entsteht eine

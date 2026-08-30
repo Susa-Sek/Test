@@ -2,6 +2,8 @@ package de.shortblock.app.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -27,8 +30,10 @@ import de.shortblock.app.R
 import de.shortblock.app.data.BlockSettings
 import de.shortblock.app.data.DayStat
 import de.shortblock.app.data.StatsHistory
+import de.shortblock.app.data.WatchBudget
 import de.shortblock.app.service.BlockLog
 import de.shortblock.app.service.Feature
+import de.shortblock.app.service.Health
 import de.shortblock.app.ui.components.WeekBars
 
 /** Ein Treffer gilt als „gerade eben“, solange er so jung ist. */
@@ -37,11 +42,17 @@ private const val RECENT_WINDOW_MS = 10 * 60 * 1000L
 @Composable
 fun HomeScreen(
     serviceEnabled: Boolean,
+    health: Health,
     settings: BlockSettings,
     counts: Map<Feature, Int>,
+    secondsToday: Map<Feature, Int>,
     week: List<DayStat>,
     lastBlock: BlockLog.Entry?,
     onToggle: (Feature, Boolean) -> Unit,
+    onBudgetChange: (Feature, Int) -> Unit,
+    onToggleKeepAlive: (Boolean) -> Unit,
+    onOpenBattery: () -> Unit,
+    onOpenAccessibility: () -> Unit,
     onOpenSetup: () -> Unit,
     onOpenDiagnostics: () -> Unit,
 ) {
@@ -53,6 +64,15 @@ fun HomeScreen(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        if (health == Health.NOT_CONNECTED) {
+            ServiceAsleepCard(
+                onOpenAccessibility = onOpenAccessibility,
+                onOpenBattery = onOpenBattery,
+                keepAlive = settings.keepAlive,
+                onToggleKeepAlive = onToggleKeepAlive,
+            )
+        }
+
         SavedHero(todayTotal)
 
         Card(modifier = Modifier.fillMaxWidth()) {
@@ -84,7 +104,9 @@ fun HomeScreen(
             ),
             settings = settings,
             counts = counts,
+            secondsToday = secondsToday,
             onToggle = onToggle,
+            onBudgetChange = onBudgetChange,
         )
 
         AppGroup(
@@ -98,7 +120,9 @@ fun HomeScreen(
             ),
             settings = settings,
             counts = counts,
+            secondsToday = secondsToday,
             onToggle = onToggle,
+            onBudgetChange = onBudgetChange,
         )
 
         AppGroup(
@@ -117,8 +141,12 @@ fun HomeScreen(
             ),
             settings = settings,
             counts = counts,
+            secondsToday = secondsToday,
             onToggle = onToggle,
+            onBudgetChange = onBudgetChange,
         )
+
+        KeepAliveRow(checked = settings.keepAlive, onCheckedChange = onToggleKeepAlive)
 
         RecentBlockChip(lastBlock = lastBlock, onOpenDiagnostics = onOpenDiagnostics)
 
@@ -200,7 +228,9 @@ private fun AppGroup(
     rows: List<ToggleRow>,
     settings: BlockSettings,
     counts: Map<Feature, Int>,
+    secondsToday: Map<Feature, Int>,
     onToggle: (Feature, Boolean) -> Unit,
+    onBudgetChange: (Feature, Int) -> Unit,
 ) {
     Column {
         Text(
@@ -218,6 +248,10 @@ private fun AppGroup(
                     count = counts[row.feature] ?: 0,
                     checked = row.feature in settings.enabled,
                     onCheckedChange = { onToggle(row.feature, it) },
+                    budgetMinutes = settings.budgetMinutes(row.feature),
+                    spentSeconds = secondsToday[row.feature] ?: 0,
+                    budgetable = row.feature in BlockSettings.BUDGETABLE,
+                    onBudgetChange = { onBudgetChange(row.feature, it) },
                 )
             }
         }
@@ -231,9 +265,13 @@ private fun FeatureRow(
     count: Int,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
+    budgetMinutes: Int,
+    spentSeconds: Int,
+    budgetable: Boolean,
+    onBudgetChange: (Int) -> Unit,
 ) {
+    Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
     Row(
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
@@ -254,6 +292,144 @@ private fun FeatureRow(
             }
         }
         Switch(checked = checked, onCheckedChange = onCheckedChange)
+    }
+
+        if (budgetable && checked) {
+            BudgetChips(
+                budgetMinutes = budgetMinutes,
+                spentSeconds = spentSeconds,
+                onBudgetChange = onBudgetChange,
+            )
+        }
+    }
+}
+
+/**
+ * Kontingent-Auswahl direkt in der Zeile: ein Tipp, kein Dialog.
+ *
+ * „Immer“ (= 0 Minuten) ist die Voreinstellung und bedeutet das bisherige Verhalten. Ein
+ * Kontingent macht aus einer geschlossenen Tür eine Verhandlung — deshalb muss man es
+ * ausdrücklich wählen, statt es vorgesetzt zu bekommen.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun BudgetChips(
+    budgetMinutes: Int,
+    spentSeconds: Int,
+    onBudgetChange: (Int) -> Unit,
+) {
+    Column(Modifier.padding(top = 10.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            BlockSettings.BUDGET_CHOICES.forEach { minutes ->
+                FilterChip(
+                    selected = minutes == budgetMinutes,
+                    onClick = { onBudgetChange(minutes) },
+                    label = {
+                        Text(
+                            if (minutes == 0) {
+                                stringResource(R.string.budget_always)
+                            } else {
+                                stringResource(R.string.budget_minutes, minutes)
+                            },
+                        )
+                    },
+                )
+            }
+        }
+
+        if (WatchBudget.hasBudget(budgetMinutes)) {
+            val remaining = WatchBudget.remainingSeconds(spentSeconds, budgetMinutes)
+            Text(
+                text = if (remaining <= 0) {
+                    stringResource(R.string.budget_spent)
+                } else {
+                    stringResource(R.string.budget_remaining, (remaining + 59) / 60, budgetMinutes)
+                },
+                style = MaterialTheme.typography.labelSmall,
+                color = if (remaining <= 0) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                modifier = Modifier.padding(top = 6.dp),
+            )
+        }
+    }
+}
+
+/**
+ * Der Befund, der bisher fehlte.
+ *
+ * Erscheint nur, wenn Android den Dienst als eingeschaltet meldet, in diesem Prozess aber kein
+ * Dienst-Objekt läuft — genau der Zustand, in dem die App stillschweigend nichts mehr blockt
+ * und nur Aus/Ein hilft. Reine Untätigkeit („seit Stunden kein Instagram geöffnet“) löst das
+ * bewusst NICHT aus; eine App, die ständig falschen Alarm gibt, wird nicht mehr gelesen.
+ */
+@Composable
+private fun ServiceAsleepCard(
+    onOpenAccessibility: () -> Unit,
+    onOpenBattery: () -> Unit,
+    keepAlive: Boolean,
+    onToggleKeepAlive: (Boolean) -> Unit,
+) {
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer,
+            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+        ),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text(
+                text = stringResource(R.string.health_broken_title),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Text(
+                text = stringResource(R.string.health_broken_body),
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(top = 6.dp),
+            )
+            Row {
+                TextButton(onClick = onOpenAccessibility) {
+                    Text(stringResource(R.string.step_accessibility_button))
+                }
+                TextButton(onClick = onOpenBattery) {
+                    Text(stringResource(R.string.health_battery))
+                }
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = stringResource(R.string.keep_alive_title_setting),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                Switch(checked = keepAlive, onCheckedChange = onToggleKeepAlive)
+            }
+        }
+    }
+}
+
+@Composable
+private fun KeepAliveRow(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.keep_alive_title_setting),
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                Text(
+                    text = stringResource(R.string.keep_alive_desc),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+            }
+            Switch(checked = checked, onCheckedChange = onCheckedChange)
+        }
     }
 }
 
