@@ -127,6 +127,15 @@ Back-Schleife, die aus der App wirft) und 600 ms nach einem Tipp auf den Feed-Um
 - Schlägt das Umschalten auf „Folge ich“ zweimal fehl, gibt die App auf und zeigt einen
   Hinweis, statt weiter blind zu tippen.
 - Nicht getestet auf Geräten mit stark angepasster Bedienungshilfe-Implementierung.
+- **Im Browser ist nur der direkte Kurzvideo-Einstieg abgedeckt** — Reels- und Shorts-URLs sowie
+  die TikTok-Domain. Der Instagram-Startfeed und Explore laufen im Browser weiter. Das ist
+  Absicht: Die Web-Version kennt keinen „Folge ich"-Umschalter, den der Dienst antippen könnte,
+  dort gäbe es nur ganz-oder-gar-nicht.
+- **Browser-Regeln brauchen eine sichtbare Adressleiste.** Chrome und andere klappen sie beim
+  Scrollen ein; dann ist der Knoten nicht mehr sichtbar und die Regel feuert nicht. Beim Öffnen
+  eines Links ist sie sichtbar, der Einstieg wird also erwischt — wer schon in der Seite steckt
+  und weiterscrollt, nicht mehr. Das ist die direkte Folge der Sichtbarkeitsprüfung aus v0.2.0,
+  und der Tausch ist richtig herum: lieber eine Lücke als wieder aus der App zu fliegen.
 
 ## Lizenz
 
