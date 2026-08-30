@@ -1,15 +1,28 @@
 # ShortBlock
 
-Android-App, die drei Ablenkungen abschaltet, ohne Instagram oder YouTube zu sperren:
+Android-App, die Kurzvideo-Sog abschaltet, ohne Instagram, YouTube oder TikTok zu sperren:
 
 | Blocker | Was passiert |
 |---|---|
-| **Instagram Reels** | Der Reels-Viewer wird sofort geschlossen — egal ob aus dem Tab, aus Explore oder aus einer DM geöffnet. Stories bleiben unangetastet. |
-| **Instagram-Feed nur mit Gefolgten** | Die App erzwingt den chronologischen „Folge ich“-Feed und navigiert am Ende des Feeds heraus, bevor Instagram wieder Vorschläge nachschiebt. |
-| **YouTube Shorts** | Shorts-Player und Shorts-Tab werden geschlossen. Normale Videos, Suche und Abos funktionieren weiter. |
+| **Instagram Reels** | Der Reels-Viewer wird sofort geschlossen — aus dem Tab, aus Explore, aus einer DM oder aus dem Browser. Stories bleiben unangetastet. |
+| **Instagram-Feed nur mit Gefolgten** | Erzwingt den chronologischen „Folge ich“-Feed und navigiert an dessen Ende heraus, bevor Instagram wieder Vorschläge nachschiebt. |
+| **YouTube Shorts** | Shorts-Player, Shorts-Tab und `youtube.com/shorts` im Browser. Normale Videos, Suche und Abos funktionieren weiter. |
+| **TikTok „Für dich“** | Erzwingt den „Folge ich“-Tab. DMs, Suche und Profile bleiben nutzbar. |
+| **TikTok ganz** | Jeder Öffnungsversuch führt zurück — App und `tiktok.com` im Browser. Standardmäßig **aus**. |
+
+Dazu eine Übersicht mit geschätzter Zeitersparnis und den letzten sieben Tagen.
 
 Kein Play Store, keine Konten, **keine Internet-Berechtigung**. Die App kann technisch
 nichts nach außen senden.
+
+## Was der Browser damit zu tun hat
+
+Ein Blocker, der nur Apps kennt, ist eine Papiertür: `youtube.com/shorts` in Chrome liefert
+dieselbe Endlosschleife. ShortBlock liest deshalb auch die **Adressleiste** gängiger Browser.
+
+Entscheidend ist dabei ein UND-Gatter auf die View-ID der Adressleiste. Ohne das würde die
+Regel auch dort greifen, wo „youtube.com/shorts" bloß als Text im Suchergebnis steht — und
+einen mitten aus der Google-Suche werfen. Genau dieser Fall ist als Test festgehalten.
 
 ## Installieren
 
@@ -49,6 +62,8 @@ Zwei Leitplanken machen Fehlalarme unwahrscheinlicher, beide je einmal schmerzha
 - **Größe entscheidet mit.** Die Reels-Regel greift nur bei einem Treffer, der mindestens 60 %
   des Fensters einnimmt. So bleibt eine eingebettete Clips-Vorschau im Feed unangetastet, der
   Vollbild-Viewer nicht.
+- **Browser-Regeln nur in der Adressleiste.** Siehe oben — ein Treffer im Seiteninhalt zählt
+  nicht.
 
 ## Wenn plötzlich nichts mehr geblockt wird
 
@@ -68,6 +83,11 @@ Alternativ am Rechner: `adb shell uiautomator dump && adb pull /sdcard/window_du
 und `reel_*` bezeichnet dort die **Stories**. Ein Muster `reel_` würde also Stories blocken
 statt Reels. Bei YouTube ist es umgekehrt: dort heißen Shorts intern *reel*. Beides ist in
 `Rules.kt` kommentiert und durch Tests abgesichert.
+
+**TikTok bricht als erstes.** Dort gibt es keine stabilen View-IDs — die Oberfläche ist
+verschleiert, die Kürzel wechseln mit jeder Version. Die Tab-Erkennung läuft deshalb über den
+sichtbaren Text („Für dich" / „Folge ich"), und der ist übersetzt. Wenn der Tabwechsel nicht
+mehr greift, stehen die tatsächlichen Beschriftungen im Diagnose-Screen.
 
 ## Selbst bauen
 
@@ -92,7 +112,9 @@ AccessibilityEvent  →  UiNode  →  RuleMatcher / FeedPolicy  →  Zurück ode
 | `service/RuleMatcher.kt` | Baum-Traversierung mit Tiefen- und Knotenlimit, Regel-Abgleich. |
 | `service/FeedPolicy.kt` | Zustandslogik für den Instagram-Feed: umschalten, nichts tun oder raus. |
 | `service/BlockerAccessibilityService.kt` | Ereignis-Eingang, Drosselung, Cooldowns, Zähler. |
+| `service/TikTokPolicy.kt` | Tabwechsel „Für dich“ → „Folge ich“, rein textbasiert. |
 | `service/UiNode.kt` | Abstraktion über `AccessibilityNodeInfo` — macht die Logik JVM-testbar. |
+| `data/StatsHistory.kt` | Tageshistorie und Zeitersparnis, reine Funktionen, JVM-testbar. |
 
 Die drei Zeitschranken im Service sind kein Feintuning, sondern tragen die Stabilität:
 höchstens ein Baum-Scan pro 150 ms, 800 ms Ruhe nach jedem Zurück (sonst entsteht eine

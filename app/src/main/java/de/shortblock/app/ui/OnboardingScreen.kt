@@ -1,6 +1,8 @@
 package de.shortblock.app.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -8,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -48,9 +52,19 @@ fun OnboardingScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
-        // Schritt 1 lässt sich nicht abfragen: ob „Eingeschränkte Einstellungen zulassen“
-        // gewählt wurde, verrät Android der App nicht. Deshalb ohne Häkchen.
+        // Schritt 1 lässt sich nicht abfragen, zählt also nie als erledigt. Damit die Anzeige
+        // trotzdem stimmt, wird nur über die beiden prüfbaren Schritte gezählt.
+        val doneSteps = listOf(serviceEnabled, batteryExempt).count { it }
+        Text(
+            text = stringResource(R.string.step_of, doneSteps + 1, 3),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
+        )
+
+        // Ob „Eingeschränkte Einstellungen zulassen“ gewählt wurde, verrät Android der App
+        // nicht — Schritt 1 bleibt deshalb dauerhaft ohne Häkchen.
         StepCard(
+            number = 1,
             title = stringResource(R.string.step_restricted_title),
             body = stringResource(R.string.step_restricted_body),
             buttonLabel = stringResource(R.string.step_restricted_button),
@@ -59,6 +73,7 @@ fun OnboardingScreen(
             onClick = onOpenAppInfo,
         )
         StepCard(
+            number = 2,
             title = stringResource(R.string.step_accessibility_title),
             body = stringResource(R.string.step_accessibility_body),
             buttonLabel = stringResource(R.string.step_accessibility_button),
@@ -67,6 +82,7 @@ fun OnboardingScreen(
             onClick = onOpenAccessibility,
         )
         StepCard(
+            number = 3,
             title = stringResource(R.string.step_battery_title),
             body = stringResource(R.string.step_battery_body),
             buttonLabel = stringResource(R.string.step_battery_button),
@@ -88,6 +104,7 @@ fun OnboardingScreen(
 
 @Composable
 private fun StepCard(
+    number: Int,
     title: String,
     body: String,
     buttonLabel: String,
@@ -98,18 +115,35 @@ private fun StepCard(
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .padding(end = 12.dp)
+                        .size(28.dp)
+                        .background(
+                            color = if (done) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.surfaceVariant
+                            },
+                            shape = CircleShape,
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = if (showDoneState && done) "✓" else number.toString(),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = if (done) {
+                            MaterialTheme.colorScheme.onPrimary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    )
+                }
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.weight(1f),
                 )
-                if (showDoneState && done) {
-                    Text(
-                        text = "✓ " + stringResource(R.string.step_done),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
             }
             Text(
                 text = body,

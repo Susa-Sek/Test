@@ -70,7 +70,15 @@ class BlockerAccessibilityService : AccessibilityService() {
 
         val now = SystemClock.uptimeMillis()
         if (now < pausedUntil) return
-        if (now - lastScanAt < SCAN_INTERVAL_MS) return
+        // Browser bauen viel größere Bäume als eine Video-App und ändern sie beim Scrollen
+        // ständig. Dort reicht ein deutlich ruhigerer Takt — die Adressleiste wechselt nicht
+        // zehnmal pro Sekunde.
+        val scanInterval = if (packageName in Packages.BROWSERS) {
+            BROWSER_SCAN_INTERVAL_MS
+        } else {
+            SCAN_INTERVAL_MS
+        }
+        if (now - lastScanAt < scanInterval) return
         lastScanAt = now
 
         val root = rootInActiveWindow?.let(::AccessibilityUiNode) ?: return
@@ -88,6 +96,38 @@ class BlockerAccessibilityService : AccessibilityService() {
 
         if (packageName == Packages.INSTAGRAM && Feature.INSTAGRAM_FEED in enabledFeatures) {
             handleInstagramFeed(root)
+        }
+
+        // TIKTOK_ALL hat Vorrang und ist oben schon als Regel gelaufen; hier bleibt nur der Fall,
+        // dass nur der Algorithmus abgeschaltet werden soll.
+        if (packageName in Packages.TIKTOK && Feature.TIKTOK_FYP in enabledFeatures) {
+            handleTikTokFeed(root)
+        }
+    }
+
+    private fun handleTikTokFeed(root: UiNode) {
+        val windowArea = RuleMatcher.windowArea(root)
+        when (val decision = TikTokPolicy.evaluate(root)) {
+            FeedDecision.AlreadyFiltered -> resetFeedState()
+
+            is FeedDecision.ChooseFollowing -> {
+                if (feedSwitchAttempts >= MAX_FEED_SWITCH_ATTEMPTS) {
+                    if (!manualSwitchHintShown) {
+                        manualSwitchHintShown = true
+                        toast(R.string.toast_tiktok_switch_manual)
+                    }
+                    return
+                }
+                feedSwitchAttempts++
+                if (Actions.clickNearest(decision.node, windowArea)) {
+                    BlockLog.record("tiktok_choose_following", RuleMatcher.describe(decision.node))
+                    resetFeedState()
+                    pausedUntil = SystemClock.uptimeMillis() + CLICK_COOLDOWN_MS
+                    scope.launch { statsRepository.increment(Feature.TIKTOK_FYP) }
+                }
+            }
+
+            else -> Unit
         }
     }
 
@@ -154,6 +194,7 @@ class BlockerAccessibilityService : AccessibilityService() {
 
     private companion object {
         const val SCAN_INTERVAL_MS = 150L
+        const val BROWSER_SCAN_INTERVAL_MS = 500L
         const val BACK_COOLDOWN_MS = 800L
         const val CLICK_COOLDOWN_MS = 600L
         const val MAX_FEED_SWITCH_ATTEMPTS = 2

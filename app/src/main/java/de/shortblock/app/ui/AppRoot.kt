@@ -1,14 +1,17 @@
 package de.shortblock.app.ui
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -17,10 +20,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import de.shortblock.app.R
 import de.shortblock.app.data.BlockSettings
 import de.shortblock.app.data.SettingsRepository
 import de.shortblock.app.data.StatsRepository
@@ -41,13 +47,14 @@ fun AppRoot() {
 
     val settings by settingsRepository.settings.collectAsStateWithLifecycle(BlockSettings.DEFAULT)
     val counts by statsRepository.today.collectAsStateWithLifecycle(emptyMap())
+    val week by statsRepository.week.collectAsStateWithLifecycle(emptyList())
     val diagnostics by DiagnosticsBuffer.entries.collectAsStateWithLifecycle()
     val blockLog by BlockLog.entries.collectAsStateWithLifecycle()
 
     var serviceEnabled by remember { mutableStateOf(SystemSettings.isServiceEnabled(context)) }
     var batteryExempt by remember { mutableStateOf(SystemSettings.isIgnoringBatteryOptimizations(context)) }
-    var screen by rememberSaveable { mutableStateOf(Screen.HOME) }
     var onboardingSeen by rememberSaveable { mutableStateOf(false) }
+    var screen by rememberSaveable { mutableStateOf(Screen.HOME) }
 
     // Nach der Rückkehr aus den Systemeinstellungen den Status neu lesen — sonst zeigt die App
     // noch „Dienst ist aus“, obwohl er gerade eingeschaltet wurde.
@@ -57,24 +64,29 @@ fun AppRoot() {
         onPauseOrDispose { }
     }
 
-    val effectiveScreen = when {
-        screen == Screen.DIAGNOSTICS -> Screen.DIAGNOSTICS
-        screen == Screen.ONBOARDING -> Screen.ONBOARDING
-        !serviceEnabled && !onboardingSeen -> Screen.ONBOARDING
-        else -> Screen.HOME
-    }
+    // Solange der Dienst aus ist und der Nutzer die Einrichtung noch nicht weggetippt hat,
+    // ist sie das Startziel — eine Übersicht ohne laufenden Dienst zeigt nur Nullen.
+    val current = if (!serviceEnabled && !onboardingSeen) Screen.ONBOARDING else screen
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background,
-    ) {
+    Scaffold(
+        bottomBar = {
+            NavigationBar {
+                NavItem(Screen.HOME, current, Icons.Filled.Home, R.string.nav_overview) { screen = it }
+                NavItem(Screen.ONBOARDING, current, Icons.Filled.Settings, R.string.nav_setup) {
+                    onboardingSeen = true
+                    screen = it
+                }
+                NavItem(Screen.DIAGNOSTICS, current, Icons.Filled.Info, R.string.nav_diagnostics) { screen = it }
+            }
+        },
+    ) { insets ->
         Box(
             Modifier
-                .windowInsetsPadding(WindowInsets.safeDrawing)
-                .consumeWindowInsets(WindowInsets.safeDrawing)
-                .padding(horizontal = 20.dp, vertical = 8.dp),
+                .fillMaxSize()
+                .padding(insets)
+                .padding(horizontal = 20.dp),
         ) {
-            when (effectiveScreen) {
+            when (current) {
                 Screen.ONBOARDING -> OnboardingScreen(
                     serviceEnabled = serviceEnabled,
                     batteryExempt = batteryExempt,
@@ -91,24 +103,50 @@ fun AppRoot() {
                     serviceEnabled = serviceEnabled,
                     settings = settings,
                     counts = counts,
+                    week = week,
                     lastBlock = blockLog.lastOrNull(),
                     onToggle = { feature: Feature, enabled: Boolean ->
                         scope.launch { settingsRepository.setFeatureEnabled(feature, enabled) }
                     },
-                    onOpenSetup = { screen = Screen.ONBOARDING },
+                    onOpenSetup = {
+                        onboardingSeen = true
+                        screen = Screen.ONBOARDING
+                    },
                     onOpenDiagnostics = { screen = Screen.DIAGNOSTICS },
                 )
 
                 Screen.DIAGNOSTICS -> DiagnosticsScreen(
                     recording = settings.diagnostics,
                     entries = diagnostics,
+                    blockLog = blockLog.asReversed(),
                     onToggleRecording = { enabled ->
                         scope.launch { settingsRepository.setDiagnosticsEnabled(enabled) }
                     },
-                    onClear = { DiagnosticsBuffer.clear() },
-                    onBack = { screen = Screen.HOME },
+                    onClear = {
+                        DiagnosticsBuffer.clear()
+                        BlockLog.clear()
+                    },
                 )
             }
         }
     }
+}
+
+@Composable
+private fun androidx.compose.foundation.layout.RowScope.NavItem(
+    target: Screen,
+    current: Screen,
+    icon: ImageVector,
+    labelRes: Int,
+    onSelect: (Screen) -> Unit,
+) {
+    val label = stringResource(labelRes)
+    NavigationBarItem(
+        selected = current == target,
+        onClick = { onSelect(target) },
+        // contentDescription bleibt null: Das Label darunter ist sichtbar und wird vorgelesen,
+        // eine zweite Ansage wäre für Screenreader nur Wiederholung.
+        icon = { Icon(icon, contentDescription = null) },
+        label = { Text(label) },
+    )
 }

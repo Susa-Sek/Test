@@ -16,7 +16,12 @@ object BlockLog {
 
     private const val CAPACITY = 20
 
-    data class Entry(val ruleId: String, val detail: String)
+    data class Entry(
+        val ruleId: String,
+        val detail: String,
+        /** Wanduhr-Zeit, damit die Startseite "vor 2 Min" anzeigen kann. */
+        val atMillis: Long = System.currentTimeMillis(),
+    )
 
     private val _entries = MutableStateFlow<List<Entry>>(emptyList())
     val entries: StateFlow<List<Entry>> = _entries.asStateFlow()

@@ -17,8 +17,17 @@ data class BlockSettings(
     val diagnostics: Boolean,
 ) {
     companion object {
-        /** Alle drei Blocker sind ab Installation an — dafür installiert man die App. */
-        val DEFAULT = BlockSettings(enabled = Feature.entries.toSet(), diagnostics = false)
+        /**
+         * Voreinstellung: alles an — außer „TikTok ganz blocken“.
+         *
+         * Das ist der einzige Schalter, der eine App vollständig unbenutzbar macht. So etwas
+         * schaltet man selbst ein; ungefragt wäre es eine Zumutung.
+         */
+        val DEFAULT_ENABLED: Set<Feature> = Feature.entries.toSet() - Feature.TIKTOK_ALL
+
+        fun isEnabledByDefault(feature: Feature): Boolean = feature in DEFAULT_ENABLED
+
+        val DEFAULT = BlockSettings(enabled = DEFAULT_ENABLED, diagnostics = false)
     }
 }
 
@@ -28,7 +37,9 @@ class SettingsRepository(context: Context) {
 
     val settings: Flow<BlockSettings> = dataStore.data.map { prefs ->
         BlockSettings(
-            enabled = Feature.entries.filterTo(mutableSetOf()) { prefs[key(it)] ?: true },
+            enabled = Feature.entries.filterTo(mutableSetOf()) {
+                prefs[key(it)] ?: BlockSettings.isEnabledByDefault(it)
+            },
             diagnostics = prefs[DIAGNOSTICS] ?: false,
         )
     }

@@ -5,8 +5,8 @@
     <string name="accessibility_service_label" translatable="false">ShortBlock</string>
     <string name="home_title" translatable="false">ShortBlock</string>
 
-    <string name="accessibility_service_summary">Blocks Reels, Shorts and non-followed feed posts</string>
-    <string name="accessibility_service_description">ShortBlock reads the screen content of Instagram and YouTube only, in order to detect Reels, Shorts and algorithmic feed posts and navigate away from them. Nothing is stored or sent anywhere — the app has no internet permission.</string>
+    <string name="accessibility_service_summary">Blocks Reels, Shorts and TikTok — in the apps and in the browser</string>
+    <string name="accessibility_service_description">ShortBlock reads the screen content of Instagram, YouTube, TikTok and your browser only, in order to detect Reels, Shorts and algorithmic feeds and navigate away from them. Nothing is stored or sent anywhere — the app has no internet permission.</string>
 
     <!-- Onboarding -->
     <string name="onboarding_title">Setup</string>
@@ -28,13 +28,36 @@
     <string name="service_inactive">Service is off — nothing is being blocked</string>
     <string name="service_inactive_hint">Open setup</string>
     <string name="toggle_reels_title">Block Instagram Reels</string>
-    <string name="toggle_reels_desc">Closes the Reels viewer, no matter whether it was opened from the tab, from Explore or from a DM. Stories stay untouched.</string>
+    <string name="toggle_reels_desc">Closes the Reels viewer — from the tab, Explore, a DM or the browser. Stories stay untouched.</string>
     <string name="toggle_feed_title">Instagram: followed accounts only</string>
     <string name="toggle_feed_desc">Forces the chronological “Following” feed and stops at the end of it, before the suggested posts start.</string>
     <string name="toggle_shorts_title">Block YouTube Shorts</string>
-    <string name="toggle_shorts_desc">Closes the Shorts player and the Shorts tab. Normal videos, search and subscriptions keep working.</string>
+    <string name="toggle_shorts_desc">Closes the Shorts player, the Shorts tab and youtube.com/shorts in the browser. Normal videos, search and subscriptions keep working.</string>
     <string name="blocked_today">Blocked today: %1$d</string>
     <string name="privacy_note">No internet permission, no analytics, nothing leaves the device.</string>
+    <string name="saved_today">%1$s saved</string>
+    <string name="saved_nothing_yet">Nothing blocked today</string>
+    <string name="saved_blocks">%1$d interruptions avoided today</string>
+    <string name="saved_assumption">estimated, 25 s per blocked opening</string>
+    <string name="week_title">Last 7 days</string>
+    <string name="day_bar_description">%1$s: %2$d blocked</string>
+    <string name="group_instagram" translatable="false">Instagram</string>
+    <string name="group_youtube" translatable="false">YouTube</string>
+    <string name="group_tiktok" translatable="false">TikTok</string>
+    <string name="toggle_tiktok_fyp_title">Block the For You feed</string>
+    <string name="toggle_tiktok_fyp_desc">Forces the Following tab. DMs, search and profiles keep working.</string>
+    <string name="toggle_tiktok_all_title">Block TikTok completely</string>
+    <string name="toggle_tiktok_all_desc">Every attempt to open TikTok navigates straight back — app and tiktok.com in the browser.</string>
+    <string name="toast_tiktok_switch_manual">Please switch to “Following” at the top</string>
+    <string name="nav_overview">Overview</string>
+    <string name="nav_setup">Setup</string>
+    <string name="nav_diagnostics">Diagnostics</string>
+    <string name="recent_block_chip">Last: %1$s, %2$s ago</string>
+    <string name="just_now">a moment</string>
+    <string name="minutes_short">%1$d min</string>
+    <string name="step_of">Step %1$d of %2$d</string>
+    <string name="block_log_title">Last actions</string>
+    <string name="block_log_empty">No rule has fired yet.</string>
     <string name="last_block_title">Last action</string>
     <string name="last_block_none">Nothing blocked yet.</string>
     <string name="last_block_hint">If the app closed something it should not have: this is the rule that fired. Report the line and it can be narrowed down.</string>

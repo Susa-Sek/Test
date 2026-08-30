@@ -197,4 +197,113 @@ class RuleMatcherTest {
         assertTrue(signatures.none { it.contains("Unsichtbar") })
         assertTrue(signatures.none { it.contains("kein view id") })
     }
+
+    // --- TikTok --------------------------------------------------------------------------
+
+    /**
+     * „TikTok ganz blocken“ ist die einzige Regel ohne Muster: Sie greift auf jedem Fenster
+     * des Pakets und kann deshalb von keinem TikTok-Update gebrochen werden.
+     */
+    @Test
+    fun `tiktok all blocks any window under both package names`() {
+        val tree = FakeNode(children = listOf(FakeNode(text = "Posteingang")))
+
+        Packages.TIKTOK.forEach { tiktokPackage ->
+            val match = RuleMatcher.findFirstMatch(tree, tiktokPackage, allFeatures)
+            assertEquals("tiktok_all", match?.rule?.id)
+        }
+    }
+
+    /** Auch ohne Baum — direkt nach dem Start ist er oft noch leer. */
+    @Test
+    fun `tiktok all blocks even without a tree`() {
+        val match = RuleMatcher.findFirstMatch(null, Packages.TIKTOK_GLOBAL, allFeatures)
+        assertEquals("tiktok_all", match?.rule?.id)
+    }
+
+    @Test
+    fun `tiktok all does nothing while switched off`() {
+        val enabled = setOf(Feature.INSTAGRAM_REELS, Feature.TIKTOK_FYP)
+        assertNull(RuleMatcher.findFirstMatch(null, Packages.TIKTOK_GLOBAL, enabled))
+    }
+
+    /** Die Paketbindung muss halten — sonst sperrt der TikTok-Schalter halb Android. */
+    @Test
+    fun `tiktok rule never fires on instagram or youtube`() {
+        assertNull(RuleMatcher.findFirstMatch(igNode(id = "feed_recycler_view"), Packages.INSTAGRAM, allFeatures))
+        assertNull(RuleMatcher.findFirstMatch(ytNode(id = "watch_player"), Packages.YOUTUBE, allFeatures))
+    }
+
+    // --- Browser -------------------------------------------------------------------------
+
+    private fun chromeNode(
+        id: String? = null,
+        text: String? = null,
+        children: List<FakeNode> = emptyList(),
+    ) = FakeNode(
+        viewId = id?.let { "com.android.chrome:id/$it" },
+        text = text,
+        children = children,
+    )
+
+    @Test
+    fun `shorts url in the address bar is blocked`() {
+        val tree = chromeNode(
+            id = "content",
+            children = listOf(chromeNode(id = "url_bar", text = "youtube.com/shorts/abc123")),
+        )
+        val match = RuleMatcher.findFirstMatch(tree, "com.android.chrome", allFeatures)
+
+        assertEquals("browser_yt_shorts", match?.rule?.id)
+        assertEquals(Feature.YOUTUBE_SHORTS, match?.rule?.feature)
+    }
+
+    /**
+     * Der Grund, warum die Browser-Regeln ein UND-Gatter auf die Adressleisten-ID haben.
+     *
+     * „youtube.com/shorts“ steht in jedem zweiten Suchergebnis. Ohne das Gatter würde die App
+     * einen mitten aus der Google-Suche werfen — ein Fehlalarm, der die App unbenutzbar macht.
+     */
+    @Test
+    fun `shorts url as plain page text is not blocked`() {
+        val searchResults = chromeNode(
+            id = "content",
+            children = listOf(
+                chromeNode(id = "url_bar", text = "google.com/search?q=shorts"),
+                chromeNode(id = "search_result_row", text = "youtube.com/shorts/abc123"),
+            ),
+        )
+        assertNull(RuleMatcher.findFirstMatch(searchResults, "com.android.chrome", allFeatures))
+    }
+
+    @Test
+    fun `instagram reel url in the address bar is blocked`() {
+        val tree = chromeNode(
+            id = "content",
+            children = listOf(chromeNode(id = "url_bar", text = "instagram.com/reel/xyz")),
+        )
+        assertEquals("browser_ig_reels", RuleMatcher.findFirstMatch(tree, "com.android.chrome", allFeatures)?.rule?.id)
+    }
+
+    @Test
+    fun `an ordinary youtube video url stays untouched`() {
+        val tree = chromeNode(
+            id = "content",
+            children = listOf(chromeNode(id = "url_bar", text = "youtube.com/watch?v=abc")),
+        )
+        assertNull(RuleMatcher.findFirstMatch(tree, "com.android.chrome", allFeatures))
+    }
+
+    /** tiktok.com im Browser hängt am Schalter „TikTok ganz blocken“, nicht am Feed-Schalter. */
+    @Test
+    fun `tiktok url follows the block-everything switch`() {
+        val tree = chromeNode(
+            id = "content",
+            children = listOf(chromeNode(id = "url_bar", text = "tiktok.com/@jemand")),
+        )
+        assertEquals("browser_tiktok", RuleMatcher.findFirstMatch(tree, "com.android.chrome", allFeatures)?.rule?.id)
+
+        val onlyFyp = setOf(Feature.TIKTOK_FYP, Feature.INSTAGRAM_REELS, Feature.YOUTUBE_SHORTS)
+        assertNull(RuleMatcher.findFirstMatch(tree, "com.android.chrome", onlyFyp))
+    }
 }

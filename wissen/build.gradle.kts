@@ -7,15 +7,15 @@ plugins {
 }
 
 android {
-    namespace = "de.shortblock.app"
+    namespace = "de.wissenshappen.app"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "de.shortblock.app"
+        applicationId = "de.wissenshappen.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "0.3.0"
+        versionCode = 1
+        versionName = "0.1.0"
     }
 
     buildTypes {
@@ -51,8 +51,8 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
-    implementation("androidx.compose.material:material-icons-core")
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.coil.compose)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)

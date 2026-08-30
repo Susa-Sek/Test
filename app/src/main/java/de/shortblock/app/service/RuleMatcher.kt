@@ -57,6 +57,12 @@ object RuleMatcher {
         }
         if (candidates.isEmpty()) return null
 
+        // Regeln, die das ganze Paket sperren, brauchen keinen Baum — und sollen ihn auch nicht
+        // durchlaufen: sie greifen selbst dann, wenn der Baum leer oder noch nicht aufgebaut ist.
+        candidates.firstOrNull { it.matchAnyWindow }?.let { rule ->
+            return RuleMatch(rule, "gesamtes Paket $packageName")
+        }
+
         val area = windowArea(root)
         var hit: RuleMatch? = null
         traverse(root) { node ->

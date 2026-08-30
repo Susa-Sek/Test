@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="accessibility_service_summary">Blockt Reels, Shorts und Feed-Beiträge von Nicht-Gefolgten</string>
-    <string name="accessibility_service_description">ShortBlock liest ausschließlich den Bildschirminhalt von Instagram und YouTube, um Reels, Shorts und algorithmische Feed-Beiträge zu erkennen und wegzunavigieren. Es wird nichts gespeichert und nichts gesendet — die App hat keine Internet-Berechtigung.</string>
+    <string name="accessibility_service_summary">Blockt Reels, Shorts und TikTok — in den Apps und im Browser</string>
+    <string name="accessibility_service_description">ShortBlock liest ausschließlich den Bildschirminhalt von Instagram, YouTube, TikTok und deinem Browser, um Reels, Shorts und algorithmische Feeds zu erkennen und wegzunavigieren. Es wird nichts gespeichert und nichts gesendet — die App hat keine Internet-Berechtigung.</string>
 
     <!-- Onboarding -->
     <string name="onboarding_title">Einrichtung</string>
@@ -23,13 +23,33 @@
     <string name="service_inactive">Dienst ist aus — es wird nichts geblockt</string>
     <string name="service_inactive_hint">Einrichtung öffnen</string>
     <string name="toggle_reels_title">Instagram Reels blocken</string>
-    <string name="toggle_reels_desc">Schließt den Reels-Viewer, egal ob aus dem Tab, aus Explore oder aus einer DM geöffnet. Stories bleiben unangetastet.</string>
+    <string name="toggle_reels_desc">Schließt den Reels-Viewer — aus dem Tab, aus Explore, aus einer DM oder aus dem Browser. Stories bleiben unangetastet.</string>
     <string name="toggle_feed_title">Instagram: nur gefolgte Accounts</string>
     <string name="toggle_feed_desc">Erzwingt den chronologischen „Folge ich“-Feed und stoppt an dessen Ende, bevor die Vorschläge anfangen.</string>
     <string name="toggle_shorts_title">YouTube Shorts blocken</string>
-    <string name="toggle_shorts_desc">Schließt den Shorts-Player und den Shorts-Tab. Normale Videos, Suche und Abos funktionieren weiter.</string>
+    <string name="toggle_shorts_desc">Schließt den Shorts-Player, den Shorts-Tab und youtube.com/shorts im Browser. Normale Videos, Suche und Abos funktionieren weiter.</string>
     <string name="blocked_today">Heute geblockt: %1$d</string>
     <string name="privacy_note">Keine Internet-Berechtigung, keine Analytics, nichts verlässt das Gerät.</string>
+    <string name="saved_today">%1$s gespart</string>
+    <string name="saved_nothing_yet">Heute noch nichts geblockt</string>
+    <string name="saved_blocks">%1$d Unterbrechungen heute vermieden</string>
+    <string name="saved_assumption">geschätzt, 25 s je geblocktem Aufruf</string>
+    <string name="week_title">Letzte 7 Tage</string>
+    <string name="day_bar_description">%1$s: %2$d geblockt</string>
+    <string name="toggle_tiktok_fyp_title">„Für dich“-Feed blocken</string>
+    <string name="toggle_tiktok_fyp_desc">Erzwingt den „Folge ich“-Tab. DMs, Suche und Profile bleiben nutzbar.</string>
+    <string name="toggle_tiktok_all_title">TikTok ganz blocken</string>
+    <string name="toggle_tiktok_all_desc">Jeder Öffnungsversuch führt sofort zurück — App und tiktok.com im Browser.</string>
+    <string name="toast_tiktok_switch_manual">Bitte oben auf „Folge ich“ umschalten</string>
+    <string name="nav_overview">Übersicht</string>
+    <string name="nav_setup">Einrichtung</string>
+    <string name="nav_diagnostics">Diagnose</string>
+    <string name="recent_block_chip">Zuletzt: %1$s, vor %2$s</string>
+    <string name="just_now">einem Moment</string>
+    <string name="minutes_short">%1$d Min</string>
+    <string name="step_of">Schritt %1$d von %2$d</string>
+    <string name="block_log_title">Zuletzt ausgelöst</string>
+    <string name="block_log_empty">Noch hat keine Regel gefeuert.</string>
     <string name="last_block_title">Zuletzt ausgelöst</string>
     <string name="last_block_none">Noch nichts geblockt.</string>
     <string name="last_block_hint">Falls die App etwas geschlossen hat, das sie nicht sollte: Das hier ist die Regel, die gefeuert hat. Zeile melden, dann lässt sie sich eingrenzen.</string>
