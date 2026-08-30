@@ -65,12 +65,17 @@ class BlockerAccessibilityService : AccessibilityService() {
         statsRepository = StatsRepository(applicationContext)
 
         scope.launch {
+            var lastDiagnostics: Boolean? = null
             settingsRepository.settings.collect { loaded ->
                 settings = loaded
                 if (loaded.keepAlive) {
                     KeepAliveService.start(applicationContext)
                 } else {
                     KeepAliveService.stop(applicationContext)
+                }
+                if (loaded.diagnostics != lastDiagnostics) {
+                    lastDiagnostics = loaded.diagnostics
+                    applyPackageScope(wide = loaded.diagnostics)
                 }
             }
         }
@@ -98,6 +103,20 @@ class BlockerAccessibilityService : AccessibilityService() {
         }
     }
 
+    /**
+     * Weitet den Empfang auf alle Apps oder engt ihn wieder auf [Packages.WATCHED] ein.
+     *
+     * Nötig, weil der Dienst sonst für ein unbekanntes Paket — etwa TikTok Lite — gar keine
+     * Ereignisse bekommt und deshalb auch nicht melden kann, dass eines fehlt. Die Weitung
+     * kostet spürbar Rechenzeit und ist deshalb an die bewusst eingeschaltete Aufzeichnung
+     * gekoppelt, nicht an den Dauerbetrieb.
+     */
+    private fun applyPackageScope(wide: Boolean) {
+        val info = serviceInfo ?: return
+        info.packageNames = if (wide) null else Packages.WATCHED.toTypedArray()
+        runCatching { serviceInfo = info }
+    }
+
     private fun refreshServiceInfo() {
         val info = serviceInfo ?: return
         runCatching { serviceInfo = info }
@@ -108,6 +127,12 @@ class BlockerAccessibilityService : AccessibilityService() {
         val packageName = event?.packageName?.toString() ?: return
         ServiceHealth.onEvent()
 
+        // Bewusst VOR der WATCHED-Prüfung: Genau die unbekannten Pakete sind die, die man sehen
+        // will. Solange die Aufzeichnung läuft, empfängt der Dienst Ereignisse aller Apps.
+        if (settings.diagnostics) DiagnosticsBuffer.recordPackage(packageName)
+
+        // Geblockt wird trotzdem ausschließlich bei überwachten Paketen. Die Weitung dient dem
+        // Zusehen, nie dem Eingreifen.
         if (packageName !in Packages.WATCHED) return
 
         if (packageName != lastPackage) {
@@ -157,32 +182,43 @@ class BlockerAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * Treffer verwerten — entweder Zeit gutschreiben oder blocken.
+     * **Die einzige Stelle, an der über das Kontingent entschieden wird.**
      *
-     * Ohne gesetztes Kontingent verhält sich das exakt wie vor v0.4: sofort zurück.
+     * Das ist der Kern der Reparatur in v0.4.1: Vorher stand diese Logik nur im Regel-Pfad, und
+     * TikToks „Für dich“ läuft über eine Policy statt über eine Regel — dort verpuffte jedes
+     * eingestellte Kontingent wortlos. Beide Pfade rufen jetzt hierher.
+     *
+     * @return `true`, wenn eingegriffen werden soll (blocken bzw. umschalten); `false`, solange
+     *   noch Kontingent übrig ist. Ohne gesetztes Kontingent immer `true` — das ist die
+     *   Voreinstellung und das Verhalten vor v0.4.
      */
-    private fun handleMatch(match: RuleMatch) {
-        val feature = match.rule.feature
+    private fun shouldIntervene(feature: Feature): Boolean {
         val budget = settings.budgetMinutes(feature)
-
-        if (!WatchBudget.hasBudget(budget)) {
-            BlockLog.record(match.rule.id, match.signature)
-            blockAndGoBack(feature)
-            return
-        }
+        if (!WatchBudget.hasBudget(budget)) return true
 
         val spent = budgetClock.tick(feature, System.currentTimeMillis(), spentSeconds[feature] ?: 0)
         flushBudget(force = false)
 
         if (!WatchBudget.isExhausted(spent, budget)) {
             exhaustedToastShown.remove(feature)
-            return
+            return false
         }
 
         if (exhaustedToastShown.add(feature)) {
             toast(R.string.toast_budget_spent)
         }
-        BlockLog.record(match.rule.id + " (Kontingent aufgebraucht)", match.signature)
+        return true
+    }
+
+    private fun handleMatch(match: RuleMatch) {
+        val feature = match.rule.feature
+        if (!shouldIntervene(feature)) return
+
+        val spent = settings.budgetMinutes(feature) > 0
+        BlockLog.record(
+            if (spent) match.rule.id + " (Kontingent aufgebraucht)" else match.rule.id,
+            match.signature,
+        )
         blockAndGoBack(feature)
     }
 
@@ -203,6 +239,10 @@ class BlockerAccessibilityService : AccessibilityService() {
             FeedDecision.AlreadyFiltered -> resetFeedState()
 
             is FeedDecision.ChooseFollowing -> {
+                // Kontingent zuerst: Solange Zeit übrig ist, darf „Für dich“ laufen und die Uhr
+                // tickt. Erst wenn es aufgebraucht ist, wird umgeschaltet.
+                if (!shouldIntervene(Feature.TIKTOK_FYP)) return
+
                 if (feedSwitchAttempts >= MAX_FEED_SWITCH_ATTEMPTS) {
                     if (!manualSwitchHintShown) {
                         manualSwitchHintShown = true

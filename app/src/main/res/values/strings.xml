@@ -90,4 +90,8 @@
     <!-- Service toasts -->
     <string name="toast_feed_end">End of the Following feed</string>
     <string name="toast_feed_switch_manual">Please switch to “Following” at the top left</string>
+    <string name="overridden_by_tiktok_all">No effect — “Block TikTok completely” already covers this</string>
+    <string name="seen_packages_title">Apps seen</string>
+    <string name="seen_packages_hint">While recording is on, the service listens to every app — that is how you find out the real package name if a blocker never fires. It only ever blocks the apps it is configured for.</string>
+    <string name="seen_packages_empty">Nothing yet. Turn recording on and open the app in question.</string>
 </resources>

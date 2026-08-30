@@ -24,6 +24,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import de.shortblock.app.R
@@ -132,6 +133,13 @@ fun HomeScreen(
                     feature = Feature.TIKTOK_FYP,
                     title = stringResource(R.string.toggle_tiktok_fyp_title),
                     description = stringResource(R.string.toggle_tiktok_fyp_desc),
+                    // Ist TikTok ganz gesperrt, greift die Regel vorher — diese Zeile ändert
+                    // dann nichts mehr, und das soll man sehen statt raten.
+                    overriddenNote = if (Feature.TIKTOK_ALL in settings.enabled) {
+                        stringResource(R.string.overridden_by_tiktok_all)
+                    } else {
+                        null
+                    },
                 ),
                 ToggleRow(
                     feature = Feature.TIKTOK_ALL,
@@ -220,6 +228,8 @@ private data class ToggleRow(
     val feature: Feature,
     val title: String,
     val description: String,
+    /** Gesetzt, wenn ein anderer Schalter diese Zeile bedeutungslos macht. */
+    val overriddenNote: String? = null,
 )
 
 @Composable
@@ -252,6 +262,7 @@ private fun AppGroup(
                     spentSeconds = secondsToday[row.feature] ?: 0,
                     budgetable = row.feature in BlockSettings.BUDGETABLE,
                     onBudgetChange = { onBudgetChange(row.feature, it) },
+                    overriddenNote = row.overriddenNote,
                 )
             }
         }
@@ -269,8 +280,13 @@ private fun FeatureRow(
     spentSeconds: Int,
     budgetable: Boolean,
     onBudgetChange: (Int) -> Unit,
+    overriddenNote: String? = null,
 ) {
-    Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
+    Column(
+        Modifier
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .alpha(if (overriddenNote != null) 0.45f else 1f),
+    ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -294,7 +310,17 @@ private fun FeatureRow(
         Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 
-        if (budgetable && checked) {
+        if (overriddenNote != null) {
+            Text(
+                text = overriddenNote,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
+
+        // Kein Kontingent anbieten, wo es ohnehin nichts bewirkt.
+        if (budgetable && checked && overriddenNote == null) {
             BudgetChips(
                 budgetMinutes = budgetMinutes,
                 spentSeconds = spentSeconds,

@@ -28,6 +28,7 @@ fun DiagnosticsScreen(
     recording: Boolean,
     entries: List<String>,
     blockLog: List<BlockLog.Entry>,
+    seenPackages: List<String>,
     onToggleRecording: (Boolean) -> Unit,
     onClear: () -> Unit,
 ) {
@@ -96,6 +97,37 @@ fun DiagnosticsScreen(
                     )
                 }
                 Switch(checked = recording, onCheckedChange = onToggleRecording)
+            }
+        }
+
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp)) {
+                    Text(
+                        text = stringResource(R.string.seen_packages_title),
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    Text(
+                        text = stringResource(R.string.seen_packages_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 8.dp),
+                    )
+                    if (seenPackages.isEmpty()) {
+                        Text(
+                            text = stringResource(R.string.seen_packages_empty),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    } else {
+                        seenPackages.forEach { name ->
+                            Text(
+                                text = name,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontFamily = FontFamily.Monospace,
+                            )
+                        }
+                    }
+                }
             }
         }
 

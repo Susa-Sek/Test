@@ -55,6 +55,7 @@ fun AppRoot() {
     val blockLog by BlockLog.entries.collectAsStateWithLifecycle()
     val secondsToday by statsRepository.secondsToday.collectAsStateWithLifecycle(emptyMap())
     val healthSnapshot by ServiceHealth.state.collectAsStateWithLifecycle()
+    val seenPackages by DiagnosticsBuffer.packages.collectAsStateWithLifecycle()
 
     var serviceEnabled by remember { mutableStateOf(SystemSettings.isServiceEnabled(context)) }
     var batteryExempt by remember { mutableStateOf(SystemSettings.isIgnoringBatteryOptimizations(context)) }
@@ -136,6 +137,7 @@ fun AppRoot() {
                     recording = settings.diagnostics,
                     entries = diagnostics,
                     blockLog = blockLog.asReversed(),
+                    seenPackages = seenPackages,
                     onToggleRecording = { enabled ->
                         scope.launch { settingsRepository.setDiagnosticsEnabled(enabled) }
                     },

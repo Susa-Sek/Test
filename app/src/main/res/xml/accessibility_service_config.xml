@@ -11,6 +11,6 @@
     android:canRetrieveWindowContent="true"
     android:description="@string/accessibility_service_description"
     android:notificationTimeout="100"
-    android:packageNames="com.instagram.android,com.google.android.youtube,com.zhiliaoapp.musically,com.ss.android.ugc.trill,com.android.chrome,org.mozilla.firefox,com.brave.browser,com.microsoft.emmx,com.opera.browser,com.opera.mini.native,com.sec.android.app.sbrowser,com.duckduckgo.mobile.android,com.kiwibrowser.browser,com.vivaldi.browser"
+    android:packageNames="com.instagram.android,com.google.android.youtube,com.zhiliaoapp.musically,com.zhiliaoapp.musically.go,com.ss.android.ugc.trill,com.ss.android.ugc.aweme,com.android.chrome,org.mozilla.firefox,com.brave.browser,com.microsoft.emmx,com.opera.browser,com.opera.mini.native,com.sec.android.app.sbrowser,com.duckduckgo.mobile.android,com.kiwibrowser.browser,com.vivaldi.browser"
     android:settingsActivity="de.shortblock.app.MainActivity"
     android:summary="@string/accessibility_service_summary" />

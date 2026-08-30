@@ -45,6 +45,15 @@ data class BlockSettings(
             Feature.TIKTOK_FYP,
         )
 
+        /**
+         * Features ohne eigene Block-Regel, die stattdessen eine Policy durchsetzt.
+         *
+         * Diese Liste existiert, damit `EnforcementCoverageTest` prüfen kann, dass jedes Feature
+         * genau einen Durchsetzungsweg hat. Ohne sie war `TIKTOK_FYP` budgetierbar, ohne dass
+         * irgendwo ein Budget ausgewertet wurde — die Chips in der Oberfläche waren Attrappe.
+         */
+        val POLICY_ENFORCED = setOf(Feature.INSTAGRAM_FEED, Feature.TIKTOK_FYP)
+
         /** Auswahl in der Oberfläche; 0 steht für „Immer blocken“. */
         val BUDGET_CHOICES = listOf(0, 5, 10, 20, 30)
 

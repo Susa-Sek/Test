@@ -103,6 +103,21 @@ zu viel.
 Bekannte Ungenauigkeit: Steht das Video still, feuert Android kaum Ereignisse und die Uhr
 stockt.
 
+## Wenn ein Blocker gar nichts tut
+
+Meist stimmt der Paketname nicht. TikTok allein läuft unter vier davon — `musically`,
+`musically.go` (**Lite**), `trill`, `aweme` —, und wer die Lite-Variante nutzt, bei dem tat
+ShortBlock vor v0.4.1 bei TikTok schlicht nichts.
+
+Das Tückische daran: Der Dienst bekommt für nicht gelistete Pakete überhaupt keine Ereignisse,
+kann das Fehlen also nicht melden. Deshalb weitet er, **solange die Diagnose-Aufzeichnung läuft**,
+seinen Empfang auf alle Apps und listet unter *Diagnose → Gesehene Apps* die echten Paketnamen.
+Geblockt wird trotzdem ausschließlich, wofür er eingerichtet ist — die Weitung dient dem Zusehen.
+
+Steht dort ein Paketname, der nicht in `Packages` in
+[`Rules.kt`](app/src/main/java/de/shortblock/app/service/Rules.kt) und nicht in
+`res/xml/accessibility_service_config.xml` steht: an beiden Stellen nachtragen, fertig.
+
 ## Wenn etwas falsch geblockt wird
 
 Auf dem Home-Screen steht unter **„Zuletzt ausgelöst"** die ID der Regel, die zuletzt gefeuert

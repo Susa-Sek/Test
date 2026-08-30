@@ -82,4 +82,8 @@
     <!-- Service-Toasts -->
     <string name="toast_feed_end">Ende des „Folge ich“-Feeds</string>
     <string name="toast_feed_switch_manual">Bitte oben links auf „Folge ich“ umschalten</string>
+    <string name="overridden_by_tiktok_all">Ohne Wirkung — „TikTok ganz blocken“ greift vorher</string>
+    <string name="seen_packages_title">Gesehene Apps</string>
+    <string name="seen_packages_hint">Solange die Aufzeichnung läuft, hört der Dienst auf alle Apps — so findest du den echten Paketnamen, wenn ein Blocker nie auslöst. Geblockt wird weiterhin nur, wofür er eingerichtet ist.</string>
+    <string name="seen_packages_empty">Noch nichts. Aufzeichnen einschalten und die fragliche App öffnen.</string>
 </resources>

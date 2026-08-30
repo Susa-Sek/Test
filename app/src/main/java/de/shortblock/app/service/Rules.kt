@@ -29,13 +29,19 @@ object Packages {
     const val YOUTUBE = "com.google.android.youtube"
 
     /**
-     * TikTok läuft unter zwei Paketnamen: weltweit `musically`, in einzelnen Regionen `trill`.
-     * Wer nur einen einträgt, hat auf der Hälfte der Geräte eine App, die scheinbar nichts tut.
+     * TikTok läuft unter mehreren Paketnamen — und wer einen davon vergisst, bei dem tut die App
+     * auf dem betroffenen Gerät schlicht nichts. `musically.go` ist **TikTok Lite** und war der
+     * Grund, warum „TikTok ganz blocken“ bei manchen Installationen wirkungslos blieb.
+     *
+     * Wenn hier je wieder etwas fehlt: Diagnose einschalten, TikTok öffnen, unter „zuletzt
+     * gesehene Apps“ steht der echte Paketname.
      */
     const val TIKTOK_GLOBAL = "com.zhiliaoapp.musically"
+    const val TIKTOK_LITE = "com.zhiliaoapp.musically.go"
     const val TIKTOK_REGIONAL = "com.ss.android.ugc.trill"
+    const val TIKTOK_AWEME = "com.ss.android.ugc.aweme"
 
-    val TIKTOK = setOf(TIKTOK_GLOBAL, TIKTOK_REGIONAL)
+    val TIKTOK = setOf(TIKTOK_GLOBAL, TIKTOK_LITE, TIKTOK_REGIONAL, TIKTOK_AWEME)
 
     /**
      * Browser. Ohne die ist jeder Blocker eine Papiertür: youtube.com/shorts im Browser

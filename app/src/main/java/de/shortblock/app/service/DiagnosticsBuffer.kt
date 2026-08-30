@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.update
 object DiagnosticsBuffer {
 
     private const val CAPACITY = 400
+    private const val PACKAGE_CAPACITY = 40
 
     private val _entries = MutableStateFlow<List<String>>(emptyList())
     val entries: StateFlow<List<String>> = _entries.asStateFlow()
@@ -35,7 +36,26 @@ object DiagnosticsBuffer {
         }
     }
 
+    /**
+     * Paketnamen, die der Dienst gesehen hat — auch von Apps, die gar nicht überwacht werden.
+     *
+     * Der Grund: Läuft TikTok unter einem Paketnamen, den [Packages.TIKTOK] nicht kennt, bekommt
+     * der Dienst normalerweise überhaupt keine Ereignisse und kann deshalb auch nicht melden,
+     * dass etwas fehlt. Solange die Aufzeichnung läuft, weitet er seinen Empfang auf alle Apps
+     * und schreibt hier mit — damit lässt sich die Frage „wie heißt dein TikTok?“ ablesen statt
+     * raten.
+     */
+    private val _packages = MutableStateFlow<List<String>>(emptyList())
+    val packages: StateFlow<List<String>> = _packages.asStateFlow()
+
+    fun recordPackage(packageName: String) {
+        _packages.update { known ->
+            if (packageName in known) known else (known + packageName).takeLast(PACKAGE_CAPACITY)
+        }
+    }
+
     fun clear() {
         _entries.value = emptyList()
+        _packages.value = emptyList()
     }
 }
