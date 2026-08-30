@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<incidents format="6" by="lint 8.13.2" type="partial_results">
+    <map id="UnsafeIntentLaunch">
+            <map id="unprotected">
+                <entry
+                    name="de.wissenshappen.app.MainActivity"
+                    boolean="true"/>
+            </map>
+    </map>
+    <map id="UnusedResources">
+        <location id="R.string.loading"
+            file="${:wissen*debug*MAIN*sourceProvider*0*resDir*0}/values/strings.xml"
+            line="6"
+            column="13"
+            startOffset="154"
+            endLine="6"
+            endColumn="27"
+            endOffset="168"/>
+        <location id="R.string.open_source"
+            file="${:wissen*debug*MAIN*sourceProvider*0*resDir*0}/values/strings.xml"
+            line="12"
+            column="13"
+            startOffset="474"
+            endLine="12"
+            endColumn="31"
+            endOffset="492"/>
+        <entry
+            name="model"
+            string="color[ic_launcher_background(U),ink(U)],drawable[ic_launcher_foreground(U)],mipmap[ic_launcher(U),ic_launcher_round(U)],string[app_name(U),loading(D),empty_feed(U),error_generic(U),retry(U),save(U),saved(U),open_source(D),topics(U),my_cards(U),goal_progress(U),goal_reached(U),card_today(U),card_on_this_day(U),topics_title(U),topics_hint(U),topics_own(U),topics_add(U),topics_none(U),goal_title(U),back(U),saved_title(U),saved_empty(U),saved_reveal(U),remove(U)],style[Theme_Wissenshappen(U)];3^0^2,4^0^2,1e^1;;;"/>
+    </map>
+
+</incidents>

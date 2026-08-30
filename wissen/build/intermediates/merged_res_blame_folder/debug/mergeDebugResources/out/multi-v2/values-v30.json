@@ -1,0 +1,19 @@
+{
+    "logs": [
+        {
+            "outputFile": "de.wissenshappen.app.wissen-mergeDebugResources-2:/values-v30/values-v30.xml",
+            "map": [
+                {
+                    "source": "/root/.gradle/caches/8.14.3/transforms/571425e3b8be435bf80dd06f461d5fd4/transformed/material3/res/values-v30/values-v30.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "72",
+                        "endOffsets": "123"
+                    }
+                }
+            ]
+        }
+    ]
+}

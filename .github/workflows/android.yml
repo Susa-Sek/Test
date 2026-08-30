@@ -25,19 +25,26 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Unit tests
-        run: ./gradlew --no-daemon :app:testDebugUnitTest
+        run: ./gradlew --no-daemon testDebugUnitTest
 
       - name: Lint
-        run: ./gradlew --no-daemon :app:lintDebug
+        run: ./gradlew --no-daemon lintDebug
 
-      - name: Build debug APK
-        run: ./gradlew --no-daemon :app:assembleDebug
+      - name: Build debug APKs
+        run: ./gradlew --no-daemon assembleDebug
 
-      - name: Upload APK
+      - name: Upload ShortBlock APK
         uses: actions/upload-artifact@v4
         with:
           name: shortblock-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+
+      - name: Upload Wissenshappen APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: wissenshappen-debug-apk
+          path: wissen/build/outputs/apk/debug/wissen-debug.apk
           if-no-files-found: error
 
       - name: Upload test report on failure
@@ -45,5 +52,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: unit-test-report
-          path: app/build/reports/tests/testDebugUnitTest
+          path: |
+            app/build/reports/tests/testDebugUnitTest
+            wissen/build/reports/tests/testDebugUnitTest
           if-no-files-found: ignore

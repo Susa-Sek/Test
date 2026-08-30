@@ -1,0 +1,33 @@
+R_DEF: Internal format may change without notice
+local
+color ic_launcher_background
+color ink
+drawable ic_launcher_foreground
+mipmap ic_launcher
+mipmap ic_launcher_round
+string app_name
+string back
+string card_on_this_day
+string card_today
+string empty_feed
+string error_generic
+string goal_progress
+string goal_reached
+string goal_title
+string loading
+string my_cards
+string open_source
+string remove
+string retry
+string save
+string saved
+string saved_empty
+string saved_reveal
+string saved_title
+string topics
+string topics_add
+string topics_hint
+string topics_none
+string topics_own
+string topics_title
+style Theme.Wissenshappen

@@ -1,3 +1,11 @@
+# ShortBlock & Wissenshappen
+
+Zwei Apps in einem Repo, die zusammengehören: **ShortBlock** nimmt den Kurzvideo-Sog weg,
+**Wissenshappen** füllt die Lücke. Beide werden vom selben CI-Lauf gebaut und liegen dort als
+getrennte Artifacts (`shortblock-debug-apk`, `wissenshappen-debug-apk`).
+
+---
+
 # ShortBlock
 
 Android-App, die Kurzvideo-Sog abschaltet, ohne Instagram, YouTube oder TikTok zu sperren:
@@ -140,3 +148,57 @@ Back-Schleife, die aus der App wirft) und 600 ms nach einem Tipp auf den Feed-Um
 ## Lizenz
 
 Noch keine gewählt.
+
+---
+
+# Wissenshappen
+
+Derselbe Wisch, anderer Inhalt: Vollbild-Karten, vertikal durchgewischt wie Reels — nur stehen
+darauf Wikipedia-Artikel zu deinen Themen.
+
+Blocken allein trägt nicht weit. Es entsteht eine Lücke, und die Lücke gewinnt die alte
+Gewohnheit oft zurück. Diese App besetzt sie mit demselben Bewegungsmuster.
+
+| | |
+|---|---|
+| **Quelle** | Wikipedia, kostenlos, ohne Schlüssel und ohne Konto |
+| **Feed** | Themenkarten plus Artikel des Tages und „An diesem Tag" |
+| **Themen** | frei wählbar, eigene Begriffe möglich — Wikipedia hat zu fast allem etwas |
+| **Merken** | Lesezeichen je Karte; die Merkliste zeigt erst den Titel, der Text kommt auf Tippen |
+| **Tagesziel** | einstellbar, Fortschrittsbalken oben |
+
+## Warum kein Zufallsartikel
+
+Naheliegend wäre `generator=random` gewesen. Ausprobiert und verworfen: Wikipedia liefert damit
+zuverlässig Namenslisten, Denkmalverzeichnisse und Begriffsklärungen — also genau das
+Weiterwischen ohne Ertrag, das die App abschaffen soll.
+
+Stattdessen zwei kuratierte Quellen plus ein Filter:
+
+1. **Themensuche** (`generator=search`) mit zufälligem Offset, damit der Feed nicht nach zwei
+   Tagen leer wirkt.
+2. **Tagesfeed** (`feed/featured`) — Artikel des Tages und „An diesem Tag" sind redaktionell
+   ausgewählt und damit die verlässlichste kostenlose Qualitätsquelle.
+3. **`WikipediaParser.isWorthShowing`** wirft aus, was trotzdem durchrutscht: Listen,
+   Begriffsklärungen, reine Jahreszahlen, Texte unter 120 Zeichen. Jede dieser Regeln hat einen
+   eigenen Test.
+
+## Merken heißt Abfragen
+
+Die Merkliste ist bewusst keine Leseliste. Zuerst steht nur der Titel da; der Text erscheint
+erst auf Tippen. Dieser kurze Moment, in dem man versucht sich zu erinnern, ist der Unterschied
+zwischen Wiederlesen und Behalten.
+
+## Unterschied zu ShortBlock
+
+Wissenshappen braucht **Internet** (die Happen kommen von Wikipedia), dafür **keine
+Bedienungshilfe** und keinen Zugriff auf fremde Apps. Umgekehrt bei ShortBlock. Deshalb sind es
+zwei getrennte Apps und nicht eine: So bleibt ShortBlocks Zusage „kann technisch nichts senden"
+wahr.
+
+## Grenzen
+
+- Nur deutschsprachige Wikipedia. Die Sprache steckt in `WikipediaSource(language = "de")`.
+- Kein Offline-Vorrat: Ohne Verbindung bleibt der Feed leer, statt gespeicherte Karten zu zeigen.
+- Die Merkliste liegt als JSON in DataStore. Für ein paar hundert Karten reicht das; wer
+  Tausende sammelt, sollte auf Room umstellen.

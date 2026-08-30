@@ -43,6 +43,9 @@ fun AppRoot() {
 
     var screen by rememberSaveable { mutableStateOf(Screen.FEED) }
 
+    // Zurueckwischen auf eine schon gesehene Karte darf das Tagesziel nicht hochtreiben.
+    val countedIds = remember { mutableSetOf<String>() }
+
     LaunchedEffect(topics) {
         if (topics.isNotEmpty()) feedRepository.start(topics)
     }
@@ -57,7 +60,11 @@ fun AppRoot() {
                 seenToday = seenToday,
                 dailyGoal = dailyGoal,
                 onPageReached = { index -> scope.launch { feedRepository.onPageReached(index, topics) } },
-                onCardSeen = { scope.launch { progressRepository.countCard() } },
+                onCardSeen = { card ->
+                    if (countedIds.add(card.id)) {
+                        scope.launch { progressRepository.countCard() }
+                    }
+                },
                 onToggleSave = { card -> scope.launch { savedRepository.toggle(card) } },
                 onRetry = { scope.launch { feedRepository.refresh(topics) } },
                 onOpenTopics = { screen = Screen.TOPICS },
