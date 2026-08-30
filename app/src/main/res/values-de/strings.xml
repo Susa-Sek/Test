@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accessibility_service_summary">Blockt Reels, Shorts und Feed-Beiträge von Nicht-Gefolgten</string>
+    <string name="accessibility_service_description">ShortBlock liest ausschließlich den Bildschirminhalt von Instagram und YouTube, um Reels, Shorts und algorithmische Feed-Beiträge zu erkennen und wegzunavigieren. Es wird nichts gespeichert und nichts gesendet — die App hat keine Internet-Berechtigung.</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_title">Einrichtung</string>
+    <string name="onboarding_intro">ShortBlock arbeitet über eine Bedienungshilfe. Drei Schritte, in dieser Reihenfolge — Schritt 2 bleibt ausgegraut, solange Schritt 1 fehlt.</string>
+    <string name="step_restricted_title">1. Eingeschränkte Einstellungen zulassen</string>
+    <string name="step_restricted_body">Ab Android 13 sperrt das System Bedienungshilfen für sideloadete Apps. In der App-Info oben rechts auf das ⋮-Menü tippen und „Eingeschränkte Einstellungen zulassen“ wählen. Fehlt der Eintrag, ist dieser Schritt schon erledigt.</string>
+    <string name="step_restricted_button">App-Info öffnen</string>
+    <string name="step_accessibility_title">2. Bedienungshilfe aktivieren</string>
+    <string name="step_accessibility_body">Unter „Installierte Apps“ / „Heruntergeladene Apps“ ShortBlock auswählen und einschalten.</string>
+    <string name="step_accessibility_button">Bedienungshilfen öffnen</string>
+    <string name="step_battery_title">3. Von Akku-Optimierung ausnehmen (optional)</string>
+    <string name="step_battery_body">Empfohlen auf Xiaomi-, Samsung- und OnePlus-Geräten — die beenden Hintergrunddienste aggressiv.</string>
+    <string name="step_battery_button">Akku-Einstellungen öffnen</string>
+    <string name="step_done">Erledigt</string>
+    <string name="onboarding_continue">Weiter</string>
+
+    <!-- Home -->
+    <string name="service_active">Dienst läuft</string>
+    <string name="service_inactive">Dienst ist aus — es wird nichts geblockt</string>
+    <string name="service_inactive_hint">Einrichtung öffnen</string>
+    <string name="toggle_reels_title">Instagram Reels blocken</string>
+    <string name="toggle_reels_desc">Schließt den Reels-Viewer, egal ob aus dem Tab, aus Explore oder aus einer DM geöffnet. Stories bleiben unangetastet.</string>
+    <string name="toggle_feed_title">Instagram: nur gefolgte Accounts</string>
+    <string name="toggle_feed_desc">Erzwingt den chronologischen „Folge ich“-Feed und stoppt an dessen Ende, bevor die Vorschläge anfangen.</string>
+    <string name="toggle_shorts_title">YouTube Shorts blocken</string>
+    <string name="toggle_shorts_desc">Schließt den Shorts-Player und den Shorts-Tab. Normale Videos, Suche und Abos funktionieren weiter.</string>
+    <string name="blocked_today">Heute geblockt: %1$d</string>
+    <string name="privacy_note">Keine Internet-Berechtigung, keine Analytics, nichts verlässt das Gerät.</string>
+    <string name="open_diagnostics">Diagnose</string>
+    <string name="open_setup">Einrichtung</string>
+
+    <!-- Diagnose -->
+    <string name="diagnostics_title">Diagnose</string>
+    <string name="diagnostics_toggle">View-IDs aufzeichnen</string>
+    <string name="diagnostics_hint">Wenn Instagram oder YouTube ihr Layout ändern, blockt die App stillschweigend nicht mehr. Dann hier aufzeichnen einschalten, den nicht mehr geblockten Screen öffnen, zurückkommen und die passenden IDs in Rules.kt übernehmen.</string>
+    <string name="diagnostics_empty">Noch nichts aufgezeichnet. Aufzeichnen einschalten und Instagram oder YouTube öffnen.</string>
+    <string name="diagnostics_clear">Leeren</string>
+    <string name="back">Zurück</string>
+
+    <!-- Service-Toasts -->
+    <string name="toast_feed_end">Ende des „Folge ich“-Feeds</string>
+    <string name="toast_feed_switch_manual">Bitte oben links auf „Folge ich“ umschalten</string>
+</resources>

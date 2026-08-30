@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Produktname, wird nicht übersetzt. -->
+    <string name="app_name" translatable="false">ShortBlock</string>
+    <string name="accessibility_service_label" translatable="false">ShortBlock</string>
+    <string name="home_title" translatable="false">ShortBlock</string>
+
+    <string name="accessibility_service_summary">Blocks Reels, Shorts and non-followed feed posts</string>
+    <string name="accessibility_service_description">ShortBlock reads the screen content of Instagram and YouTube only, in order to detect Reels, Shorts and algorithmic feed posts and navigate away from them. Nothing is stored or sent anywhere — the app has no internet permission.</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_title">Setup</string>
+    <string name="onboarding_intro">ShortBlock works through an accessibility service. Three steps, in this order — step 2 stays greyed out until step 1 is done.</string>
+    <string name="step_restricted_title">1. Allow restricted settings</string>
+    <string name="step_restricted_body">Android 13 and newer block accessibility for sideloaded apps. In the app info screen tap the ⋮ menu at the top right and choose “Allow restricted settings”. If that entry is missing, this step is already done.</string>
+    <string name="step_restricted_button">Open app info</string>
+    <string name="step_accessibility_title">2. Enable the accessibility service</string>
+    <string name="step_accessibility_body">Under “Installed apps” / “Downloaded apps” pick ShortBlock and switch it on.</string>
+    <string name="step_accessibility_button">Open accessibility settings</string>
+    <string name="step_battery_title">3. Exclude from battery optimisation (optional)</string>
+    <string name="step_battery_body">Recommended on Xiaomi, Samsung and OnePlus devices — they stop background services aggressively.</string>
+    <string name="step_battery_button">Open battery settings</string>
+    <string name="step_done">Done</string>
+    <string name="onboarding_continue">Continue</string>
+
+    <!-- Home -->
+    <string name="service_active">Service is running</string>
+    <string name="service_inactive">Service is off — nothing is being blocked</string>
+    <string name="service_inactive_hint">Open setup</string>
+    <string name="toggle_reels_title">Block Instagram Reels</string>
+    <string name="toggle_reels_desc">Closes the Reels viewer, no matter whether it was opened from the tab, from Explore or from a DM. Stories stay untouched.</string>
+    <string name="toggle_feed_title">Instagram: followed accounts only</string>
+    <string name="toggle_feed_desc">Forces the chronological “Following” feed and stops at the end of it, before the suggested posts start.</string>
+    <string name="toggle_shorts_title">Block YouTube Shorts</string>
+    <string name="toggle_shorts_desc">Closes the Shorts player and the Shorts tab. Normal videos, search and subscriptions keep working.</string>
+    <string name="blocked_today">Blocked today: %1$d</string>
+    <string name="privacy_note">No internet permission, no analytics, nothing leaves the device.</string>
+    <string name="open_diagnostics">Diagnostics</string>
+    <string name="open_setup">Setup</string>
+
+    <!-- Diagnostics -->
+    <string name="diagnostics_title">Diagnostics</string>
+    <string name="diagnostics_toggle">Record view IDs</string>
+    <string name="diagnostics_hint">When Instagram or YouTube change their layout, blocking silently stops working. Turn this on, open the screen that is no longer blocked, come back here and copy the matching IDs into Rules.kt.</string>
+    <string name="diagnostics_empty">Nothing recorded yet. Turn recording on and open Instagram or YouTube.</string>
+    <string name="diagnostics_clear">Clear</string>
+    <string name="back">Back</string>
+
+    <!-- Service toasts -->
+    <string name="toast_feed_end">End of the Following feed</string>
+    <string name="toast_feed_switch_manual">Please switch to “Following” at the top left</string>
+</resources>

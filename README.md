@@ -1,0 +1,95 @@
+# ShortBlock
+
+Android-App, die drei Ablenkungen abschaltet, ohne Instagram oder YouTube zu sperren:
+
+| Blocker | Was passiert |
+|---|---|
+| **Instagram Reels** | Der Reels-Viewer wird sofort geschlossen — egal ob aus dem Tab, aus Explore oder aus einer DM geöffnet. Stories bleiben unangetastet. |
+| **Instagram-Feed nur mit Gefolgten** | Die App erzwingt den chronologischen „Folge ich“-Feed und navigiert am Ende des Feeds heraus, bevor Instagram wieder Vorschläge nachschiebt. |
+| **YouTube Shorts** | Shorts-Player und Shorts-Tab werden geschlossen. Normale Videos, Suche und Abos funktionieren weiter. |
+
+Kein Play Store, keine Konten, **keine Internet-Berechtigung**. Die App kann technisch
+nichts nach außen senden.
+
+## Installieren
+
+1. Im Repo auf **Actions** → letzten erfolgreichen Lauf des Workflows *Android* öffnen.
+2. Unter **Artifacts** `shortblock-debug-apk` herunterladen und entpacken.
+3. `app-debug.apk` auf das Telefon kopieren und installieren („Installation aus unbekannten
+   Quellen“ für den Datei-Manager oder Browser erlauben).
+4. App öffnen und die drei Einrichtungsschritte durchgehen.
+
+> **Update-Hinweis:** Die Debug-APK wird mit dem Debug-Keystore signiert, den GitHub Actions
+> bei jedem Lauf neu erzeugen kann. Meldet die Installation einen Signatur-Konflikt, muss die
+> alte Version einmal deinstalliert werden. Wer das dauerhaft vermeiden will, hinterlegt einen
+> eigenen Keystore als GitHub Secret und baut `assembleRelease`.
+
+## Einrichtung — die Reihenfolge ist wichtig
+
+1. **Eingeschränkte Einstellungen zulassen.** Ab Android 13 sperrt das System Bedienungshilfen
+   für sideloadete Apps. In der App-Info oben rechts das ⋮-Menü öffnen und *„Eingeschränkte
+   Einstellungen zulassen“* wählen. Fehlt der Eintrag, ist nichts zu tun.
+2. **Bedienungshilfe einschalten.** Einstellungen → Bedienungshilfen → ShortBlock.
+   Ohne Schritt 1 ist dieser Schalter ausgegraut — das ist der häufigste Grund, warum solche
+   Apps „nicht funktionieren“.
+3. **Akku-Optimierung ausnehmen** (optional). Auf Xiaomi, Samsung und OnePlus empfohlen.
+
+## Wenn plötzlich nichts mehr geblockt wird
+
+Instagram und YouTube ändern ihre internen View-IDs mit größeren Updates. Dann ist genau eine
+Datei anzupassen: [`Rules.kt`](app/src/main/java/de/shortblock/app/service/Rules.kt).
+
+Die IDs muss man dafür nicht raten:
+
+1. In der App auf **Diagnose** gehen und *View-IDs aufzeichnen* einschalten.
+2. Den Bildschirm öffnen, der nicht mehr geblockt wird (z. B. ein Reel).
+3. Zurück in die Diagnose — dort stehen die IDs des gerade gesehenen Bildschirms.
+4. Das passende Muster in `Rules.kt` ergänzen, neu bauen.
+
+Alternativ am Rechner: `adb shell uiautomator dump && adb pull /sdcard/window_dump.xml`.
+
+**Fallstrick, der beim Nachpflegen leicht passiert:** Instagram nennt Reels intern *clips*,
+und `reel_*` bezeichnet dort die **Stories**. Ein Muster `reel_` würde also Stories blocken
+statt Reels. Bei YouTube ist es umgekehrt: dort heißen Shorts intern *reel*. Beides ist in
+`Rules.kt` kommentiert und durch Tests abgesichert.
+
+## Selbst bauen
+
+```bash
+echo "sdk.dir=/pfad/zum/Android/Sdk" > local.properties
+./gradlew :app:testDebugUnitTest    # Erkennungslogik prüfen
+./gradlew :app:assembleDebug        # APK nach app/build/outputs/apk/debug/
+```
+
+Benötigt JDK 17 und das Android SDK mit Platform 36.
+
+## Aufbau
+
+```
+AccessibilityEvent  →  UiNode  →  RuleMatcher / FeedPolicy  →  Zurück oder Tippen
+   (nur IG + YT)     (testbar)         (Rules.kt)               (mit Cooldown)
+```
+
+| Datei | Rolle |
+|---|---|
+| `service/Rules.kt` | **Alle** Erkennungsmuster. Die einzige Datei, die ein IG/YT-Update betrifft. |
+| `service/RuleMatcher.kt` | Baum-Traversierung mit Tiefen- und Knotenlimit, Regel-Abgleich. |
+| `service/FeedPolicy.kt` | Zustandslogik für den Instagram-Feed: umschalten, nichts tun oder raus. |
+| `service/BlockerAccessibilityService.kt` | Ereignis-Eingang, Drosselung, Cooldowns, Zähler. |
+| `service/UiNode.kt` | Abstraktion über `AccessibilityNodeInfo` — macht die Logik JVM-testbar. |
+
+Die drei Zeitschranken im Service sind kein Feintuning, sondern tragen die Stabilität:
+höchstens ein Baum-Scan pro 150 ms, 800 ms Ruhe nach jedem Zurück (sonst entsteht eine
+Back-Schleife, die aus der App wirft) und 600 ms nach einem Tipp auf den Feed-Umschalter.
+
+## Grenzen
+
+- Views in fremden Apps lassen sich nicht entfernen, nur wegnavigieren. Ein Reel ist also für
+  einen Sekundenbruchteil sichtbar, bevor es schließt.
+- Schlägt das Umschalten auf „Folge ich“ zweimal fehl, gibt die App auf und zeigt einen
+  Hinweis, statt weiter blind zu tippen.
+- Nicht getestet auf Geräten mit stark angepasster Bedienungshilfe-Implementierung.
+
+## Lizenz
+
+Noch keine gewählt.
