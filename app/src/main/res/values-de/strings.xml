@@ -30,6 +30,9 @@
     <string name="toggle_shorts_desc">Schließt den Shorts-Player und den Shorts-Tab. Normale Videos, Suche und Abos funktionieren weiter.</string>
     <string name="blocked_today">Heute geblockt: %1$d</string>
     <string name="privacy_note">Keine Internet-Berechtigung, keine Analytics, nichts verlässt das Gerät.</string>
+    <string name="last_block_title">Zuletzt ausgelöst</string>
+    <string name="last_block_none">Noch nichts geblockt.</string>
+    <string name="last_block_hint">Falls die App etwas geschlossen hat, das sie nicht sollte: Das hier ist die Regel, die gefeuert hat. Zeile melden, dann lässt sie sich eingrenzen.</string>
     <string name="open_diagnostics">Diagnose</string>
     <string name="open_setup">Einrichtung</string>
 

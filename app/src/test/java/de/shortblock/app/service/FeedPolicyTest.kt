@@ -69,8 +69,8 @@ class FeedPolicyTest {
     }
 
     /**
-     * Kein Endlos-Tippen: Steht im Titel bereits „Folge ich“, darf dieser Text nicht als
-     * Menüeintrag missverstanden werden.
+     * Kein Endlos-Tippen: Steht im Titel bereits "Folge ich", darf dieser Text nicht als
+     * Menueintrag missverstanden werden.
      */
     @Test
     fun `switched title is not mistaken for a menu entry`() {
@@ -80,12 +80,32 @@ class FeedPolicyTest {
     }
 
     @Test
-    fun `end of the following feed navigates back`() {
+    fun `visible end marker ends the following feed`() {
         val caughtUp = feed(
             "Folge ich",
             extra = listOf(igNode(id = "row_text", text = "Du bist auf dem neuesten Stand")),
         )
-        assertEquals(FeedDecision.EndOfFeed, FeedPolicy.evaluate(caughtUp))
+        val decision = FeedPolicy.evaluate(caughtUp)
+
+        assertTrue(decision is FeedDecision.EndOfFeed)
+        assertEquals("Du bist auf dem neuesten Stand", (decision as FeedDecision.EndOfFeed).marker)
+    }
+
+    /**
+     * DER Fehler aus Version 0.1.0, in Testform.
+     *
+     * Der Accessibility-Baum enthaelt auch Knoten weit unterhalb des Bildschirms. Zaehlt ein
+     * solcher unsichtbarer "Vorgeschlagene Beitraege"-Knoten als Feed-Ende, wirft die App
+     * beim Oeffnen von Instagram sofort wieder heraus — und zwar jedes Mal, sodass die App
+     * praktisch unbenutzbar wird.
+     */
+    @Test
+    fun `end marker below the fold does not end the feed`() {
+        val notYetReached = feed(
+            "Folge ich",
+            extra = listOf(igNode(id = "row_text", text = "Vorgeschlagene Beiträge", visible = false)),
+        )
+        assertEquals(FeedDecision.AlreadyFiltered, FeedPolicy.evaluate(notYetReached))
     }
 
     @Test
@@ -94,13 +114,13 @@ class FeedPolicyTest {
             "Following",
             extra = listOf(igNode(id = "row_text", text = "You’re all caught up")),
         )
-        assertEquals(FeedDecision.EndOfFeed, FeedPolicy.evaluate(caughtUp))
+        assertTrue(FeedPolicy.evaluate(caughtUp) is FeedDecision.EndOfFeed)
     }
 
     /**
-     * Im algorithmischen Feed steht „Vorgeschlagen für dich“ an einzelnen Beiträgen mitten im
-     * Feed. Würde der Ende-Marker dort greifen, flöge man beim Scrollen aus Instagram raus —
-     * deshalb zählt er nur, wenn der Folge-ich-Feed aktiv ist.
+     * Im algorithmischen Feed steht "Vorgeschlagen fuer dich" an einzelnen Beitraegen mitten im
+     * Feed. Wuerde der Ende-Marker dort greifen, floege man beim Scrollen aus Instagram raus —
+     * deshalb zaehlt er nur, wenn der Folge-ich-Feed aktiv ist.
      */
     @Test
     fun `end marker is ignored while the algorithmic feed is active`() {

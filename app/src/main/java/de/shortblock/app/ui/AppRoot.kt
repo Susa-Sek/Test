@@ -24,6 +24,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.shortblock.app.data.BlockSettings
 import de.shortblock.app.data.SettingsRepository
 import de.shortblock.app.data.StatsRepository
+import de.shortblock.app.service.BlockLog
 import de.shortblock.app.service.DiagnosticsBuffer
 import de.shortblock.app.service.Feature
 import de.shortblock.app.system.SystemSettings
@@ -41,6 +42,7 @@ fun AppRoot() {
     val settings by settingsRepository.settings.collectAsStateWithLifecycle(BlockSettings.DEFAULT)
     val counts by statsRepository.today.collectAsStateWithLifecycle(emptyMap())
     val diagnostics by DiagnosticsBuffer.entries.collectAsStateWithLifecycle()
+    val blockLog by BlockLog.entries.collectAsStateWithLifecycle()
 
     var serviceEnabled by remember { mutableStateOf(SystemSettings.isServiceEnabled(context)) }
     var batteryExempt by remember { mutableStateOf(SystemSettings.isIgnoringBatteryOptimizations(context)) }
@@ -89,6 +91,7 @@ fun AppRoot() {
                     serviceEnabled = serviceEnabled,
                     settings = settings,
                     counts = counts,
+                    lastBlock = blockLog.lastOrNull(),
                     onToggle = { feature: Feature, enabled: Boolean ->
                         scope.launch { settingsRepository.setFeatureEnabled(feature, enabled) }
                     },

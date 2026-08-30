@@ -1,5 +1,8 @@
 package de.shortblock.app.service
 
+/** Was gematcht hat — inklusive Knoten-Beschreibung, damit Fehlalarme benennbar sind. */
+data class RuleMatch(val rule: Rule, val signature: String)
+
 /**
  * Baum-Traversierung und Regel-Abgleich. Reines Kotlin, damit es auf der JVM testbar bleibt.
  *
@@ -44,26 +47,31 @@ object RuleMatcher {
         return false
     }
 
+    /** Fläche des Fensters, gegen die Größenschranken von Regeln gemessen werden. */
+    fun windowArea(root: UiNode?): Long = root?.bounds?.area ?: 0L
+
     /** Erste zutreffende Regel für dieses Paket, beschränkt auf die aktivierten Features. */
-    fun findFirstMatch(root: UiNode?, packageName: String, enabled: Set<Feature>): Rule? {
+    fun findFirstMatch(root: UiNode?, packageName: String, enabled: Set<Feature>): RuleMatch? {
         val candidates = Rules.BLOCK_RULES.filter {
             it.packageName == packageName && it.feature in enabled
         }
         if (candidates.isEmpty()) return null
 
-        var hit: Rule? = null
+        val area = windowArea(root)
+        var hit: RuleMatch? = null
         traverse(root) { node ->
-            hit = candidates.firstOrNull { rule -> rule.matches(node) }
+            val rule = candidates.firstOrNull { it.matches(node, area) }
+            if (rule != null) hit = RuleMatch(rule, describe(node))
             hit != null
         }
         return hit
     }
 
-    /** Erster Knoten, auf den [predicate] zutrifft. */
+    /** Erster *sichtbarer* Knoten, auf den [predicate] zutrifft. */
     fun findNode(root: UiNode?, predicate: (UiNode) -> Boolean): UiNode? {
         var hit: UiNode? = null
         traverse(root) { node ->
-            if (predicate(node)) {
+            if (node.isVisible && predicate(node)) {
                 hit = node
                 true
             } else {
@@ -76,25 +84,29 @@ object RuleMatcher {
     fun containsNode(root: UiNode?, predicate: (UiNode) -> Boolean): Boolean =
         findNode(root, predicate) != null
 
+    /** Kurzbeschreibung eines Knotens für Diagnose und Fehlalarm-Protokoll. */
+    fun describe(node: UiNode): String {
+        val viewId = node.viewId?.substringAfter("id/", missingDelimiterValue = "")?.ifEmpty { null }
+        val description = node.contentDescription?.toString()?.trim()?.ifEmpty { null }
+        val text = node.text?.toString()?.trim()?.ifEmpty { null }
+        return buildList {
+            if (viewId != null) add("id=$viewId")
+            if (description != null) add("desc=${description.take(40)}")
+            if (text != null) add("text=${text.take(40)}")
+            if (node.isSelected) add("selected")
+        }.joinToString("  ").ifEmpty { "<kein Merkmal>" }
+    }
+
     /**
-     * Momentaufnahme des Baums für den Diagnose-Screen: eine Zeile je Knoten, der überhaupt
-     * etwas Identifizierbares trägt. Genau das, was man nach einem Instagram-Update braucht,
-     * um neue Muster in [Rules] einzutragen.
+     * Momentaufnahme des Baums für den Diagnose-Screen: eine Zeile je sichtbarem Knoten, der
+     * überhaupt etwas Identifizierbares trägt. Genau das, was man nach einem Instagram-Update
+     * braucht, um neue Muster in [Rules] einzutragen.
      */
     fun collectSignatures(root: UiNode?, limit: Int = 120): List<String> {
         val out = ArrayList<String>(limit)
         traverse(root) { node ->
-            val viewId = node.viewId?.substringAfter("id/", missingDelimiterValue = "")?.ifEmpty { null }
-            val description = node.contentDescription?.toString()?.trim()?.ifEmpty { null }
-            val text = node.text?.toString()?.trim()?.ifEmpty { null }
-            if (viewId != null || description != null) {
-                val parts = buildList {
-                    if (viewId != null) add("id=$viewId")
-                    if (description != null) add("desc=${description.take(40)}")
-                    if (text != null) add("text=${text.take(40)}")
-                    if (node.isSelected) add("selected")
-                }
-                out.add(parts.joinToString("  "))
+            if (node.isVisible && (node.viewId != null || node.contentDescription != null)) {
+                out.add(describe(node))
             }
             out.size >= limit
         }

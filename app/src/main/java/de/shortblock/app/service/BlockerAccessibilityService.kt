@@ -79,9 +79,10 @@ class BlockerAccessibilityService : AccessibilityService() {
             DiagnosticsBuffer.record(packageName, RuleMatcher.collectSignatures(root))
         }
 
-        val rule = RuleMatcher.findFirstMatch(root, packageName, enabledFeatures)
-        if (rule != null) {
-            blockAndGoBack(rule.feature)
+        val match = RuleMatcher.findFirstMatch(root, packageName, enabledFeatures)
+        if (match != null) {
+            BlockLog.record(match.rule.id, match.signature)
+            blockAndGoBack(match.rule.feature)
             return
         }
 
@@ -91,6 +92,7 @@ class BlockerAccessibilityService : AccessibilityService() {
     }
 
     private fun handleInstagramFeed(root: UiNode) {
+        val windowArea = RuleMatcher.windowArea(root)
         when (val decision = FeedPolicy.evaluate(root)) {
             FeedDecision.Idle -> Unit
 
@@ -106,19 +108,22 @@ class BlockerAccessibilityService : AccessibilityService() {
                     return
                 }
                 feedSwitchAttempts++
-                if (Actions.clickNearest(decision.node)) {
+                if (Actions.clickNearest(decision.node, windowArea)) {
+                    BlockLog.record("ig_feed_open_switcher", RuleMatcher.describe(decision.node))
                     pausedUntil = SystemClock.uptimeMillis() + CLICK_COOLDOWN_MS
                 }
             }
 
             is FeedDecision.ChooseFollowing -> {
-                if (Actions.clickNearest(decision.node)) {
+                if (Actions.clickNearest(decision.node, windowArea)) {
+                    BlockLog.record("ig_feed_choose_following", RuleMatcher.describe(decision.node))
                     resetFeedState()
                     pausedUntil = SystemClock.uptimeMillis() + CLICK_COOLDOWN_MS
                 }
             }
 
-            FeedDecision.EndOfFeed -> {
+            is FeedDecision.EndOfFeed -> {
+                BlockLog.record("ig_feed_end", decision.marker)
                 toast(R.string.toast_feed_end)
                 blockAndGoBack(Feature.INSTAGRAM_FEED)
             }

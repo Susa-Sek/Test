@@ -20,9 +20,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import de.shortblock.app.R
 import de.shortblock.app.data.BlockSettings
+import de.shortblock.app.service.BlockLog
 import de.shortblock.app.service.Feature
 
 @Composable
@@ -30,6 +32,7 @@ fun HomeScreen(
     serviceEnabled: Boolean,
     settings: BlockSettings,
     counts: Map<Feature, Int>,
+    lastBlock: BlockLog.Entry?,
     onToggle: (Feature, Boolean) -> Unit,
     onOpenSetup: () -> Unit,
     onOpenDiagnostics: () -> Unit,
@@ -70,6 +73,8 @@ fun HomeScreen(
             onCheckedChange = { onToggle(Feature.YOUTUBE_SHORTS, it) },
         )
 
+        LastBlockCard(lastBlock)
+
         Text(
             text = stringResource(R.string.privacy_note),
             style = MaterialTheme.typography.bodySmall,
@@ -83,6 +88,38 @@ fun HomeScreen(
         }
 
         Spacer(Modifier.height(16.dp))
+    }
+}
+
+/**
+ * Zeigt, welche Regel zuletzt gefeuert hat.
+ *
+ * Klingt nach Entwickler-Kram, ist aber das wichtigste Feld der App: Wenn ShortBlock aus
+ * Instagram wirft, obwohl es nicht sollte, steht hier der Name der schuldigen Regel. Ohne
+ * diese Zeile bleibt nur Raten zwischen allen Mustern.
+ */
+@Composable
+private fun LastBlockCard(lastBlock: BlockLog.Entry?) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp)) {
+            Text(
+                text = stringResource(R.string.last_block_title),
+                style = MaterialTheme.typography.titleSmall,
+            )
+            Text(
+                text = lastBlock?.let { "${it.ruleId}\n${it.detail}" }
+                    ?: stringResource(R.string.last_block_none),
+                style = MaterialTheme.typography.bodySmall,
+                fontFamily = FontFamily.Monospace,
+                modifier = Modifier.padding(top = 6.dp),
+            )
+            Text(
+                text = stringResource(R.string.last_block_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
     }
 }
 

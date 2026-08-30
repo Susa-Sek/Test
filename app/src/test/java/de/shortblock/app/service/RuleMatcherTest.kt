@@ -14,15 +14,53 @@ class RuleMatcherTest {
     // --- Instagram Reels ---------------------------------------------------------------
 
     @Test
-    fun `reels viewer is blocked`() {
+    fun `fullscreen reels viewer is blocked`() {
         val tree = igNode(
             id = "layout_container_main",
-            children = listOf(
-                igNode(id = "clips_viewer_view_pager"),
-            ),
+            children = listOf(igNode(id = "clips_viewer_view_pager")),
         )
-        val rule = RuleMatcher.findFirstMatch(tree, Packages.INSTAGRAM, allFeatures)
-        assertEquals(Feature.INSTAGRAM_REELS, rule?.feature)
+        val match = RuleMatcher.findFirstMatch(tree, Packages.INSTAGRAM, allFeatures)
+
+        assertEquals(Feature.INSTAGRAM_REELS, match?.rule?.feature)
+        assertEquals("ig_clips_viewer", match?.rule?.id)
+        assertTrue(match!!.signature.contains("clips_viewer_view_pager"))
+    }
+
+    /**
+     * Regressionstest zu Fehler 2: Ein eingebetteter Clips-Container in einem Feed-Beitrag
+     * trägt dieselbe View-ID wie der Vollbild-Viewer, ist aber nur etwa halb so groß.
+     * Ohne die Größenschranke fliegt man beim Scrollen durch den Feed aus Instagram.
+     */
+    @Test
+    fun `inline clips preview inside the feed is not blocked`() {
+        val tree = igNode(
+            id = "feed_recycler_view",
+            children = listOf(igNode(id = "clips_viewer_media", bounds = FakeNode.FEED_MEDIA)),
+        )
+        assertNull(RuleMatcher.findFirstMatch(tree, Packages.INSTAGRAM, allFeatures))
+    }
+
+    /**
+     * Regressionstest zu Fehler 1: Der Baum enthält auch recycelte und ausgeblendete Knoten.
+     * Was man nicht sieht, darf nichts auslösen.
+     */
+    @Test
+    fun `invisible node never matches`() {
+        val tree = igNode(
+            id = "layout_container_main",
+            children = listOf(igNode(id = "clips_viewer_view_pager", visible = false)),
+        )
+        assertNull(RuleMatcher.findFirstMatch(tree, Packages.INSTAGRAM, allFeatures))
+    }
+
+    /** Ohne bekannte Größe wird nicht geblockt — ein Fehlalarm ist teurer als eine Lücke. */
+    @Test
+    fun `unknown bounds do not block`() {
+        val tree = igNode(
+            id = "layout_container_main",
+            children = listOf(igNode(id = "clips_viewer_view_pager", bounds = null)),
+        )
+        assertNull(RuleMatcher.findFirstMatch(tree, Packages.INSTAGRAM, allFeatures))
     }
 
     /**
@@ -57,25 +95,29 @@ class RuleMatcherTest {
         assertNull(RuleMatcher.findFirstMatch(tree, Packages.INSTAGRAM, allFeatures))
     }
 
+    /**
+     * Der Reels-Tab in der unteren Leiste ist bewusst KEINE eigene Regel mehr: Wer ihn
+     * antippt, landet im Viewer, und den fängt `ig_clips_viewer`. Eine zweite Regel auf die
+     * Tab-Leiste wäre nur eine weitere Fehlalarm-Quelle auf jedem Instagram-Bildschirm.
+     */
     @Test
-    fun `reels tab matches only while selected`() {
-        val selected = igNode(id = "tab_bar", children = listOf(igNode(id = "clips_tab", selected = true)))
-        val unselected = igNode(id = "tab_bar", children = listOf(igNode(id = "clips_tab", selected = false)))
-
-        assertNotNull(RuleMatcher.findFirstMatch(selected, Packages.INSTAGRAM, allFeatures))
-        assertNull(RuleMatcher.findFirstMatch(unselected, Packages.INSTAGRAM, allFeatures))
+    fun `reels tab alone is not a trigger`() {
+        val tree = igNode(
+            id = "tab_bar",
+            children = listOf(igNode(id = "clips_tab", selected = true, bounds = FakeNode.FEED_MEDIA)),
+        )
+        assertNull(RuleMatcher.findFirstMatch(tree, Packages.INSTAGRAM, allFeatures))
     }
 
     // --- YouTube Shorts ----------------------------------------------------------------
 
     @Test
     fun `shorts player is blocked`() {
-        val tree = ytNode(
-            id = "content",
-            children = listOf(ytNode(id = "reel_recycler")),
-        )
-        val rule = RuleMatcher.findFirstMatch(tree, Packages.YOUTUBE, allFeatures)
-        assertEquals(Feature.YOUTUBE_SHORTS, rule?.feature)
+        val tree = ytNode(id = "content", children = listOf(ytNode(id = "reel_recycler")))
+        val match = RuleMatcher.findFirstMatch(tree, Packages.YOUTUBE, allFeatures)
+
+        assertEquals(Feature.YOUTUBE_SHORTS, match?.rule?.feature)
+        assertEquals("yt_shorts_player", match?.rule?.id)
     }
 
     @Test
@@ -140,17 +182,19 @@ class RuleMatcherTest {
     }
 
     @Test
-    fun `signatures list identifiable nodes for diagnostics`() {
+    fun `signatures list visible identifiable nodes for diagnostics`() {
         val tree = igNode(
             id = "tab_bar",
             children = listOf(
                 igNode(id = "clips_tab", description = "Reels", selected = true),
+                igNode(id = "hidden_row", description = "Unsichtbar", visible = false),
                 igNode(text = "kein view id, keine description"),
             ),
         )
         val signatures = RuleMatcher.collectSignatures(tree)
 
         assertTrue(signatures.any { it.contains("id=clips_tab") && it.contains("selected") })
+        assertTrue(signatures.none { it.contains("Unsichtbar") })
         assertTrue(signatures.none { it.contains("kein view id") })
     }
 }

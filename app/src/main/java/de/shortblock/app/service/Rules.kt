@@ -7,6 +7,10 @@ package de.shortblock.app.service
  * irgendwann nichts mehr blockt, ist das hier die einzige Datei, die angefasst werden muss.
  * Der Diagnose-Screen in der App zeigt die aktuell vorhandenen IDs an, damit man sie ohne
  * Laptop und ohne adb ablesen kann.
+ *
+ * Leitsatz für jede Regel hier: **Ein Fehlalarm ist teurer als eine Lücke.** Wer versehentlich
+ * aus Instagram fliegt, kann die App nicht mehr benutzen; wer ein Reel zu viel sieht, ärgert
+ * sich kurz. Im Zweifel also lieber nicht blocken.
  */
 enum class Feature {
     INSTAGRAM_REELS,
@@ -22,11 +26,16 @@ object Packages {
 }
 
 /**
- * Eine Regel trifft zu, sobald *irgendein* Knoten im Baum *eines* ihrer Muster erfüllt.
+ * Eine Regel trifft zu, sobald *irgendein sichtbarer* Knoten im Baum *eines* ihrer Muster
+ * erfüllt.
  *
  * [requireSelected] gilt für die gesamte Regel: sie feuert dann nur an einem Knoten, der
  * gerade ausgewählt ist. Das ist für Tab-Leisten nötig — der Shorts-Tab ist immer im Baum,
  * relevant ist er nur, wenn er aktiv ist.
+ *
+ * [minAreaFraction] verlangt, dass der Treffer mindestens diesen Anteil des Fensters einnimmt.
+ * Damit unterscheidet sich ein Vollbild-Viewer von einer eingebetteten Vorschau im Feed, die
+ * zufällig dieselbe View-ID trägt. Ist die Größe unbekannt, wird NICHT geblockt.
  */
 data class Rule(
     val id: String,
@@ -36,9 +45,12 @@ data class Rule(
     val contentDescriptionEquals: List<String> = emptyList(),
     val textContains: List<String> = emptyList(),
     val requireSelected: Boolean = false,
+    val minAreaFraction: Float = 0f,
 ) {
-    fun matches(node: UiNode): Boolean {
+    fun matches(node: UiNode, windowArea: Long): Boolean {
+        if (!node.isVisible) return false
         if (requireSelected && !node.isSelected) return false
+        if (!hasRequiredSize(node, windowArea)) return false
 
         val viewId = normalizeForMatch(node.viewId)
         if (viewId != null && viewIdContains.any { viewId.contains(it) }) return true
@@ -51,6 +63,13 @@ data class Rule(
 
         return false
     }
+
+    private fun hasRequiredSize(node: UiNode, windowArea: Long): Boolean {
+        if (minAreaFraction <= 0f) return true
+        if (windowArea <= 0L) return false
+        val area = node.bounds?.area ?: return false
+        return area >= windowArea * minAreaFraction
+    }
 }
 
 object Rules {
@@ -61,6 +80,10 @@ object Rules {
      * Der Instagram-Feed steht bewusst NICHT hier: er braucht eine Zustandsbetrachtung
      * (welcher Feed ist aktiv?) statt eines einzelnen Treffers und liegt deshalb in
      * [InstagramFeed] plus [FeedPolicy].
+     *
+     * Jedes Muster hat eine eigene Regel-ID. Das ist kein Selbstzweck: Wenn ein Fehlalarm
+     * auftritt, nennt der Home-Screen genau die ID, die gefeuert hat — sonst rätselt man,
+     * welches von vier Mustern schuld war.
      */
     val BLOCK_RULES: List<Rule> = listOf(
 
@@ -70,36 +93,29 @@ object Rules {
         // "reel_*" bezeichnet bei Instagram die STORIES (reel_tray, reel_viewer_...).
         // Ein Muster "reel_" würde hier also Stories blocken statt Reels — deshalb
         // matchen wir ausschließlich auf "clips_".
+        //
+        // Die Größenschranke trennt den Vollbild-Viewer von eingebetteten Clips-Containern
+        // in Feed-Beiträgen. Ein Feed-Medium ist etwa quadratisch und belegt selten mehr als
+        // die Hälfte des Fensters; der Viewer belegt praktisch das ganze.
         Rule(
             id = "ig_clips_viewer",
             feature = Feature.INSTAGRAM_REELS,
             packageName = Packages.INSTAGRAM,
-            viewIdContains = listOf(
-                "clips_viewer",
-                "clips_swipe_refresh_container",
-                "clips_video_container",
-            ),
-        ),
-        Rule(
-            id = "ig_clips_tab_selected",
-            feature = Feature.INSTAGRAM_REELS,
-            packageName = Packages.INSTAGRAM,
-            viewIdContains = listOf("clips_tab"),
-            requireSelected = true,
+            viewIdContains = listOf("clips_viewer"),
+            minAreaFraction = 0.6f,
         ),
 
         // --- YouTube Shorts --------------------------------------------------------------
         //
         // Umgekehrt zu Instagram: YouTube nennt Shorts intern "reel".
+        //
+        // Bewusst eng gehalten: Auf der YouTube-Startseite liegt ein Shorts-Regal mitten
+        // im normalen Feed. Ein zu weites Muster („shorts_…“) würde den Nutzer beim
+        // Scrollen aus der Startseite werfen.
         Rule(
             id = "yt_shorts_player",
             feature = Feature.YOUTUBE_SHORTS,
             packageName = Packages.YOUTUBE,
-            //
-            // Bewusst eng gehalten: Auf der YouTube-Startseite liegt ein Shorts-Regal mitten
-            // im normalen Feed. Ein zu weites Muster („shorts_…“) würde den Nutzer beim
-            // Scrollen aus der Startseite werfen — ein Fehlalarm ist hier teurer als eine
-            // Lücke. Fehlende IDs lassen sich über den Diagnose-Screen nachtragen.
             viewIdContains = listOf(
                 "reel_recycler",
                 "reel_watch_fragment",
@@ -170,8 +186,13 @@ object Rules {
 
         /**
          * Ende des „Folge ich“-Feeds. Ab hier schiebt Instagram wieder Fremd-Inhalte nach.
-         * Wird nur ausgewertet, wenn der Folge-ich-Feed tatsächlich aktiv ist — sonst würde
-         * das Label „Vorgeschlagen für dich“ im normalen Feed sofort aus der App werfen.
+         *
+         * Zwei Bedingungen, beide notwendig, beide je einmal schmerzhaft gelernt:
+         * 1. Der Folge-ich-Feed muss aktiv sein — sonst wirft das Label „Vorgeschlagen für
+         *    dich“ an einem einzelnen Beitrag im normalen Feed sofort aus der App.
+         * 2. Der Marker muss SICHTBAR sein. Der Baum enthält auch Knoten weit unterhalb des
+         *    Bildschirms; ohne diese Prüfung gilt der Feed als beendet, bevor man ihn
+         *    überhaupt gesehen hat.
          */
         val END_MARKERS = listOf(
             "you're all caught up",

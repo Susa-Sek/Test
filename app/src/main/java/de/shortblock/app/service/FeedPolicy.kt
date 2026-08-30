@@ -18,15 +18,20 @@ sealed interface FeedDecision {
     data class ChooseFollowing(val node: UiNode) : FeedDecision
 
     /** Ende des „Folge ich“-Feeds erreicht, ab hier kommen wieder Fremd-Inhalte. */
-    data object EndOfFeed : FeedDecision
+    data class EndOfFeed(val marker: String) : FeedDecision
 }
 
 /**
  * Zustandslose Auswertung des Instagram-Startfeeds.
  *
- * Die Reihenfolge der Prüfungen ist nicht beliebig: Der Titel wird *zuerst* ausgewertet.
- * Stünde die Menü-Erkennung vorne, würde der bereits umgeschaltete Titel („Folge ich“)
- * selbst als Menüeintrag gelesen — und die App würde endlos auf sich selbst tippen.
+ * Zwei Eigenschaften, die nicht verhandelbar sind:
+ *
+ * 1. **Nur sichtbare Knoten zählen.** [RuleMatcher.findNode] filtert das bereits. Ohne diese
+ *    Filterung gilt ein „Vorgeschlagene Beiträge“-Knoten, der noch weit unter dem Bildschirm
+ *    liegt, sofort als Feed-Ende — und die App wirft beim Öffnen aus Instagram heraus.
+ * 2. **Der Titel wird zuerst ausgewertet.** Stünde die Menü-Erkennung vorne, würde der bereits
+ *    umgeschaltete Titel („Folge ich“) selbst als Menüeintrag gelesen — und die App würde
+ *    endlos auf sich selbst tippen.
  */
 object FeedPolicy {
 
@@ -40,7 +45,8 @@ object FeedPolicy {
             ?: return FeedDecision.Idle
 
         if (Rules.InstagramFeed.FOLLOWING_TITLES.any { titleLabel == it }) {
-            return if (hasEndMarker(root)) FeedDecision.EndOfFeed else FeedDecision.AlreadyFiltered
+            val marker = visibleEndMarker(root)
+            return if (marker != null) FeedDecision.EndOfFeed(marker) else FeedDecision.AlreadyFiltered
         }
 
         if (Rules.InstagramFeed.ALGORITHMIC_TITLES.none { titleLabel == it }) {
@@ -79,9 +85,11 @@ object FeedPolicy {
             Rules.InstagramFeed.MENU_FOLLOWING_ENTRIES.any { label == it }
         }
 
-    private fun hasEndMarker(root: UiNode): Boolean =
-        RuleMatcher.containsNode(root) { node ->
-            val text = normalizeForMatch(node.text) ?: return@containsNode false
+    private fun visibleEndMarker(root: UiNode): String? {
+        val node = RuleMatcher.findNode(root) { candidate ->
+            val text = normalizeForMatch(candidate.text) ?: return@findNode false
             Rules.InstagramFeed.END_MARKERS.any { text.contains(it) }
         }
+        return node?.text?.trim()
+    }
 }

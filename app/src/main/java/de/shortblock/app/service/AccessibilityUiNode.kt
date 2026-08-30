@@ -1,5 +1,6 @@
 package de.shortblock.app.service
 
+import android.graphics.Rect
 import android.view.accessibility.AccessibilityNodeInfo
 
 /**
@@ -15,7 +16,15 @@ class AccessibilityUiNode(val node: AccessibilityNodeInfo) : UiNode {
     override val text: String? get() = node.text?.toString()
     override val contentDescription: String? get() = node.contentDescription?.toString()
     override val isSelected: Boolean get() = node.isSelected
+    override val isVisible: Boolean get() = node.isVisibleToUser
     override val childCount: Int get() = node.childCount
+
+    override val bounds: NodeBounds?
+        get() {
+            val rect = Rect()
+            node.getBoundsInScreen(rect)
+            return if (rect.isEmpty) null else NodeBounds(rect.left, rect.top, rect.right, rect.bottom)
+        }
 
     override fun child(index: Int): UiNode? =
         runCatching { node.getChild(index) }.getOrNull()?.let(::AccessibilityUiNode)

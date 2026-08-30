@@ -34,6 +34,22 @@ nichts nach außen senden.
    Apps „nicht funktionieren“.
 3. **Akku-Optimierung ausnehmen** (optional). Auf Xiaomi, Samsung und OnePlus empfohlen.
 
+## Wenn etwas falsch geblockt wird
+
+Auf dem Home-Screen steht unter **„Zuletzt ausgelöst"** die ID der Regel, die zuletzt gefeuert
+hat, plus der Knoten, an dem sie gegriffen hat. Wenn ShortBlock aus einer App wirft, obwohl es
+nicht sollte, ist das die entscheidende Information — ohne sie bleibt nur Raten zwischen allen
+Mustern.
+
+Zwei Leitplanken machen Fehlalarme unwahrscheinlicher, beide je einmal schmerzhaft gelernt:
+
+- **Nur sichtbare Knoten zählen.** Der Accessibility-Baum enthält auch recycelte Listeneinträge
+  und Knoten weit unterhalb des Bildschirms. Ohne diese Prüfung gilt ein „Vorgeschlagene
+  Beiträge"-Knoten als Feed-Ende, bevor man ihn überhaupt gesehen hat.
+- **Größe entscheidet mit.** Die Reels-Regel greift nur bei einem Treffer, der mindestens 60 %
+  des Fensters einnimmt. So bleibt eine eingebettete Clips-Vorschau im Feed unangetastet, der
+  Vollbild-Viewer nicht.
+
 ## Wenn plötzlich nichts mehr geblockt wird
 
 Instagram und YouTube ändern ihre internen View-IDs mit größeren Updates. Dann ist genau eine

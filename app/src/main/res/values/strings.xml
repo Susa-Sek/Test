@@ -35,6 +35,9 @@
     <string name="toggle_shorts_desc">Closes the Shorts player and the Shorts tab. Normal videos, search and subscriptions keep working.</string>
     <string name="blocked_today">Blocked today: %1$d</string>
     <string name="privacy_note">No internet permission, no analytics, nothing leaves the device.</string>
+    <string name="last_block_title">Last action</string>
+    <string name="last_block_none">Nothing blocked yet.</string>
+    <string name="last_block_hint">If the app closed something it should not have: this is the rule that fired. Report the line and it can be narrowed down.</string>
     <string name="open_diagnostics">Diagnostics</string>
     <string name="open_setup">Setup</string>
 
