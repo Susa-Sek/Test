@@ -44,6 +44,7 @@ Android-Abhängige bleibt eine dünne Hülle drumherum. Neue Erkennung genauso b
 | `service/FeedPolicy.kt`, `service/TikTokPolicy.kt` | `service/AccessibilityUiNode.kt` |
 | `data/StatsHistory.kt`, `data/WatchBudget.kt` | `data/StatsRepository.kt` |
 | `data/CheatPass.kt`, `service/Reminders.kt` | `service/ReminderOverlay.kt` |
+| `service/SharedClip.kt` | — |
 | `wissen/data/WikipediaParser.kt` | `wissen/data/WikipediaSource.kt` |
 
 Möglich macht das `service/UiNode.kt`: Es kapselt `AccessibilityNodeInfo`, das auf der JVM nicht

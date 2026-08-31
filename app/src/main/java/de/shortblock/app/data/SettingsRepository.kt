@@ -23,6 +23,8 @@ data class BlockSettings(
     val keepAlive: Boolean = false,
     /** Darf der Tages-Cheat überhaupt eingelöst werden? */
     val cheatEnabled: Boolean = true,
+    /** Ein geschicktes Reel oder Short einmal ansehen dürfen — Weiterwischen blockt. */
+    val allowSharedClips: Boolean = true,
     /** Tag (epochDay), an dem der Cheat zuletzt eingelöst wurde. 0 = noch nie. */
     val cheatUsedOnDay: Int = 0,
     /** Ende des laufenden Cheats in Millisekunden seit Epoche. 0 = keiner. */
@@ -114,6 +116,7 @@ class SettingsRepository(context: Context) {
             budgets = BlockSettings.BUDGETABLE.associateWith { prefs[budgetKey(it)] ?: 0 },
             keepAlive = prefs[KEEP_ALIVE] ?: false,
             cheatEnabled = prefs[CHEAT_ENABLED] ?: true,
+            allowSharedClips = prefs[ALLOW_SHARED_CLIPS] ?: true,
             cheatUsedOnDay = prefs[CHEAT_USED_ON_DAY] ?: 0,
             cheatUntilMillis = prefs[CHEAT_UNTIL] ?: 0L,
         )
@@ -133,6 +136,10 @@ class SettingsRepository(context: Context) {
 
     suspend fun setCheatEnabled(enabled: Boolean) {
         dataStore.edit { it[CHEAT_ENABLED] = enabled }
+    }
+
+    suspend fun setAllowSharedClips(enabled: Boolean) {
+        dataStore.edit { it[ALLOW_SHARED_CLIPS] = enabled }
     }
 
     /**
@@ -156,6 +163,7 @@ class SettingsRepository(context: Context) {
         val DIAGNOSTICS = booleanPreferencesKey("diagnostics")
         val KEEP_ALIVE = booleanPreferencesKey("keep_alive")
         val CHEAT_ENABLED = booleanPreferencesKey("cheat_enabled")
+        val ALLOW_SHARED_CLIPS = booleanPreferencesKey("allow_shared_clips")
         val CHEAT_USED_ON_DAY = intPreferencesKey("cheat_used_on_day")
         val CHEAT_UNTIL = longPreferencesKey("cheat_until")
         fun budgetKey(feature: Feature) = intPreferencesKey("budget_${feature.name}")

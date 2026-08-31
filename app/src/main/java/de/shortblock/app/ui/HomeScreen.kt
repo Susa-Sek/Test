@@ -62,6 +62,7 @@ fun HomeScreen(
     onBudgetChange: (Feature, Int) -> Unit,
     onToggleKeepAlive: (Boolean) -> Unit,
     onToggleCheat: (Boolean) -> Unit,
+    onToggleSharedClips: (Boolean) -> Unit,
     onOpenBattery: () -> Unit,
     onOpenAccessibility: () -> Unit,
     onOpenSetup: () -> Unit,
@@ -175,6 +176,13 @@ fun HomeScreen(
             description = stringResource(R.string.cheat_toggle_desc, CheatPass.DURATION_MINUTES),
             checked = settings.cheatEnabled,
             onCheckedChange = onToggleCheat,
+        )
+
+        SwitchRow(
+            title = stringResource(R.string.shared_clips_title),
+            description = stringResource(R.string.shared_clips_desc),
+            checked = settings.allowSharedClips,
+            onCheckedChange = onToggleSharedClips,
         )
 
         SwitchRow(

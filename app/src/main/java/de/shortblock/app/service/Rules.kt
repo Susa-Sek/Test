@@ -303,6 +303,19 @@ object Rules {
         )
 
         /**
+         * Beschriftung des Algorithmus-Tabs, falls Instagram eine Tab-Leiste zeigt statt des
+         * Aufklappmenüs.
+         *
+         * Die neueren Oberflächen setzen „Für dich“ und „Folge ich“ nebeneinander, wie TikTok
+         * es tut. Ohne diese Liste findet [FeedPolicy] weder Titel noch Menü und tut still gar
+         * nichts — der stillste aller Fehler.
+         */
+        val TAB_FOR_YOU_LABELS = listOf(
+            "for you",
+            "für dich",
+        )
+
+        /**
          * Ende des „Folge ich“-Feeds. Ab hier schiebt Instagram wieder Fremd-Inhalte nach.
          *
          * Zwei Bedingungen, beide notwendig, beide je einmal schmerzhaft gelernt:
@@ -331,6 +344,33 @@ object Rules {
      * Oberfläche ist verschleiert, die IDs sind generierte Kürzel, die sich je Version ändern.
      * Bleibt der sichtbare Text — der ist übersetzt, deshalb beide Sprachen.
      */
+    /**
+     * Muster für die Ausnahme „geteiltes Video einmal ansehen“.
+     */
+    object SharedClip {
+
+        /** Ein offener DM-Verlauf. Von hier aus geöffnete Reels gelten als geteilt. */
+        val DIRECT_VIEW_IDS = listOf(
+            "direct_thread",
+            "thread_message_list",
+            "message_list",
+            "direct_fragment",
+        )
+
+        /**
+         * Die senkrechte Seitenliste des Viewers.
+         *
+         * Nur Scroll-Ereignisse aus ihr zählen als Wisch zum nächsten Video. Der
+         * Kommentar-Bereich scrollt ebenfalls und darf ausdrücklich nicht auslösen.
+         */
+        val PAGER_VIEW_IDS = listOf(
+            "clips_viewer",
+            "clips_view_pager",
+            "reel_recycler",
+            "reel_player_page_container",
+        )
+    }
+
     object TikTokFeed {
 
         /** Der Tab des Algorithmus. Ist er aktiv, wird umgeschaltet. */

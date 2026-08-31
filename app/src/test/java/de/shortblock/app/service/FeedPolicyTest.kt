@@ -136,4 +136,57 @@ class FeedPolicyTest {
         assertEquals(FeedDecision.Idle, FeedPolicy.evaluate(feed("Etwas ganz Neues")))
         assertEquals(FeedDecision.Idle, FeedPolicy.evaluate(feed(null)))
     }
+
+    // --- Tab-Oberfläche (ab v0.6) ---------------------------------------------------
+    //
+    // Neuere Instagram-Versionen zeigen „Für dich“ und „Folge ich“ nebeneinander statt im
+    // Aufklappmenü. Vorher fand die Policy weder Titel noch Menü und tat still gar nichts.
+
+    private fun tabs(forYouSelected: Boolean, followingSelected: Boolean) = igNode(
+        id = "root",
+        children = listOf(
+            igNode(id = "feed_recycler_view"),
+            igNode(id = "tab_for_you", text = "Für dich", selected = forYouSelected),
+            igNode(id = "tab_following", text = "Folge ich", selected = followingSelected),
+        ),
+    )
+
+    @Test
+    fun `for you tab selected switches to following`() {
+        val decision = FeedPolicy.evaluate(tabs(forYouSelected = true, followingSelected = false))
+        assertTrue(decision is FeedDecision.ChooseFollowing)
+        assertEquals("Folge ich", (decision as FeedDecision.ChooseFollowing).node.text)
+    }
+
+    @Test
+    fun `following tab selected needs no action`() {
+        assertEquals(
+            FeedDecision.AlreadyFiltered,
+            FeedPolicy.evaluate(tabs(forYouSelected = false, followingSelected = true)),
+        )
+    }
+
+    /**
+     * Das UND-Gatter: Ohne die Auswahl-Bedingung würde die App auf jeden Text „Folge ich“
+     * tippen, der irgendwo im Baum steht — etwa auf den Knopf im Profil eines Accounts.
+     */
+    @Test
+    fun `no selected tab means do not tap blindly`() {
+        assertEquals(
+            FeedDecision.Idle,
+            FeedPolicy.evaluate(tabs(forYouSelected = false, followingSelected = false)),
+        )
+    }
+
+    @Test
+    fun `a following button outside the home feed is never tapped`() {
+        val profile = igNode(
+            id = "root",
+            children = listOf(
+                igNode(id = "profile_header"),
+                igNode(id = "follow_button", text = "Folge ich", selected = false),
+            ),
+        )
+        assertEquals(FeedDecision.Idle, FeedPolicy.evaluate(profile))
+    }
 }

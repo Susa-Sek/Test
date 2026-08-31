@@ -134,6 +134,22 @@ zu viel.
 Bekannte Ungenauigkeit: Steht das Video still, feuert Android kaum Ereignisse und die Uhr
 stockt.
 
+## Instagram: „Für dich" abschalten
+
+Der Schalter erzwingt den chronologischen „Folge ich"-Feed und stoppt an dessen Ende, bevor
+Instagram wieder Fremd-Inhalte nachschiebt. Umgeschaltet wird auf **zwei** Wegen, weil Instagram
+je nach Version zwei Oberflächen hat:
+
+1. **Titel oben links antippen** und im Aufklappmenü „Folge ich" wählen.
+2. **Tab-Leiste** — „Für dich" und „Folge ich" nebeneinander, wie bei TikTok. Diesen Weg gibt es
+   seit v0.6; vorher fand die Policy weder Titel noch Menü und tat auf solchen Oberflächen
+   **still gar nichts**. Der stillste aller Fehler.
+
+Beim Tab-Weg gilt ein hartes UND-Gatter: umgeschaltet wird nur, wenn der „Für dich"-Tab
+*ausgewählt* ist und der Zieltab sichtbar daneben liegt. Ohne die Auswahl-Bedingung würde die App
+auf jeden Text „Folge ich" tippen, der irgendwo im Baum steht — etwa auf den Knopf im Profil
+eines fremden Accounts.
+
 ## Tages-Cheat
 
 Einmal am Tag **fünf Minuten für alles** — Reels, Shorts, TikTok, auch bei aktivem Ganz-Block.
@@ -175,6 +191,35 @@ Zwei Entscheidungen dahinter:
   alte Toast — ein Popup darf den Blocker nie mit sich reißen.
 - **Höchstens alle 20 Sekunden.** Nach einem Block läuft nur eine Sperre von 800 ms; ein Popup in
   diesem Takt wäre unerträglich. Dazwischen wird still geblockt wie bisher.
+
+## Geteilte Videos einmal ansehen
+
+Wer eine DM mit einem Reel bekommt, soll sie lesen können. Der Feind ist nicht das einzelne
+Video, sondern die Endlosschleife danach. Deshalb der Schalter **„Geteilte Videos ansehen"**
+(Voreinstellung an): Ein geschicktes Reel oder Short läuft einmal ganz, **der Wisch zum nächsten
+blockt**.
+
+„Geteilt" heißt dabei immer dasselbe — *du bist nicht in der App dorthin navigiert*:
+
+- aus einer anderen App heraus geöffnet (der Viewer war das Erste nach dem App-Wechsel), **oder**
+- unmittelbar aus einem DM-Verlauf, und zwar innerhalb von 10 Sekunden. Ohne diese Frist würde
+  eine DM von vorhin später den Reels-Tab freischalten — der Dienst merkt sich den letzten
+  Bildschirm, nicht die Absicht dahinter.
+
+Aus dem Reels- oder Shorts-Tab bleibt alles gesperrt: Dorthin kommt man über die Startseite, die
+vorher sichtbar ist.
+
+Drei Enden, jedes für sich ausreichend:
+
+| Ende | Wozu |
+|---|---|
+| **Der Wisch** | zählt nur aus der Video-Seitenliste (`PAGER_VIEW_IDS`). Im Kommentar-Bereich zu scrollen wirft ausdrücklich **nicht** raus |
+| **Reißleine nach 90 s** | falls ein Update die Pager-ID nicht mehr meldet. Ohne sie stünde die Ausnahme irgendwann still auf Dauer offen, ohne dass es jemand merkt |
+| **App verlassen** | setzt die Herkunftsprüfung zurück |
+
+Die Regel steht rein in
+[`SharedClip.kt`](app/src/main/java/de/shortblock/app/service/SharedClip.kt), die Muster wie
+immer in `Rules.kt`. TikTok und der Feed-Filter sind davon unberührt.
 
 ## Wenn ein Blocker gar nichts tut
 

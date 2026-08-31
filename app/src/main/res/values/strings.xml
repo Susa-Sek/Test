@@ -29,7 +29,7 @@
     <string name="service_inactive_hint">Open setup</string>
     <string name="toggle_reels_title">Block Instagram Reels</string>
     <string name="toggle_reels_desc">Closes the Reels viewer — from the tab, Explore, a DM or the browser. Stories stay untouched.</string>
-    <string name="toggle_feed_title">Instagram: followed accounts only</string>
+    <string name="toggle_feed_title">Instagram: block the For You feed</string>
     <string name="toggle_feed_desc">Forces the chronological “Following” feed and stops at the end of it, before the suggested posts start.</string>
     <string name="toggle_shorts_title">Block YouTube Shorts</string>
     <string name="toggle_shorts_desc">Closes the Shorts player, the Shorts tab and youtube.com/shorts in the browser. Normal videos, search and subscriptions keep working.</string>
@@ -85,6 +85,8 @@
     <string name="watchdog_text">Android has disabled the accessibility service — nothing is being blocked. Tap to switch it back on.</string>
 
     <!-- Daily cheat and reminder popup -->
+    <string name="shared_clips_title">Watch shared videos</string>
+    <string name="shared_clips_desc">A reel or short someone sends you plays once, all the way. The swipe to the next one blocks. From the Reels or Shorts tab everything stays closed.</string>
     <string name="overlay_dismiss">Okay</string>
     <string name="overlay_cheat_hint">Today\'s 5 minutes are still free — the button at the edge of the screen.</string>
     <string name="toast_blocked">Not now.</string>

@@ -24,7 +24,7 @@
     <string name="service_inactive_hint">Einrichtung öffnen</string>
     <string name="toggle_reels_title">Instagram Reels blocken</string>
     <string name="toggle_reels_desc">Schließt den Reels-Viewer — aus dem Tab, aus Explore, aus einer DM oder aus dem Browser. Stories bleiben unangetastet.</string>
-    <string name="toggle_feed_title">Instagram: nur gefolgte Accounts</string>
+    <string name="toggle_feed_title">Instagram: „Für dich“-Feed blocken</string>
     <string name="toggle_feed_desc">Erzwingt den chronologischen „Folge ich“-Feed und stoppt an dessen Ende, bevor die Vorschläge anfangen.</string>
     <string name="toggle_shorts_title">YouTube Shorts blocken</string>
     <string name="toggle_shorts_desc">Schließt den Shorts-Player, den Shorts-Tab und youtube.com/shorts im Browser. Normale Videos, Suche und Abos funktionieren weiter.</string>
@@ -77,6 +77,8 @@
     <string name="watchdog_text">Android hat die Bedienungshilfe deaktiviert — es wird gerade nichts geblockt. Zum Wiedereinschalten tippen.</string>
 
     <!-- Tages-Cheat und Erinnerungs-Popup -->
+    <string name="shared_clips_title">Geteilte Videos ansehen</string>
+    <string name="shared_clips_desc">Ein Reel oder Short, das dir jemand schickt, läuft einmal ganz. Der Wisch zum nächsten blockt. Aus dem Reels- oder Shorts-Tab bleibt alles gesperrt.</string>
     <string name="overlay_dismiss">Okay</string>
     <string name="overlay_cheat_hint">Deine 5 Minuten für heute sind noch frei — der Knopf am Bildschirmrand.</string>
     <string name="toast_blocked">Jetzt nicht.</string>
