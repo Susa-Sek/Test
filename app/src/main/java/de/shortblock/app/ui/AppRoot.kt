@@ -121,6 +121,7 @@ fun AppRoot() {
                     onBudgetChange = { feature, minutes ->
                         scope.launch { settingsRepository.setBudgetMinutes(feature, minutes) }
                     },
+                    onToggleCheat = { scope.launch { settingsRepository.setCheatEnabled(it) } },
                     onToggleKeepAlive = { enabled ->
                         scope.launch { settingsRepository.setKeepAlive(enabled) }
                     },

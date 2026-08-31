@@ -1,11 +1,13 @@
 package de.shortblock.app.service
 
+import android.accessibilityservice.AccessibilityButtonController
 import android.accessibilityservice.AccessibilityService
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
 import android.widget.Toast
 import de.shortblock.app.R
 import de.shortblock.app.data.BlockSettings
+import de.shortblock.app.data.CheatPass
 import de.shortblock.app.data.SettingsRepository
 import de.shortblock.app.data.StatsRepository
 import de.shortblock.app.data.WatchBudget
@@ -17,6 +19,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 /**
  * Der eigentliche Blocker.
@@ -54,6 +57,24 @@ class BlockerAccessibilityService : AccessibilityService() {
     /** Für welche Features der „Kontingent aufgebraucht“-Hinweis heute schon kam. */
     private val exhaustedToastShown = mutableSetOf<Feature>()
 
+    private var overlay: ReminderOverlay? = null
+
+    /**
+     * Der Bedienungshilfen-Knopf.
+     *
+     * `AccessibilityService` hat dafür keine überschreibbare Methode — der Druck kommt über
+     * diesen Callback am [AccessibilityButtonController] an, und erst durch
+     * `flagRequestAccessibilityButton` in der Dienst-Konfiguration überhaupt hier an statt den
+     * Dienst an- und auszuschalten.
+     */
+    private val cheatButton = object : AccessibilityButtonController.AccessibilityButtonCallback() {
+        override fun onClicked(controller: AccessibilityButtonController) = onCheatButtonPressed()
+    }
+
+    /** Zuletzt gezeigter Spruch, damit sich keiner direkt wiederholt. */
+    private var lastReminderIndex = -1
+    private var lastReminderAt = 0L
+
     /** Zählt fehlgeschlagene Versuche, auf „Folge ich“ umzuschalten. */
     private var feedSwitchAttempts = 0
     private var manualSwitchHintShown = false
@@ -64,6 +85,8 @@ class BlockerAccessibilityService : AccessibilityService() {
 
         settingsRepository = SettingsRepository(applicationContext)
         statsRepository = StatsRepository(applicationContext)
+        overlay = ReminderOverlay(this)
+        runCatching { accessibilityButtonController.registerAccessibilityButtonCallback(cheatButton) }
 
         // Der Wächter darf erst dann Alarm schlagen, wenn der Dienst wirklich einmal lief.
         // Diese Zeile ist die einzige Stelle, an der das feststeht.
@@ -204,6 +227,11 @@ class BlockerAccessibilityService : AccessibilityService() {
      *   Voreinstellung und das Verhalten vor v0.4.
      */
     private fun shouldIntervene(feature: Feature): Boolean {
+        // Ein laufender Cheat hebt alles auf — auch den TikTok-Ganz-Block, so war „für alles“
+        // gemeint. Bewusst VOR der Kontingent-Uhr: Die fünf geschenkten Minuten sollen das
+        // Tagesbudget nicht aufbrauchen, sonst wäre das Geschenk keines.
+        if (CheatPass.isActive(settings.cheatUntilMillis, System.currentTimeMillis())) return false
+
         val budget = settings.budgetMinutes(feature)
         if (!WatchBudget.hasBudget(budget)) return true
 
@@ -319,7 +347,74 @@ class BlockerAccessibilityService : AccessibilityService() {
         performGlobalAction(GLOBAL_ACTION_BACK)
         pausedUntil = SystemClock.uptimeMillis() + BACK_COOLDOWN_MS
         scope.launch { statsRepository.increment(feature) }
+        showReminder()
     }
+
+    /**
+     * Der Spruch nach einem Block.
+     *
+     * Gedrosselt, und zwar deutlich: Nach einem Block läuft nur [BACK_COOLDOWN_MS] = 800 ms.
+     * Ein Popup in diesem Takt wäre unerträglich — und wer eine Meldung wegwischt, ohne sie zu
+     * lesen, liest auch die nächste nicht. Dazwischen wird still geblockt wie bisher.
+     */
+    private fun showReminder() {
+        val now = SystemClock.uptimeMillis()
+        if (now - lastReminderAt < REMINDER_COOLDOWN_MS) return
+        lastReminderAt = now
+
+        val lines = resources.getStringArray(R.array.reminder_lines)
+        val index = Reminders.next(lines.size, lastReminderIndex)
+        if (index !in lines.indices) return
+        lastReminderIndex = index
+
+        // Der Cheat-Hinweis nur, solange er auch einzulösen ist. Ein Angebot, das nicht gilt,
+        // macht aus der Erinnerung eine Verhöhnung.
+        val detail = if (cheatIsFree()) getString(R.string.overlay_cheat_hint) else null
+        if (overlay?.show(lines[index], detail) != true) toast(R.string.toast_blocked)
+    }
+
+    /**
+     * Der Bedienungshilfen-Knopf ist der einzige Weg zum Cheat.
+     *
+     * Ausdrücklich **nicht** im Popup: Ein Knopf direkt unter dem Spruch wäre nach drei Tagen
+     * Reflex. So muss man den Satz lesen und danach eine andere Geste machen — das ist die
+     * ganze Hürde, und sie ist der Sinn der Sache.
+     */
+    private fun onCheatButtonPressed() {
+        val now = System.currentTimeMillis()
+
+        if (CheatPass.isActive(settings.cheatUntilMillis, now)) {
+            val minutes = (CheatPass.remainingSeconds(settings.cheatUntilMillis, now) + 59) / 60
+            popup(getString(R.string.cheat_running_title), getString(R.string.cheat_running_body, minutes))
+            return
+        }
+        if (!settings.cheatEnabled) {
+            popup(getString(R.string.cheat_off_title), getString(R.string.cheat_off_body))
+            return
+        }
+        if (!cheatIsFree()) {
+            popup(getString(R.string.cheat_used_title), getString(R.string.cheat_used_body))
+            return
+        }
+
+        scope.launch { settingsRepository.redeemCheat(now, today()) }
+        popup(
+            getString(R.string.cheat_started_title, CheatPass.DURATION_MINUTES),
+            getString(R.string.cheat_started_body),
+        )
+    }
+
+    private fun cheatIsFree(): Boolean =
+        settings.cheatEnabled && CheatPass.isAvailable(settings.cheatUsedOnDay, today())
+
+    /** Antwort auf eine Handlung — anders als der Spruch nach einem Block nie gedrosselt. */
+    private fun popup(title: String, body: String) {
+        if (overlay?.show(title, body) != true) {
+            Toast.makeText(this, "$title — $body", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun today(): Int = LocalDate.now().toEpochDay().toInt()
 
     private fun resetFeedState() {
         feedSwitchAttempts = 0
@@ -338,6 +433,9 @@ class BlockerAccessibilityService : AccessibilityService() {
     }
 
     override fun onDestroy() {
+        runCatching { accessibilityButtonController.unregisterAccessibilityButtonCallback(cheatButton) }
+        overlay?.hide()
+        overlay = null
         flushBudget(force = true, detached = true)
         ServiceHealth.onDisconnected()
         scope.cancel()
@@ -351,5 +449,6 @@ class BlockerAccessibilityService : AccessibilityService() {
         const val CLICK_COOLDOWN_MS = 600L
         const val MAX_FEED_SWITCH_ATTEMPTS = 2
         const val HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000L
+        const val REMINDER_COOLDOWN_MS = 20_000L
     }
 }

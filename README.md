@@ -134,6 +134,48 @@ zu viel.
 Bekannte Ungenauigkeit: Steht das Video still, feuert Android kaum Ereignisse und die Uhr
 stockt.
 
+## Tages-Cheat
+
+Einmal am Tag **fünf Minuten für alles** — Reels, Shorts, TikTok, auch bei aktivem Ganz-Block.
+
+Das schließt die Lücke, die das Kontingent offen lässt: Ein Kontingent läuft ab, sobald man die
+App öffnet, und ist damit weg, bevor das eine Video kommt, für das man es aufheben wollte. Der
+Cheat ist das Gegenteil — es läuft nichts, bis man ihn ausdrücklich einlöst.
+
+**Ausgelöst wird er nur vom Bedienungshilfen-Knopf**, dem schwebenden Kreis am Bildschirmrand.
+Nicht aus der App heraus, und ausdrücklich **nicht** aus dem Erinnerungs-Popup: Ein Knopf direkt
+unter dem Spruch wäre nach drei Tagen Reflex. So muss man den Satz lesen und danach eine andere
+Geste machen. Dieser kleine Umweg ist die ganze Hürde, und er ist der Sinn der Sache.
+
+Der Preis: Der Kurzbefehl schaltet ShortBlock danach nicht mehr an und aus — das geht weiter über
+die Systemeinstellungen. Der Einrichtungstext sagt das.
+
+Die Regel steht als reine Funktion in
+[`CheatPass.kt`](app/src/main/java/de/shortblock/app/data/CheatPass.kt), das Gatter sitzt an
+derselben einen Stelle wie das Kontingent (`shouldIntervene`) — deshalb gilt der Cheat ohne eine
+einzige Sonderregel überall. Er verbraucht **kein** Tageskontingent.
+
+Eine Falle ist ausdrücklich abgedeckt: Wer die Systemuhr zurückstellt, schiebt das gespeicherte
+Ende beliebig weit in die Zukunft. Mehr als eine volle Cheat-Dauer Rest kann es nie geben — also
+gilt das als beendet, nicht als endlos. Im Zweifel blocken.
+
+## Das Erinnerungs-Popup
+
+Statt wortlos zurückzuspringen, legt ShortBlock ein Kärtchen über die App: ein Satz, der an das
+eigene Vorhaben erinnert. Die Sprüche stehen als `reminder_lines` in den `values`-Ordnern; die
+Auswahl in [`Reminders.kt`](app/src/main/java/de/shortblock/app/service/Reminders.kt) sorgt
+dafür, dass sich nie zweimal hintereinander derselbe zeigt — ein bekannter Spruch wird nicht
+gelesen, und ein ungelesenes Popup ist nur eine Verzögerung.
+
+Zwei Entscheidungen dahinter:
+
+- **Keine Berechtigung.** Das Fenster ist ein `TYPE_ACCESSIBILITY_OVERLAY`; dafür braucht eine
+  Bedienungshilfe kein „Über anderen Apps anzeigen“. Bei einer App, die fremde Bildschirme
+  liest, ist jede eingesparte Berechtigung ein Argument. Klappt das Einhängen nicht, bleibt der
+  alte Toast — ein Popup darf den Blocker nie mit sich reißen.
+- **Höchstens alle 20 Sekunden.** Nach einem Block läuft nur eine Sperre von 800 ms; ein Popup in
+  diesem Takt wäre unerträglich. Dazwischen wird still geblockt wie bisher.
+
 ## Wenn ein Blocker gar nichts tut
 
 Meist stimmt der Paketname nicht. TikTok allein läuft unter vier davon — `musically`,

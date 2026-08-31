@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import de.shortblock.app.service.Feature
 import kotlinx.coroutines.flow.Flow
@@ -20,6 +21,12 @@ data class BlockSettings(
     val budgets: Map<Feature, Int> = emptyMap(),
     /** Freiwilliger Vordergrunddienst gegen Hersteller-Energieverwaltung. */
     val keepAlive: Boolean = false,
+    /** Darf der Tages-Cheat überhaupt eingelöst werden? */
+    val cheatEnabled: Boolean = true,
+    /** Tag (epochDay), an dem der Cheat zuletzt eingelöst wurde. 0 = noch nie. */
+    val cheatUsedOnDay: Int = 0,
+    /** Ende des laufenden Cheats in Millisekunden seit Epoche. 0 = keiner. */
+    val cheatUntilMillis: Long = 0L,
 ) {
     fun budgetMinutes(feature: Feature): Int = budgets[feature] ?: 0
 
@@ -106,6 +113,9 @@ class SettingsRepository(context: Context) {
             diagnostics = prefs[DIAGNOSTICS] ?: false,
             budgets = BlockSettings.BUDGETABLE.associateWith { prefs[budgetKey(it)] ?: 0 },
             keepAlive = prefs[KEEP_ALIVE] ?: false,
+            cheatEnabled = prefs[CHEAT_ENABLED] ?: true,
+            cheatUsedOnDay = prefs[CHEAT_USED_ON_DAY] ?: 0,
+            cheatUntilMillis = prefs[CHEAT_UNTIL] ?: 0L,
         )
     }
 
@@ -121,6 +131,23 @@ class SettingsRepository(context: Context) {
         dataStore.edit { it[KEEP_ALIVE] = enabled }
     }
 
+    suspend fun setCheatEnabled(enabled: Boolean) {
+        dataStore.edit { it[CHEAT_ENABLED] = enabled }
+    }
+
+    /**
+     * Cheat einlösen — Tag und Ende in einem Schreibvorgang.
+     *
+     * Zusammen, damit nicht ein abgebrochener Schreibvorgang einen laufenden Cheat hinterlässt,
+     * der nie als „heute verbraucht“ gilt.
+     */
+    suspend fun redeemCheat(nowMillis: Long, today: Int) {
+        dataStore.edit {
+            it[CHEAT_USED_ON_DAY] = today
+            it[CHEAT_UNTIL] = CheatPass.endsAt(nowMillis)
+        }
+    }
+
     suspend fun setDiagnosticsEnabled(enabled: Boolean) {
         dataStore.edit { it[DIAGNOSTICS] = enabled }
     }
@@ -128,6 +155,9 @@ class SettingsRepository(context: Context) {
     private companion object {
         val DIAGNOSTICS = booleanPreferencesKey("diagnostics")
         val KEEP_ALIVE = booleanPreferencesKey("keep_alive")
+        val CHEAT_ENABLED = booleanPreferencesKey("cheat_enabled")
+        val CHEAT_USED_ON_DAY = intPreferencesKey("cheat_used_on_day")
+        val CHEAT_UNTIL = longPreferencesKey("cheat_until")
         fun budgetKey(feature: Feature) = intPreferencesKey("budget_${feature.name}")
         fun key(feature: Feature) = booleanPreferencesKey("feature_${feature.name}")
     }

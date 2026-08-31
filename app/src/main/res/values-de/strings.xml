@@ -10,7 +10,7 @@
     <string name="step_restricted_body">Ab Android 13 sperrt das System Bedienungshilfen für sideloadete Apps. In der App-Info oben rechts auf das ⋮-Menü tippen und „Eingeschränkte Einstellungen zulassen“ wählen. Fehlt der Eintrag, ist dieser Schritt schon erledigt.</string>
     <string name="step_restricted_button">App-Info öffnen</string>
     <string name="step_accessibility_title">2. Bedienungshilfe aktivieren</string>
-    <string name="step_accessibility_body">Unter „Installierte Apps“ / „Heruntergeladene Apps“ ShortBlock auswählen und einschalten.</string>
+    <string name="step_accessibility_body">Unter „Installierte Apps“ / „Heruntergeladene Apps“ ShortBlock auswählen und einschalten. Dort auch den Kurzbefehl („Bedienungshilfen-Schaltfläche“) einschalten — der schwebende Knopf am Bildschirmrand löst den Tages-Cheat aus. Er schaltet ShortBlock nicht mehr an und aus; das geht hier in den Einstellungen.</string>
     <string name="step_accessibility_button">Bedienungshilfen öffnen</string>
     <string name="step_battery_title">3. Von Akku-Optimierung ausnehmen (optional)</string>
     <string name="step_battery_body">Empfohlen auf Xiaomi-, Samsung- und OnePlus-Geräten — die beenden Hintergrunddienste aggressiv. Auf Xiaomi/HyperOS zusätzlich in der App-Info „Autostart“ erlauben und die App in der Übersicht der offenen Apps fixieren; sonst schaltet das System die Bedienungshilfe nach einem Neustart oder über Nacht wieder ab.</string>
@@ -75,6 +75,36 @@
     <string name="watchdog_channel">Dienst abgeschaltet</string>
     <string name="watchdog_title">ShortBlock wurde abgeschaltet</string>
     <string name="watchdog_text">Android hat die Bedienungshilfe deaktiviert — es wird gerade nichts geblockt. Zum Wiedereinschalten tippen.</string>
+
+    <!-- Tages-Cheat und Erinnerungs-Popup -->
+    <string name="overlay_dismiss">Okay</string>
+    <string name="overlay_cheat_hint">Deine 5 Minuten für heute sind noch frei — der Knopf am Bildschirmrand.</string>
+    <string name="toast_blocked">Jetzt nicht.</string>
+    <string name="cheat_running_title">Cheat läuft</string>
+    <string name="cheat_running_body">Noch %1$d Min. Danach ist wieder zu.</string>
+    <string name="cheat_started_title">%1$d Minuten. Deine.</string>
+    <string name="cheat_started_body">Danach ist wieder zu — und ein zweites Mal gibt es heute nicht.</string>
+    <string name="cheat_used_title">Heute schon verbraucht</string>
+    <string name="cheat_used_body">Morgen wieder frei. Bis dahin heißt die Antwort nein.</string>
+    <string name="cheat_off_title">Der Cheat ist ausgeschaltet</string>
+    <string name="cheat_off_body">In ShortBlock kannst du ihn wieder einschalten — wenn du wirklich willst.</string>
+    <string name="cheat_card_free_title">Cheat heute frei · %1$d Min</string>
+    <string name="cheat_card_free_body">Den Bedienungshilfen-Knopf am Bildschirmrand drücken — bewusst, nicht aus der App heraus. Genau dieser kleine Umweg ist der Sinn der Sache.</string>
+    <string name="cheat_card_running_title">Cheat läuft · noch %1$s</string>
+    <string name="cheat_card_running_body">Gerade wird nichts geblockt.</string>
+    <string name="cheat_card_used_title">Cheat heute eingelöst</string>
+    <string name="cheat_card_used_body">Morgen wieder frei.</string>
+    <string name="cheat_toggle_title">Tages-Cheat erlauben</string>
+    <string name="cheat_toggle_desc">Einmal am Tag %1$d Minuten für alles — ausgelöst vom Bedienungshilfen-Knopf am Bildschirmrand.</string>
+    <string name="time_remaining">%1$d:%2$02d</string>
+    <string-array name="reminder_lines">
+        <item>Wolltest du das gerade — oder war die Hand schneller?</item>
+        <item>Du hast dir das selbst abgestellt. Heute Morgen war das eine gute Idee.</item>
+        <item>Die nächsten zwanzig Minuten kriegst du nicht zurück.</item>
+        <item>Was wolltest du eigentlich tun, bevor du das aufgemacht hast?</item>
+        <item>Es wartet nichts. Da ist nur der nächste Clip.</item>
+        <item>Was auch immer du gesucht hast — hier drin ist es nicht.</item>
+    </string-array>
 
     <!-- Diagnose -->
     <string name="diagnostics_title">Diagnose</string>

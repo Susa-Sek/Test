@@ -26,6 +26,10 @@ nicht mehr benutzen; wer ein Reel zu viel sieht, ärgert sich kurz. Im Zweifel n
 - **`Rules.BROWSER_URL_BAR_IDS` muss vor `BLOCK_RULES` stehen.** Kotlin initialisiert
   object-Eigenschaften in Textreihenfolge; andersherum ist die Liste noch null und die ganze
   Klasse schlägt beim Laden fehl.
+- **Der Cheat sitzt vor der Kontingent-Uhr** in `shouldIntervene` — sonst würden die
+  geschenkten Minuten das Tagesbudget aufbrauchen. Und ein gespeichertes Cheat-Ende, das weiter
+  als die Cheat-Dauer in der Zukunft liegt, heißt zurückgestellte Systemuhr: dann gilt der Cheat
+  als beendet, nie als endlos.
 - **`org.json` ist im JVM-Unit-Test nur ein Stub**, der bei jedem Aufruf wirft. Module, die es
   benutzen, brauchen `testImplementation(libs.org.json)`.
 
@@ -39,6 +43,7 @@ Android-Abhängige bleibt eine dünne Hülle drumherum. Neue Erkennung genauso b
 | `service/RuleMatcher.kt`, `service/Rules.kt` | `service/BlockerAccessibilityService.kt` |
 | `service/FeedPolicy.kt`, `service/TikTokPolicy.kt` | `service/AccessibilityUiNode.kt` |
 | `data/StatsHistory.kt`, `data/WatchBudget.kt` | `data/StatsRepository.kt` |
+| `data/CheatPass.kt`, `service/Reminders.kt` | `service/ReminderOverlay.kt` |
 | `wissen/data/WikipediaParser.kt` | `wissen/data/WikipediaSource.kt` |
 
 Möglich macht das `service/UiNode.kt`: Es kapselt `AccessibilityNodeInfo`, das auf der JVM nicht

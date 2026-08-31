@@ -22,6 +22,11 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -29,6 +34,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import de.shortblock.app.R
 import de.shortblock.app.data.BlockSettings
+import de.shortblock.app.data.CheatPass
 import de.shortblock.app.data.DayStat
 import de.shortblock.app.data.FypRelation
 import de.shortblock.app.data.StatsHistory
@@ -37,6 +43,8 @@ import de.shortblock.app.service.BlockLog
 import de.shortblock.app.service.Feature
 import de.shortblock.app.service.Health
 import de.shortblock.app.ui.components.WeekBars
+import kotlinx.coroutines.delay
+import java.time.LocalDate
 
 /** Ein Treffer gilt als „gerade eben“, solange er so jung ist. */
 private const val RECENT_WINDOW_MS = 10 * 60 * 1000L
@@ -53,6 +61,7 @@ fun HomeScreen(
     onToggle: (Feature, Boolean) -> Unit,
     onBudgetChange: (Feature, Int) -> Unit,
     onToggleKeepAlive: (Boolean) -> Unit,
+    onToggleCheat: (Boolean) -> Unit,
     onOpenBattery: () -> Unit,
     onOpenAccessibility: () -> Unit,
     onOpenSetup: () -> Unit,
@@ -89,6 +98,8 @@ fun HomeScreen(
         }
 
         if (!serviceEnabled) ServiceOffCard(onOpenSetup)
+
+        CheatCard(settings)
 
         AppGroup(
             title = stringResource(R.string.group_instagram),
@@ -159,7 +170,19 @@ fun HomeScreen(
             onBudgetChange = onBudgetChange,
         )
 
-        KeepAliveRow(checked = settings.keepAlive, onCheckedChange = onToggleKeepAlive)
+        SwitchRow(
+            title = stringResource(R.string.cheat_toggle_title),
+            description = stringResource(R.string.cheat_toggle_desc, CheatPass.DURATION_MINUTES),
+            checked = settings.cheatEnabled,
+            onCheckedChange = onToggleCheat,
+        )
+
+        SwitchRow(
+            title = stringResource(R.string.keep_alive_title_setting),
+            description = stringResource(R.string.keep_alive_desc),
+            checked = settings.keepAlive,
+            onCheckedChange = onToggleKeepAlive,
+        )
 
         RecentBlockChip(lastBlock = lastBlock, onOpenDiagnostics = onOpenDiagnostics)
 
@@ -446,25 +469,101 @@ private fun ServiceAsleepCard(
 }
 
 @Composable
-private fun KeepAliveRow(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+private fun SwitchRow(
+    title: String,
+    description: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
+                Text(text = title, style = MaterialTheme.typography.titleSmall)
                 Text(
-                    text = stringResource(R.string.keep_alive_title_setting),
-                    style = MaterialTheme.typography.titleSmall,
-                )
-                Text(
-                    text = stringResource(R.string.keep_alive_desc),
+                    text = description,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 2.dp),
                 )
             }
             Switch(checked = checked, onCheckedChange = onCheckedChange)
+        }
+    }
+}
+
+/**
+ * Der Stand des Tages-Cheats.
+ *
+ * Hier steht bewusst **kein** Knopf zum Einlösen. Der Cheat geht nur über den
+ * Bedienungshilfen-Knopf am Bildschirmrand — ein Knopf an dieser Stelle wäre bequem und
+ * genau deshalb falsch: Der kleine Umweg ist die ganze Hürde.
+ */
+@Composable
+private fun CheatCard(settings: BlockSettings) {
+    if (!settings.cheatEnabled) return
+
+    // Läuft ein Cheat, muss die Restzeit sichtbar herunterlaufen — eine stehende Zahl wirkt
+    // wie ein Fehler. Außerhalb eines Cheats tickt hier nichts.
+    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    val running = CheatPass.isActive(settings.cheatUntilMillis, now)
+    LaunchedEffect(settings.cheatUntilMillis, running) {
+        while (CheatPass.isActive(settings.cheatUntilMillis, System.currentTimeMillis())) {
+            now = System.currentTimeMillis()
+            delay(1000L)
+        }
+        now = System.currentTimeMillis()
+    }
+
+    val free = CheatPass.isAvailable(settings.cheatUsedOnDay, LocalDate.now().toEpochDay().toInt())
+
+    val title: String
+    val body: String
+    when {
+        running -> {
+            val seconds = CheatPass.remainingSeconds(settings.cheatUntilMillis, now)
+            title = stringResource(
+                R.string.cheat_card_running_title,
+                stringResource(R.string.time_remaining, seconds / 60, seconds % 60),
+            )
+            body = stringResource(R.string.cheat_card_running_body)
+        }
+
+        free -> {
+            title = stringResource(R.string.cheat_card_free_title, CheatPass.DURATION_MINUTES)
+            body = stringResource(R.string.cheat_card_free_body)
+        }
+
+        else -> {
+            title = stringResource(R.string.cheat_card_used_title)
+            body = stringResource(R.string.cheat_card_used_body)
+        }
+    }
+
+    Card(
+        colors = CardDefaults.cardColors(
+            containerColor = if (running) {
+                MaterialTheme.colorScheme.tertiaryContainer
+            } else {
+                MaterialTheme.colorScheme.surfaceVariant
+            },
+            contentColor = if (running) {
+                MaterialTheme.colorScheme.onTertiaryContainer
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+        ),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text(text = title, style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = body,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(top = 6.dp),
+            )
         }
     }
 }

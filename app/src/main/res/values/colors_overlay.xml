@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Eigene Farben statt der Compose-Theme-Farben: Das Fenster kommt aus einem Dienst und
+     hat keinen Zugriff auf MaterialTheme. Dunkel gehalten, damit es über jeder App liest. -->
+<resources>
+    <color name="overlay_surface">#FF2A1D18</color>
+    <color name="overlay_on_surface">#FFF6EBE6</color>
+    <color name="overlay_on_surface_variant">#FFC9B3AB</color>
+    <color name="overlay_accent">#FFFFB59A</color>
+</resources>

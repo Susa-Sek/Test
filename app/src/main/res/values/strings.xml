@@ -15,7 +15,7 @@
     <string name="step_restricted_body">Android 13 and newer block accessibility for sideloaded apps. In the app info screen tap the ⋮ menu at the top right and choose “Allow restricted settings”. If that entry is missing, this step is already done.</string>
     <string name="step_restricted_button">Open app info</string>
     <string name="step_accessibility_title">2. Enable the accessibility service</string>
-    <string name="step_accessibility_body">Under “Installed apps” / “Downloaded apps” pick ShortBlock and switch it on.</string>
+    <string name="step_accessibility_body">Under “Installed apps” / “Downloaded apps” pick ShortBlock and switch it on. Also switch on the shortcut (“Accessibility button”) — that floating button at the edge of the screen is what redeems the daily cheat. It no longer turns ShortBlock on and off; that is done here in the settings.</string>
     <string name="step_accessibility_button">Open accessibility settings</string>
     <string name="step_battery_title">3. Exclude from battery optimisation (optional)</string>
     <string name="step_battery_body">Recommended on Xiaomi, Samsung and OnePlus devices — they stop background services aggressively. On Xiaomi/HyperOS also allow “Autostart” in the app info and lock the app in the recents view; otherwise the system switches the accessibility service off again after a reboot or overnight.</string>
@@ -83,6 +83,36 @@
     <string name="watchdog_channel">Service switched off</string>
     <string name="watchdog_title">ShortBlock has been switched off</string>
     <string name="watchdog_text">Android has disabled the accessibility service — nothing is being blocked. Tap to switch it back on.</string>
+
+    <!-- Daily cheat and reminder popup -->
+    <string name="overlay_dismiss">Okay</string>
+    <string name="overlay_cheat_hint">Today\'s 5 minutes are still free — the button at the edge of the screen.</string>
+    <string name="toast_blocked">Not now.</string>
+    <string name="cheat_running_title">Cheat is running</string>
+    <string name="cheat_running_body">%1$d min left. Then it closes again.</string>
+    <string name="cheat_started_title">%1$d minutes. Yours.</string>
+    <string name="cheat_started_body">After that it closes again — and there is no second one today.</string>
+    <string name="cheat_used_title">Already used today</string>
+    <string name="cheat_used_body">Free again tomorrow. Until then the answer is no.</string>
+    <string name="cheat_off_title">The cheat is switched off</string>
+    <string name="cheat_off_body">You can switch it back on in ShortBlock — if you really want to.</string>
+    <string name="cheat_card_free_title">Cheat free today · %1$d min</string>
+    <string name="cheat_card_free_body">Press the accessibility button at the edge of the screen — deliberately, not from the app. That short detour is the whole point.</string>
+    <string name="cheat_card_running_title">Cheat running · %1$s left</string>
+    <string name="cheat_card_running_body">Nothing is being blocked right now.</string>
+    <string name="cheat_card_used_title">Cheat used today</string>
+    <string name="cheat_card_used_body">Free again tomorrow.</string>
+    <string name="cheat_toggle_title">Allow the daily cheat</string>
+    <string name="cheat_toggle_desc">Once a day, %1$d minutes of everything — triggered by the accessibility button at the edge of the screen.</string>
+    <string name="time_remaining">%1$d:%2$02d</string>
+    <string-array name="reminder_lines">
+        <item>Did you mean to do that — or was your hand faster?</item>
+        <item>You switched this off yourself. This morning that was a good idea.</item>
+        <item>You will not get the next twenty minutes back.</item>
+        <item>What were you about to do before you opened this?</item>
+        <item>Nothing is waiting. There is only the next clip.</item>
+        <item>Whatever you were looking for, it is not in here.</item>
+    </string-array>
 
     <!-- Diagnostics -->
     <string name="diagnostics_title">Diagnostics</string>
