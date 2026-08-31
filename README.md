@@ -58,6 +58,7 @@ außen gleich aussehen:
 |---|---|---|
 | Prozess abgeräumt | Energieverwaltung des Herstellers | Akku-Ausnahme, „Dienst am Leben halten" |
 | Prozess lebt, keine Ereignisse mehr | eingeschlafene Android-Pipeline | wird automatisch alle 5 Min repariert |
+| **Schalter steht wieder auf aus** | Hersteller-ROM hat die Bedienungshilfe mit abgeschaltet | nur von Hand wieder einschalten — der Wächter meldet es |
 
 Was ShortBlock ab v0.4 dagegen tut:
 
@@ -74,6 +75,29 @@ Was ShortBlock ab v0.4 dagegen tut:
   Instagram vier Stunden nicht geöffnet hat — löst sie ausdrücklich *nicht* aus. Eine App, die
   ständig falschen Alarm gibt, wird bei der einen wichtigen Warnung nicht mehr gelesen.
 
+### Der dritte Zustand: Android hat den Schalter selbst umgelegt
+
+Der unangenehmste Fall, seit v0.4.2 behandelt. Xiaomi/HyperOS, Samsung und Oppo räumen nicht nur
+den Prozess ab, sie **deaktivieren die Bedienungshilfe gleich mit** — typischerweise über Nacht
+oder nach einem Neustart. Danach steht in den Systemeinstellungen wieder *aus*, und im Alltag
+merkt man es nicht: Eine Blocker-App, die nichts tut, verhält sich exakt wie eine, bei der
+gerade nichts zu blocken war.
+
+Wieder einschalten kann sich die App **nicht** selbst — das verbietet Android, und das ist
+richtig so. Sie kann nur schnell Bescheid sagen: Alle zwei Stunden prüft ein
+[Wächter](app/src/main/java/de/shortblock/app/service/ServiceWatchdog.kt), ob der Dienst noch
+gelistet ist, und meldet sich **einmal** per Benachrichtigung, wenn nicht. Ein Tipp darauf führt
+direkt in die Bedienungshilfen. Genau einmal, nicht alle zwei Stunden — wer den Dienst bewusst
+ausgelassen hat, soll nicht genervt werden.
+
+Dagegen hilft dauerhaft nur die Geräteeinstellung:
+
+| Hersteller | Was einzuschalten ist |
+|---|---|
+| Xiaomi / HyperOS | App-Info → **Autostart** erlauben, Energiesparmodus auf *Keine Einschränkungen*, App in der Übersicht der offenen Apps **fixieren** |
+| Samsung | Akku → *Apps im Ruhemodus* → ShortBlock entfernen, „Nicht optimierte Apps" |
+| OnePlus / Oppo / Realme | Akku → *Hintergrundaktivität zulassen*, Autostart erlauben |
+
 ## Einrichtung — die Reihenfolge ist wichtig
 
 1. **Eingeschränkte Einstellungen zulassen.** Ab Android 13 sperrt das System Bedienungshilfen
@@ -89,6 +113,13 @@ Was ShortBlock ab v0.4 dagegen tut:
 Statt ganz-oder-gar-nicht kann jeder Kurzvideo-Blocker ein Tagesbudget bekommen: Unter der
 Schalterzeile stehen `Immer · 5 · 10 · 20 · 30 Min`. Bis das Budget aufgebraucht ist, läuft das
 Video; danach blockt die App wie bisher. Je App ein eigenes Kontingent.
+
+Seit v0.4.2 gilt das auch für **„TikTok ganz blocken"**: *TikTok ist zu, außer X Minuten am Tag.*
+App und `tiktok.com` im Browser teilen sich dieses eine Kontingent — sonst wäre es mit einem
+Tab umgangen. Läuft der Ganz-Block gerade auf Kontingent, ist TikTok bewusst offen, und der
+„Für dich"-Filter greift innerhalb dieser Minuten mit seinem **eigenen**, kleineren Kontingent
+weiter. Erst ein Ganz-Block auf „Immer" macht die „Für dich"-Zeile wirklich bedeutungslos —
+nur dann ist sie in der Oberfläche gedämpft.
 
 **Voreinstellung ist „Immer".** Ein Zeitkontingent macht aus einer geschlossenen Tür eine
 Verhandlung, und Verhandeln ist der Mechanismus, den diese App eigentlich abschafft. Wer eins

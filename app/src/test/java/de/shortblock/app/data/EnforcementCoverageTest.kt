@@ -47,10 +47,18 @@ class EnforcementCoverageTest {
         }
     }
 
-    /** Ein Kontingent auf „App ganz sperren“ wäre ein Widerspruch in sich. */
+    /**
+     * Seit v0.4.2 ist auch der Ganz-Block budgetierbar — „TikTok ist zu, außer X Minuten“.
+     *
+     * Der Preis dieser Umkehr ist, dass ein Kontingent den Ganz-Block aufweichen kann. Deshalb
+     * hier festgenagelt: Die Voreinstellung ist und bleibt 0 = „Immer“. Wer den Schalter
+     * umlegt, bekommt einen Ganz-Block, bis er selbst Minuten wählt.
+     */
     @Test
-    fun `blocking an app entirely is not budgetable`() {
-        assertTrue(Feature.TIKTOK_ALL !in BlockSettings.BUDGETABLE)
+    fun `blocking an app entirely is budgetable but defaults to no allowance`() {
+        assertTrue(Feature.TIKTOK_ALL in BlockSettings.BUDGETABLE)
+        assertEquals(0, BlockSettings.DEFAULT.budgetMinutes(Feature.TIKTOK_ALL))
+        assertEquals(0, BlockSettings.BUDGET_CHOICES.first())
     }
 
     @Test

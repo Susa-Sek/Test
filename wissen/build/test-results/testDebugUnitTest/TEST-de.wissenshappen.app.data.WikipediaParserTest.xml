@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="de.wissenshappen.app.data.WikipediaParserTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-08-30T07:13:22.809Z" hostname="vm" time="0.084">
+<testsuite name="de.wissenshappen.app.data.WikipediaParserTest" tests="13" skipped="0" failures="0" errors="0" timestamp="2026-08-31T11:25:04.596Z" hostname="vm" time="0.116">
   <properties/>
-  <testcase name="name lists are rejected" classname="de.wissenshappen.app.data.WikipediaParserTest" time="0.033"/>
-  <testcase name="broken json yields no cards instead of throwing" classname="de.wissenshappen.app.data.WikipediaParserTest" time="0.006"/>
+  <testcase name="name lists are rejected" classname="de.wissenshappen.app.data.WikipediaParserTest" time="0.038"/>
+  <testcase name="broken json yields no cards instead of throwing" classname="de.wissenshappen.app.data.WikipediaParserTest" time="0.02"/>
   <testcase name="stubs that are too short are rejected" classname="de.wissenshappen.app.data.WikipediaParserTest" time="0.0"/>
-  <testcase name="spaces in the title become a usable link" classname="de.wissenshappen.app.data.WikipediaParserTest" time="0.031"/>
-  <testcase name="featured feed yields article of the day and events" classname="de.wissenshappen.app.data.WikipediaParserTest" time="0.007"/>
-  <testcase name="disambiguation pages are rejected" classname="de.wissenshappen.app.data.WikipediaParserTest" time="0.0"/>
+  <testcase name="spaces in the title become a usable link" classname="de.wissenshappen.app.data.WikipediaParserTest" time="0.034"/>
+  <testcase name="featured feed yields article of the day and events" classname="de.wissenshappen.app.data.WikipediaParserTest" time="0.014"/>
+  <testcase name="disambiguation pages are rejected" classname="de.wissenshappen.app.data.WikipediaParserTest" time="0.001"/>
   <testcase name="a missing image is fine" classname="de.wissenshappen.app.data.WikipediaParserTest" time="0.0"/>
   <testcase name="an empty result yields no cards" classname="de.wissenshappen.app.data.WikipediaParserTest" time="0.0"/>
   <testcase name="pure year articles are rejected" classname="de.wissenshappen.app.data.WikipediaParserTest" time="0.0"/>
-  <testcase name="rejected pages never reach the feed" classname="de.wissenshappen.app.data.WikipediaParserTest" time="0.001"/>
-  <testcase name="a proper article becomes a card" classname="de.wissenshappen.app.data.WikipediaParserTest" time="0.0"/>
+  <testcase name="rejected pages never reach the feed" classname="de.wissenshappen.app.data.WikipediaParserTest" time="0.004"/>
+  <testcase name="a proper article becomes a card" classname="de.wissenshappen.app.data.WikipediaParserTest" time="0.001"/>
   <testcase name="featured feed without tfa still returns the events" classname="de.wissenshappen.app.data.WikipediaParserTest" time="0.0"/>
   <testcase name="monument and other lists are rejected" classname="de.wissenshappen.app.data.WikipediaParserTest" time="0.0"/>
   <system-out><![CDATA[]]></system-out>

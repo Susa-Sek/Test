@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import de.shortblock.app.R
 import de.shortblock.app.data.BlockSettings
 import de.shortblock.app.data.DayStat
+import de.shortblock.app.data.FypRelation
 import de.shortblock.app.data.StatsHistory
 import de.shortblock.app.data.WatchBudget
 import de.shortblock.app.service.BlockLog
@@ -133,13 +134,17 @@ fun HomeScreen(
                     feature = Feature.TIKTOK_FYP,
                     title = stringResource(R.string.toggle_tiktok_fyp_title),
                     description = stringResource(R.string.toggle_tiktok_fyp_desc),
-                    // Ist TikTok ganz gesperrt, greift die Regel vorher — diese Zeile ändert
-                    // dann nichts mehr, und das soll man sehen statt raten.
-                    overriddenNote = if (Feature.TIKTOK_ALL in settings.enabled) {
-                        stringResource(R.string.overridden_by_tiktok_all)
-                    } else {
-                        null
+                    // Der Ganz-Block kann seit v0.4.2 selbst ein Kontingent haben. Dann ist
+                    // TikTok zeitweise offen — und diese Zeile in genau dieser Zeit wirksam.
+                    // Nur ohne Kontingent ist sie wirklich bedeutungslos.
+                    note = when (settings.tiktokFypRelation()) {
+                        FypRelation.INDEPENDENT -> null
+                        FypRelation.DURING_BUDGET ->
+                            stringResource(R.string.fyp_during_tiktok_budget)
+                        FypRelation.OVERRIDDEN ->
+                            stringResource(R.string.overridden_by_tiktok_all)
                     },
+                    dimmed = settings.tiktokFypRelation() == FypRelation.OVERRIDDEN,
                 ),
                 ToggleRow(
                     feature = Feature.TIKTOK_ALL,
@@ -228,8 +233,10 @@ private data class ToggleRow(
     val feature: Feature,
     val title: String,
     val description: String,
-    /** Gesetzt, wenn ein anderer Schalter diese Zeile bedeutungslos macht. */
-    val overriddenNote: String? = null,
+    /** Erklärt das Zusammenspiel mit einem anderen Schalter, falls es eines gibt. */
+    val note: String? = null,
+    /** Nur setzen, wenn die Zeile wirklich nichts bewirkt. */
+    val dimmed: Boolean = false,
 )
 
 @Composable
@@ -262,7 +269,8 @@ private fun AppGroup(
                     spentSeconds = secondsToday[row.feature] ?: 0,
                     budgetable = row.feature in BlockSettings.BUDGETABLE,
                     onBudgetChange = { onBudgetChange(row.feature, it) },
-                    overriddenNote = row.overriddenNote,
+                    note = row.note,
+                    dimmed = row.dimmed,
                 )
             }
         }
@@ -280,12 +288,13 @@ private fun FeatureRow(
     spentSeconds: Int,
     budgetable: Boolean,
     onBudgetChange: (Int) -> Unit,
-    overriddenNote: String? = null,
+    note: String? = null,
+    dimmed: Boolean = false,
 ) {
     Column(
         Modifier
             .padding(horizontal = 16.dp, vertical = 12.dp)
-            .alpha(if (overriddenNote != null) 0.45f else 1f),
+            .alpha(if (dimmed) 0.45f else 1f),
     ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -310,17 +319,18 @@ private fun FeatureRow(
         Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 
-        if (overriddenNote != null) {
+        if (note != null) {
             Text(
-                text = overriddenNote,
+                text = note,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 8.dp),
             )
         }
 
-        // Kein Kontingent anbieten, wo es ohnehin nichts bewirkt.
-        if (budgetable && checked && overriddenNote == null) {
+        // Auch in der gedämpften Zeile: Der eingestellte Wert gilt, sobald der Ganz-Block
+        // wieder aus ist — ihn dann zu verstecken, hieße ihn zu verstecken statt zu erklären.
+        if (budgetable && checked) {
             BudgetChips(
                 budgetMinutes = budgetMinutes,
                 spentSeconds = spentSeconds,

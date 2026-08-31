@@ -23,6 +23,19 @@ data class BlockSettings(
 ) {
     fun budgetMinutes(feature: Feature): Int = budgets[feature] ?: 0
 
+    /**
+     * Wie die „Für dich“-Zeile zum Ganz-Block steht.
+     *
+     * Steht hier statt in der Oberfläche, weil die drei Fälle seit dem Kontingent auf dem
+     * Ganz-Block nicht mehr offensichtlich sind — und weil sich eine reine Funktion prüfen
+     * lässt, eine Composable nicht.
+     */
+    fun tiktokFypRelation(): FypRelation = when {
+        Feature.TIKTOK_ALL !in enabled -> FypRelation.INDEPENDENT
+        budgetMinutes(Feature.TIKTOK_ALL) > 0 -> FypRelation.DURING_BUDGET
+        else -> FypRelation.OVERRIDDEN
+    }
+
     companion object {
         /**
          * Voreinstellung: alles an — außer „TikTok ganz blocken“.
@@ -35,14 +48,22 @@ data class BlockSettings(
         fun isEnabledByDefault(feature: Feature): Boolean = feature in DEFAULT_ENABLED
 
         /**
-         * Features, für die ein Zeitkontingent überhaupt sinnvoll ist: Kurzvideo-Sehdauer.
-         * Der Feed-Filter und „TikTok ganz blocken“ sind Grundsatzentscheidungen, keine
-         * Sehdauer — dort wäre ein Budget sinnlos.
+         * Features, für die ein Zeitkontingent sinnvoll ist.
+         *
+         * `TIKTOK_ALL` stand hier bis v0.4.1 bewusst nicht drin — ein Kontingent auf „App ganz
+         * sperren“ galt als Widerspruch. Das war zu eng gedacht: Es heißt schlicht *TikTok ist
+         * zu, außer X Minuten am Tag*, und ist damit dieselbe Halbierung wie bei Reels und
+         * Shorts, nur eine Ebene höher. Ohne sie hat die TikTok-Gruppe je nach Schalterstellung
+         * gar keine Zeitgrenze.
+         *
+         * Der Feed-Filter `INSTAGRAM_FEED` bleibt draußen: Das ist eine Grundsatzentscheidung
+         * über die Auswahl der Beiträge, keine Sehdauer.
          */
         val BUDGETABLE = listOf(
             Feature.INSTAGRAM_REELS,
             Feature.YOUTUBE_SHORTS,
             Feature.TIKTOK_FYP,
+            Feature.TIKTOK_ALL,
         )
 
         /**
@@ -59,6 +80,18 @@ data class BlockSettings(
 
         val DEFAULT = BlockSettings(enabled = DEFAULT_ENABLED, diagnostics = false)
     }
+}
+
+/** Verhältnis der „Für dich“-Zeile zum Schalter „TikTok ganz blocken“. */
+enum class FypRelation {
+    /** Ganz-Block aus — die Zeile wirkt für sich. */
+    INDEPENDENT,
+
+    /** Ganz-Block an, aber mit Kontingent: Die Zeile greift innerhalb der erlaubten Minuten. */
+    DURING_BUDGET,
+
+    /** Ganz-Block ohne Kontingent — TikTok geht gar nicht erst auf. */
+    OVERRIDDEN,
 }
 
 class SettingsRepository(context: Context) {

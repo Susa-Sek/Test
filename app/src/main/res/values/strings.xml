@@ -18,7 +18,7 @@
     <string name="step_accessibility_body">Under “Installed apps” / “Downloaded apps” pick ShortBlock and switch it on.</string>
     <string name="step_accessibility_button">Open accessibility settings</string>
     <string name="step_battery_title">3. Exclude from battery optimisation (optional)</string>
-    <string name="step_battery_body">Recommended on Xiaomi, Samsung and OnePlus devices — they stop background services aggressively.</string>
+    <string name="step_battery_body">Recommended on Xiaomi, Samsung and OnePlus devices — they stop background services aggressively. On Xiaomi/HyperOS also allow “Autostart” in the app info and lock the app in the recents view; otherwise the system switches the accessibility service off again after a reboot or overnight.</string>
     <string name="step_battery_button">Open battery settings</string>
     <string name="step_done">Done</string>
     <string name="onboarding_continue">Continue</string>
@@ -62,7 +62,7 @@
     <string name="toggle_tiktok_fyp_title">Block the For You feed</string>
     <string name="toggle_tiktok_fyp_desc">Forces the Following tab. DMs, search and profiles keep working.</string>
     <string name="toggle_tiktok_all_title">Block TikTok completely</string>
-    <string name="toggle_tiktok_all_desc">Every attempt to open TikTok navigates straight back — app and tiktok.com in the browser.</string>
+    <string name="toggle_tiktok_all_desc">Every attempt to open TikTok navigates straight back — app and tiktok.com in the browser. With an allowance the chosen minutes a day stay open.</string>
     <string name="toast_tiktok_switch_manual">Please switch to “Following” at the top</string>
     <string name="nav_overview">Overview</string>
     <string name="nav_setup">Setup</string>
@@ -79,6 +79,11 @@
     <string name="open_diagnostics">Diagnostics</string>
     <string name="open_setup">Setup</string>
 
+    <!-- Watchdog -->
+    <string name="watchdog_channel">Service switched off</string>
+    <string name="watchdog_title">ShortBlock has been switched off</string>
+    <string name="watchdog_text">Android has disabled the accessibility service — nothing is being blocked. Tap to switch it back on.</string>
+
     <!-- Diagnostics -->
     <string name="diagnostics_title">Diagnostics</string>
     <string name="diagnostics_toggle">Record view IDs</string>
@@ -90,7 +95,8 @@
     <!-- Service toasts -->
     <string name="toast_feed_end">End of the Following feed</string>
     <string name="toast_feed_switch_manual">Please switch to “Following” at the top left</string>
-    <string name="overridden_by_tiktok_all">No effect — “Block TikTok completely” already covers this</string>
+    <string name="overridden_by_tiktok_all">No effect while TikTok is blocked completely</string>
+    <string name="fyp_during_tiktok_budget">Applies during the allowed TikTok minutes</string>
     <string name="seen_packages_title">Apps seen</string>
     <string name="seen_packages_hint">While recording is on, the service listens to every app — that is how you find out the real package name if a blocker never fires. It only ever blocks the apps it is configured for.</string>
     <string name="seen_packages_empty">Nothing yet. Turn recording on and open the app in question.</string>

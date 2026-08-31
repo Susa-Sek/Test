@@ -9,6 +9,7 @@ import de.shortblock.app.data.BlockSettings
 import de.shortblock.app.data.SettingsRepository
 import de.shortblock.app.data.StatsRepository
 import de.shortblock.app.data.WatchBudget
+import de.shortblock.app.data.WatchdogState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -63,6 +64,11 @@ class BlockerAccessibilityService : AccessibilityService() {
 
         settingsRepository = SettingsRepository(applicationContext)
         statsRepository = StatsRepository(applicationContext)
+
+        // Der Wächter darf erst dann Alarm schlagen, wenn der Dienst wirklich einmal lief.
+        // Diese Zeile ist die einzige Stelle, an der das feststeht.
+        scope.launch { WatchdogState(applicationContext).onServiceRunning() }
+        ServiceWatchdogWorker.schedule(applicationContext)
 
         scope.launch {
             var lastDiagnostics: Boolean? = null
@@ -168,8 +174,13 @@ class BlockerAccessibilityService : AccessibilityService() {
 
         val match = RuleMatcher.findFirstMatch(root, packageName, settings.enabled)
         if (match != null) {
-            handleMatch(match)
-            return
+            val intervened = handleMatch(match)
+            // Läuft „TikTok ganz blocken“ gerade auf Kontingent, ist TikTok bewusst offen — dann
+            // muss der „Für dich“-Filter mit seinem eigenen Kontingent weiterlaufen. Nur für
+            // diesen Fall wird weitergeschaut; sonst bleibt ein Treffer das Ende der Kette.
+            // Bewusst eng: Ein allgemeines Durchfallen ließe die Instagram-Feed-Policy im
+            // laufenden Reels-Kontingent tippen — Fehlalarmrisiko ohne Gegenwert.
+            if (intervened || match.rule.feature != Feature.TIKTOK_ALL) return
         }
 
         if (packageName == Packages.INSTAGRAM && Feature.INSTAGRAM_FEED in settings.enabled) {
@@ -210,9 +221,10 @@ class BlockerAccessibilityService : AccessibilityService() {
         return true
     }
 
-    private fun handleMatch(match: RuleMatch) {
+    /** @return `true`, wenn tatsächlich geblockt wurde; `false`, wenn Kontingent übrig ist. */
+    private fun handleMatch(match: RuleMatch): Boolean {
         val feature = match.rule.feature
-        if (!shouldIntervene(feature)) return
+        if (!shouldIntervene(feature)) return false
 
         val spent = settings.budgetMinutes(feature) > 0
         BlockLog.record(
@@ -220,6 +232,7 @@ class BlockerAccessibilityService : AccessibilityService() {
             match.signature,
         )
         blockAndGoBack(feature)
+        return true
     }
 
     private fun flushBudget(force: Boolean, detached: Boolean = false) {

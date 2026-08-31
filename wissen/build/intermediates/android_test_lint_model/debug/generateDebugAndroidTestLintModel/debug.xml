@@ -25,6 +25,6 @@
       type="INSTRUMENTATION_TEST"
       applicationId="de.wissenshappen.app.test"
       generatedResourceFolders="build/generated/res/resValues/androidTest/debug"
-      desugaredMethodsFiles="/root/.gradle/caches/8.14.3/transforms/623f4a1ed1819c80856c47bd4c957550/transformed/D8BackportedDesugaredMethods.txt">
+      desugaredMethodsFiles="/root/.gradle/caches/8.14.3/transforms/5104fec772753cac8fb86751b1a65c97/transformed/D8BackportedDesugaredMethods.txt">
   </artifact>
 </variant>

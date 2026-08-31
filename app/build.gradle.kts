@@ -14,8 +14,8 @@ android {
         applicationId = "de.shortblock.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 5
-        versionName = "0.4.1"
+        versionCode = 6
+        versionName = "0.4.2"
     }
 
     buildTypes {
@@ -53,6 +53,7 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation("androidx.compose.material:material-icons-core")
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.work.runtime)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)

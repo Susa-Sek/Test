@@ -13,7 +13,7 @@
     <string name="step_accessibility_body">Unter „Installierte Apps“ / „Heruntergeladene Apps“ ShortBlock auswählen und einschalten.</string>
     <string name="step_accessibility_button">Bedienungshilfen öffnen</string>
     <string name="step_battery_title">3. Von Akku-Optimierung ausnehmen (optional)</string>
-    <string name="step_battery_body">Empfohlen auf Xiaomi-, Samsung- und OnePlus-Geräten — die beenden Hintergrunddienste aggressiv.</string>
+    <string name="step_battery_body">Empfohlen auf Xiaomi-, Samsung- und OnePlus-Geräten — die beenden Hintergrunddienste aggressiv. Auf Xiaomi/HyperOS zusätzlich in der App-Info „Autostart“ erlauben und die App in der Übersicht der offenen Apps fixieren; sonst schaltet das System die Bedienungshilfe nach einem Neustart oder über Nacht wieder ab.</string>
     <string name="step_battery_button">Akku-Einstellungen öffnen</string>
     <string name="step_done">Erledigt</string>
     <string name="onboarding_continue">Weiter</string>
@@ -54,7 +54,7 @@
     <string name="toggle_tiktok_fyp_title">„Für dich“-Feed blocken</string>
     <string name="toggle_tiktok_fyp_desc">Erzwingt den „Folge ich“-Tab. DMs, Suche und Profile bleiben nutzbar.</string>
     <string name="toggle_tiktok_all_title">TikTok ganz blocken</string>
-    <string name="toggle_tiktok_all_desc">Jeder Öffnungsversuch führt sofort zurück — App und tiktok.com im Browser.</string>
+    <string name="toggle_tiktok_all_desc">Jeder Öffnungsversuch führt sofort zurück — App und tiktok.com im Browser. Mit Kontingent bleiben die gewählten Minuten am Tag erlaubt.</string>
     <string name="toast_tiktok_switch_manual">Bitte oben auf „Folge ich“ umschalten</string>
     <string name="nav_overview">Übersicht</string>
     <string name="nav_setup">Einrichtung</string>
@@ -71,6 +71,11 @@
     <string name="open_diagnostics">Diagnose</string>
     <string name="open_setup">Einrichtung</string>
 
+    <!-- Wächter -->
+    <string name="watchdog_channel">Dienst abgeschaltet</string>
+    <string name="watchdog_title">ShortBlock wurde abgeschaltet</string>
+    <string name="watchdog_text">Android hat die Bedienungshilfe deaktiviert — es wird gerade nichts geblockt. Zum Wiedereinschalten tippen.</string>
+
     <!-- Diagnose -->
     <string name="diagnostics_title">Diagnose</string>
     <string name="diagnostics_toggle">View-IDs aufzeichnen</string>
@@ -82,7 +87,8 @@
     <!-- Service-Toasts -->
     <string name="toast_feed_end">Ende des „Folge ich“-Feeds</string>
     <string name="toast_feed_switch_manual">Bitte oben links auf „Folge ich“ umschalten</string>
-    <string name="overridden_by_tiktok_all">Ohne Wirkung — „TikTok ganz blocken“ greift vorher</string>
+    <string name="overridden_by_tiktok_all">Greift nicht, solange TikTok ganz gesperrt ist</string>
+    <string name="fyp_during_tiktok_budget">Gilt während der erlaubten TikTok-Minuten</string>
     <string name="seen_packages_title">Gesehene Apps</string>
     <string name="seen_packages_hint">Solange die Aufzeichnung läuft, hört der Dienst auf alle Apps — so findest du den echten Paketnamen, wenn ein Blocker nie auslöst. Geblockt wird weiterhin nur, wofür er eingerichtet ist.</string>
     <string name="seen_packages_empty">Noch nichts. Aufzeichnen einschalten und die fragliche App öffnen.</string>
