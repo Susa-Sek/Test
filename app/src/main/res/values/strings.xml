@@ -88,20 +88,34 @@
     <string name="toast_blocked">Not now.</string>
     <string name="cheat_running_title">Cheat is running</string>
     <string name="cheat_running_body">%1$d min left. Then it closes again.</string>
-    <string name="cheat_started_title">%1$d minutes. Yours.</string>
-    <string name="cheat_started_body">After that it closes again — and there is no second one today.</string>
+    <string name="cheat_waiting_title">Cheat requested</string>
+    <string name="cheat_waiting_body">Starts in %1$d seconds. Until then everything stays blocked.</string>
+    <string name="cheat_open_app_title">Open ShortBlock</string>
+    <string name="cheat_open_app_body">The cheat is requested inside the app.</string>
+    <string name="cheat_card_waiting_title">Cheat starts in %1$s</string>
+    <string name="cheat_card_waiting_body">Still blocking until then.</string>
+    <string name="cheat_dialog_title">%1$d minutes — but not for free</string>
+    <string name="cheat_dialog_cost">The minutes count against your daily allowance (nothing to pay where it is set to “Always”). After requesting, %1$d seconds pass before anything opens.</string>
+    <string name="cheat_dialog_field">Type the sentence</string>
+    <string name="cheat_dialog_request">Request</string>
+    <string name="cheat_dialog_cancel">Leave it</string>
+    <string-array name="cheat_phrases">
+        <item>I have decided that this is worth my time.</item>
+        <item>I know what I am giving up, and I am doing it anyway.</item>
+        <item>This is a decision, not a reflex.</item>
+    </string-array>
     <string name="cheat_used_title">Already used today</string>
     <string name="cheat_used_body">Free again tomorrow. Until then the answer is no.</string>
     <string name="cheat_off_title">The cheat is switched off</string>
     <string name="cheat_off_body">You can switch it back on in ShortBlock — if you really want to.</string>
     <string name="cheat_card_free_title">Cheat free today · %1$d min</string>
-    <string name="cheat_card_free_body">Press the accessibility button at the edge of the screen — deliberately, not from the app. That short detour is the whole point.</string>
+    <string name="cheat_card_free_body">Tap here, or press the accessibility button at the edge of the screen. Costs a sentence to type, a minute of waiting, and your daily allowance.</string>
     <string name="cheat_card_running_title">Cheat running · %1$s left</string>
     <string name="cheat_card_running_body">Nothing is being blocked right now.</string>
     <string name="cheat_card_used_title">Cheat used today</string>
     <string name="cheat_card_used_body">Free again tomorrow.</string>
     <string name="cheat_toggle_title">Allow the daily cheat</string>
-    <string name="cheat_toggle_desc">Once a day, %1$d minutes of everything — triggered by the accessibility button at the edge of the screen.</string>
+    <string name="cheat_toggle_desc">Once a day, %1$d minutes of everything — after typing a sentence and waiting a minute, counted against your daily allowance.</string>
     <string name="time_remaining">%1$d:%2$02d</string>
     <string-array name="reminder_lines">
         <item>Did you mean to do that — or was your hand faster?</item>

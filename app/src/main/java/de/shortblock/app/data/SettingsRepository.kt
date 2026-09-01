@@ -27,8 +27,13 @@ data class BlockSettings(
     val allowSharedClips: Boolean = true,
     /** Tag (epochDay), an dem der Cheat zuletzt eingelöst wurde. 0 = noch nie. */
     val cheatUsedOnDay: Int = 0,
-    /** Ende des laufenden Cheats in Millisekunden seit Epoche. 0 = keiner. */
-    val cheatUntilMillis: Long = 0L,
+    /**
+     * Wann der Cheat angefordert wurde, in Millisekunden seit Epoche. 0 = nie.
+     *
+     * Der einzige gespeicherte Wert des Cheats: Wartezeit, Laufzeit und Ende rechnet
+     * [CheatPass] daraus aus. So überlebt eine laufende Wartezeit jedes Abräumen des Dienstes.
+     */
+    val cheatArmedAtMillis: Long = 0L,
 ) {
     fun budgetMinutes(feature: Feature): Int = budgets[feature] ?: 0
 
@@ -118,7 +123,7 @@ class SettingsRepository(context: Context) {
             cheatEnabled = prefs[CHEAT_ENABLED] ?: true,
             allowSharedClips = prefs[ALLOW_SHARED_CLIPS] ?: true,
             cheatUsedOnDay = prefs[CHEAT_USED_ON_DAY] ?: 0,
-            cheatUntilMillis = prefs[CHEAT_UNTIL] ?: 0L,
+            cheatArmedAtMillis = prefs[CHEAT_ARMED_AT] ?: 0L,
         )
     }
 
@@ -143,15 +148,15 @@ class SettingsRepository(context: Context) {
     }
 
     /**
-     * Cheat einlösen — Tag und Ende in einem Schreibvorgang.
+     * Cheat anfordern — Tag und Zeitstempel in einem Schreibvorgang.
      *
-     * Zusammen, damit nicht ein abgebrochener Schreibvorgang einen laufenden Cheat hinterlässt,
-     * der nie als „heute verbraucht“ gilt.
+     * Zusammen, damit nicht ein abgebrochener Schreibvorgang einen Cheat hinterlässt, der nie
+     * als „heute verbraucht“ gilt. Ab hier läuft erst die Wartezeit, nicht der Cheat.
      */
-    suspend fun redeemCheat(nowMillis: Long, today: Int) {
+    suspend fun armCheat(nowMillis: Long, today: Int) {
         dataStore.edit {
             it[CHEAT_USED_ON_DAY] = today
-            it[CHEAT_UNTIL] = CheatPass.endsAt(nowMillis)
+            it[CHEAT_ARMED_AT] = nowMillis
         }
     }
 
@@ -165,7 +170,9 @@ class SettingsRepository(context: Context) {
         val CHEAT_ENABLED = booleanPreferencesKey("cheat_enabled")
         val ALLOW_SHARED_CLIPS = booleanPreferencesKey("allow_shared_clips")
         val CHEAT_USED_ON_DAY = intPreferencesKey("cheat_used_on_day")
-        val CHEAT_UNTIL = longPreferencesKey("cheat_until")
+        // Bewusst ein neuer Schlüssel: Der alte hielt das Ende, dieser den Beginn. Ein beim
+        // Update laufender Cheat geht verloren — fünf Minuten, einmalig, keine Migration wert.
+        val CHEAT_ARMED_AT = longPreferencesKey("cheat_armed_at")
         fun budgetKey(feature: Feature) = intPreferencesKey("budget_${feature.name}")
         fun key(feature: Feature) = booleanPreferencesKey("feature_${feature.name}")
     }

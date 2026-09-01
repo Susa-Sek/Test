@@ -34,8 +34,8 @@ enum class CardTone { NEUTRAL, GOOD, ALERT, ACCENT }
 
 @Composable
 fun InfoCard(
-    tone: CardTone = CardTone.NEUTRAL,
     modifier: Modifier = Modifier,
+    tone: CardTone = CardTone.NEUTRAL,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme

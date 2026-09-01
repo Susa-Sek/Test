@@ -47,7 +47,7 @@ import kotlinx.coroutines.launch
 enum class Screen { ONBOARDING, HOME, DIAGNOSTICS }
 
 @Composable
-fun AppRoot() {
+fun AppRoot(openCheatOnStart: Boolean = false) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val settingsRepository = remember(context) { SettingsRepository(context) }
@@ -66,6 +66,7 @@ fun AppRoot() {
     var batteryExempt by remember { mutableStateOf(SystemSettings.isIgnoringBatteryOptimizations(context)) }
     var onboardingSeen by rememberSaveable { mutableStateOf(false) }
     var screen by rememberSaveable { mutableStateOf(Screen.HOME) }
+    var cheatDialog by rememberSaveable { mutableStateOf(openCheatOnStart) }
 
     // Nach der Rückkehr aus den Systemeinstellungen den Status neu lesen — sonst zeigt die App
     // noch „Dienst ist aus“, obwohl er gerade eingeschaltet wurde.
@@ -155,6 +156,7 @@ fun AppRoot() {
                         onboardingSeen = true
                         screen = Screen.ONBOARDING
                     },
+                    onOpenCheat = { cheatDialog = true },
                     onOpenDiagnostics = { screen = Screen.DIAGNOSTICS },
                 )
 
@@ -170,6 +172,21 @@ fun AppRoot() {
                         DiagnosticsBuffer.clear()
                         BlockLog.clear()
                     },
+                )
+            }
+
+            if (cheatDialog) {
+                CheatDialog(
+                    settings = settings,
+                    onArm = {
+                        scope.launch {
+                            settingsRepository.armCheat(
+                                System.currentTimeMillis(),
+                                java.time.LocalDate.now().toEpochDay().toInt(),
+                            )
+                        }
+                    },
+                    onDismiss = { cheatDialog = false },
                 )
             }
         }

@@ -80,20 +80,34 @@
     <string name="toast_blocked">Jetzt nicht.</string>
     <string name="cheat_running_title">Cheat läuft</string>
     <string name="cheat_running_body">Noch %1$d Min. Danach ist wieder zu.</string>
-    <string name="cheat_started_title">%1$d Minuten. Deine.</string>
-    <string name="cheat_started_body">Danach ist wieder zu — und ein zweites Mal gibt es heute nicht.</string>
+    <string name="cheat_waiting_title">Cheat angefordert</string>
+    <string name="cheat_waiting_body">Startet in %1$d Sekunden. Bis dahin bleibt alles geblockt.</string>
+    <string name="cheat_open_app_title">ShortBlock öffnen</string>
+    <string name="cheat_open_app_body">Der Cheat wird in der App angefordert.</string>
+    <string name="cheat_card_waiting_title">Cheat startet in %1$s</string>
+    <string name="cheat_card_waiting_body">Bis dahin wird weiter geblockt.</string>
+    <string name="cheat_dialog_title">%1$d Minuten — aber nicht umsonst</string>
+    <string name="cheat_dialog_cost">Die Minuten zählen auf dein Tageskontingent (wo „Immer“ eingestellt ist, gibt es nichts zu zahlen). Nach dem Anfordern vergehen %1$d Sekunden, bevor sich etwas öffnet.</string>
+    <string name="cheat_dialog_field">Satz abtippen</string>
+    <string name="cheat_dialog_request">Anfordern</string>
+    <string name="cheat_dialog_cancel">Lieber nicht</string>
+    <string-array name="cheat_phrases">
+        <item>Ich habe entschieden, dass mir das die Zeit wert ist.</item>
+        <item>Ich weiß, was ich gerade aufgebe, und mache es trotzdem.</item>
+        <item>Das hier ist eine Entscheidung, kein Reflex.</item>
+    </string-array>
     <string name="cheat_used_title">Heute schon verbraucht</string>
     <string name="cheat_used_body">Morgen wieder frei. Bis dahin heißt die Antwort nein.</string>
     <string name="cheat_off_title">Der Cheat ist ausgeschaltet</string>
     <string name="cheat_off_body">In ShortBlock kannst du ihn wieder einschalten — wenn du wirklich willst.</string>
     <string name="cheat_card_free_title">Cheat heute frei · %1$d Min</string>
-    <string name="cheat_card_free_body">Den Bedienungshilfen-Knopf am Bildschirmrand drücken — bewusst, nicht aus der App heraus. Genau dieser kleine Umweg ist der Sinn der Sache.</string>
+    <string name="cheat_card_free_body">Hier tippen, oder den Bedienungshilfen-Knopf am Bildschirmrand drücken. Kostet einen Satz zum Abtippen, eine Minute Warten und dein Tageskontingent.</string>
     <string name="cheat_card_running_title">Cheat läuft · noch %1$s</string>
     <string name="cheat_card_running_body">Gerade wird nichts geblockt.</string>
     <string name="cheat_card_used_title">Cheat heute eingelöst</string>
     <string name="cheat_card_used_body">Morgen wieder frei.</string>
     <string name="cheat_toggle_title">Tages-Cheat erlauben</string>
-    <string name="cheat_toggle_desc">Einmal am Tag %1$d Minuten für alles — ausgelöst vom Bedienungshilfen-Knopf am Bildschirmrand.</string>
+    <string name="cheat_toggle_desc">Einmal am Tag %1$d Minuten für alles — nach einem abgetippten Satz und einer Minute Warten, verrechnet mit dem Tageskontingent.</string>
     <string name="time_remaining">%1$d:%2$02d</string>
     <string-array name="reminder_lines">
         <item>Wolltest du das gerade — oder war die Hand schneller?</item>

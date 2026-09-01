@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import de.shortblock.app.R
 import de.shortblock.app.data.BlockSettings
 import de.shortblock.app.data.CheatPass
+import de.shortblock.app.data.CheatStage
 import de.shortblock.app.data.DayStat
 import de.shortblock.app.data.FypRelation
 import de.shortblock.app.data.WatchBudget
@@ -76,6 +77,7 @@ fun HomeScreen(
     onOpenBattery: () -> Unit,
     onOpenAccessibility: () -> Unit,
     onOpenSetup: () -> Unit,
+    onOpenCheat: () -> Unit,
     onOpenDiagnostics: () -> Unit,
 ) {
     val todayTotal = counts.values.sum()
@@ -102,7 +104,7 @@ fun HomeScreen(
 
         HeroCard(todayTotal = todayTotal, week = week)
 
-        CheatCard(settings)
+        CheatCard(settings, onOpenCheat)
 
         AppGroup(
             title = stringResource(R.string.group_instagram),
@@ -429,28 +431,36 @@ private fun BudgetSection(
  * genau deshalb falsch: Der kleine Umweg ist die ganze Hürde.
  */
 @Composable
-private fun CheatCard(settings: BlockSettings) {
+private fun CheatCard(settings: BlockSettings, onOpenCheat: () -> Unit) {
     if (!settings.cheatEnabled) return
 
-    // Läuft ein Cheat, muss die Restzeit sichtbar herunterlaufen — eine stehende Zahl wirkt
-    // wie ein Fehler. Außerhalb eines Cheats tickt hier nichts.
+    // Läuft oder wartet ein Cheat, muss die Zeit sichtbar herunterlaufen — eine stehende Zahl
+    // wirkt wie ein Fehler. Sonst tickt hier nichts.
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    val running = CheatPass.isActive(settings.cheatUntilMillis, now)
-    LaunchedEffect(settings.cheatUntilMillis, running) {
-        while (CheatPass.isActive(settings.cheatUntilMillis, System.currentTimeMillis())) {
-            now = System.currentTimeMillis()
-            delay(1000L)
-        }
-        now = System.currentTimeMillis()
-    }
+    val today = LocalDate.now().toEpochDay().toInt()
+    val stage = CheatPass.stage(settings.cheatArmedAtMillis, settings.cheatUsedOnDay, today, now)
 
-    val free = CheatPass.isAvailable(settings.cheatUsedOnDay, LocalDate.now().toEpochDay().toInt())
+    LaunchedEffect(settings.cheatArmedAtMillis, stage) {
+        while (stage == CheatStage.WAITING || stage == CheatStage.RUNNING) {
+            delay(500L)
+            now = System.currentTimeMillis()
+        }
+    }
 
     val title: String
     val body: String
-    when {
-        running -> {
-            val seconds = CheatPass.remainingSeconds(settings.cheatUntilMillis, now)
+    when (stage) {
+        CheatStage.WAITING -> {
+            val seconds = CheatPass.waitRemainingSeconds(settings.cheatArmedAtMillis, now)
+            title = stringResource(
+                R.string.cheat_card_waiting_title,
+                stringResource(R.string.time_remaining, seconds / 60, seconds % 60),
+            )
+            body = stringResource(R.string.cheat_card_waiting_body)
+        }
+
+        CheatStage.RUNNING -> {
+            val seconds = CheatPass.runRemainingSeconds(settings.cheatArmedAtMillis, now)
             title = stringResource(
                 R.string.cheat_card_running_title,
                 stringResource(R.string.time_remaining, seconds / 60, seconds % 60),
@@ -458,27 +468,34 @@ private fun CheatCard(settings: BlockSettings) {
             body = stringResource(R.string.cheat_card_running_body)
         }
 
-        free -> {
+        CheatStage.FREE -> {
             title = stringResource(R.string.cheat_card_free_title, CheatPass.DURATION_MINUTES)
             body = stringResource(R.string.cheat_card_free_body)
         }
 
-        else -> {
+        CheatStage.USED -> {
             title = stringResource(R.string.cheat_card_used_title)
             body = stringResource(R.string.cheat_card_used_body)
         }
     }
 
-    InfoCard(tone = if (running) CardTone.GOOD else CardTone.NEUTRAL) {
+    val tone = when (stage) {
+        CheatStage.RUNNING -> CardTone.GOOD
+        CheatStage.WAITING -> CardTone.ACCENT
+        else -> CardTone.NEUTRAL
+    }
+
+    // Antippbar nur, solange es etwas anzufordern gibt. Dass die Karte den Weg zum Cheat jetzt
+    // auch öffnet, ist kein Rückschritt: Die Hürde liegt seit v0.8 nicht mehr im Weg dorthin,
+    // sondern im Dialog selbst — abtippen, warten, Kontingent zahlen.
+    InfoCard(
+        tone = tone,
+        modifier = if (stage == CheatStage.FREE) Modifier.clickable { onOpenCheat() } else Modifier,
+    ) {
         Text(text = title, style = MaterialTheme.typography.titleMedium)
         Text(
             text = body,
             style = MaterialTheme.typography.bodySmall,
-            color = if (running) {
-                MaterialTheme.colorScheme.onTertiaryContainer
-            } else {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            },
             modifier = Modifier.padding(top = 6.dp),
         )
     }

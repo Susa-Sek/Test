@@ -8,6 +8,7 @@ import android.widget.Toast
 import de.shortblock.app.R
 import de.shortblock.app.data.BlockSettings
 import de.shortblock.app.data.CheatPass
+import de.shortblock.app.data.CheatStage
 import de.shortblock.app.data.SettingsRepository
 import de.shortblock.app.data.StatsRepository
 import de.shortblock.app.data.WatchBudget
@@ -319,16 +320,24 @@ class BlockerAccessibilityService : AccessibilityService() {
      *   Voreinstellung und das Verhalten vor v0.4.
      */
     private fun shouldIntervene(feature: Feature): Boolean {
-        // Ein laufender Cheat hebt alles auf — auch den TikTok-Ganz-Block, so war „für alles“
-        // gemeint. Bewusst VOR der Kontingent-Uhr: Die fünf geschenkten Minuten sollen das
-        // Tagesbudget nicht aufbrauchen, sonst wäre das Geschenk keines.
-        if (CheatPass.isActive(settings.cheatUntilMillis, System.currentTimeMillis())) return false
+        // Ein laufender Cheat hebt die **Sperre** auf — auch den TikTok-Ganz-Block, so war
+        // „für alles“ gemeint. Die **Uhr** hebt er seit v0.8 ausdrücklich NICHT auf: Sie tickt
+        // unten weiter, ihr Ergebnis wird nur nicht mehr zum Blocken benutzt. Damit kosten die
+        // fünf Minuten Tageskontingent, statt geschenkt zu sein. (Bis v0.7 stand hier ein
+        // vorgezogenes `return false` — die Umkehr ist gewollt, siehe CLAUDE.md.)
+        val cheating = CheatPass.stage(
+            settings.cheatArmedAtMillis,
+            settings.cheatUsedOnDay,
+            today(),
+            System.currentTimeMillis(),
+        ) == CheatStage.RUNNING
 
         val budget = settings.budgetMinutes(feature)
-        if (!WatchBudget.hasBudget(budget)) return true
+        if (!WatchBudget.hasBudget(budget)) return !cheating
 
         val spent = budgetClock.tick(feature, System.currentTimeMillis(), spentSeconds[feature] ?: 0)
         flushBudget(force = false)
+        if (cheating) return false
 
         if (!WatchBudget.isExhausted(spent, budget)) {
             exhaustedToastShown.remove(feature)
@@ -475,30 +484,58 @@ class BlockerAccessibilityService : AccessibilityService() {
      */
     private fun onCheatButtonPressed() {
         val now = System.currentTimeMillis()
+        val stage = CheatPass.stage(
+            settings.cheatArmedAtMillis,
+            settings.cheatUsedOnDay,
+            today(),
+            now,
+        )
 
-        if (CheatPass.isActive(settings.cheatUntilMillis, now)) {
-            val minutes = (CheatPass.remainingSeconds(settings.cheatUntilMillis, now) + 59) / 60
-            popup(getString(R.string.cheat_running_title), getString(R.string.cheat_running_body, minutes))
-            return
-        }
         if (!settings.cheatEnabled) {
             popup(getString(R.string.cheat_off_title), getString(R.string.cheat_off_body))
             return
         }
-        if (!cheatIsFree()) {
-            popup(getString(R.string.cheat_used_title), getString(R.string.cheat_used_body))
-            return
-        }
 
-        scope.launch { settingsRepository.redeemCheat(now, today()) }
-        popup(
-            getString(R.string.cheat_started_title, CheatPass.DURATION_MINUTES),
-            getString(R.string.cheat_started_body),
-        )
+        when (stage) {
+            CheatStage.RUNNING -> {
+                val minutes = (CheatPass.runRemainingSeconds(settings.cheatArmedAtMillis, now) + 59) / 60
+                popup(getString(R.string.cheat_running_title), getString(R.string.cheat_running_body, minutes))
+            }
+
+            CheatStage.WAITING -> {
+                val seconds = CheatPass.waitRemainingSeconds(settings.cheatArmedAtMillis, now)
+                popup(getString(R.string.cheat_waiting_title), getString(R.string.cheat_waiting_body, seconds))
+            }
+
+            CheatStage.USED ->
+                popup(getString(R.string.cheat_used_title), getString(R.string.cheat_used_body))
+
+            // Der Knopf gewährt seit v0.8 nichts mehr — er führt nur noch zur Tür. Abgetippt
+            // und gewartet wird in der App; ein Tastaturfeld im Fenster über Instagram würde
+            // der App darunter die Eingabe klauen.
+            CheatStage.FREE -> if (!openCheatRequest()) {
+                popup(getString(R.string.cheat_open_app_title), getString(R.string.cheat_open_app_body))
+            }
+        }
     }
 
-    private fun cheatIsFree(): Boolean =
-        settings.cheatEnabled && CheatPass.isAvailable(settings.cheatUsedOnDay, today())
+    /** @return false, wenn sich die App nicht öffnen ließ — dann bleibt nur der Hinweis. */
+    private fun openCheatRequest(): Boolean = runCatching {
+        startActivity(
+            android.content.Intent(this, de.shortblock.app.MainActivity::class.java)
+                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                .addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                .putExtra(de.shortblock.app.MainActivity.EXTRA_OPEN_CHEAT, true),
+        )
+        true
+    }.getOrDefault(false)
+
+    private fun cheatIsFree(): Boolean = settings.cheatEnabled && CheatPass.stage(
+        settings.cheatArmedAtMillis,
+        settings.cheatUsedOnDay,
+        today(),
+        System.currentTimeMillis(),
+    ) == CheatStage.FREE
 
     /** Antwort auf eine Handlung — anders als der Spruch nach einem Block nie gedrosselt. */
     private fun popup(title: String, body: String) {

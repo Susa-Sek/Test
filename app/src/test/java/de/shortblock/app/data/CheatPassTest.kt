@@ -1,57 +1,61 @@
 package de.shortblock.app.data
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CheatPassTest {
 
     private val now = 1_800_000_000_000L
-    private val fiveMinutes = 5 * 60 * 1000L
+    private val today = 20321
+    private val wait = CheatPass.WAIT_SECONDS * 1000L
+    private val duration = CheatPass.DURATION_MINUTES * 60 * 1000L
+
+    private fun stageAt(offsetMs: Long, armedAt: Long = now, usedOn: Int = today) =
+        CheatPass.stage(armedAt, usedOn, today, now + offsetMs)
 
     @Test
-    fun `free until redeemed today`() {
-        assertTrue(CheatPass.isAvailable(usedOnDay = 20320, today = 20321))
-        assertFalse(CheatPass.isAvailable(usedOnDay = 20321, today = 20321))
+    fun `nothing requested means free`() {
+        assertEquals(CheatStage.FREE, CheatPass.stage(0L, 0, today, now))
     }
 
-    /** Frisch installiert: noch nie eingelöst, also frei. */
+    /** Der ganze Zeitstrahl an einem Stück — hier fällt jede Verschiebung sofort auf. */
     @Test
-    fun `free on a fresh install`() {
-        assertTrue(CheatPass.isAvailable(usedOnDay = 0, today = 20321))
+    fun `the whole timeline in order`() {
+        assertEquals(CheatStage.WAITING, stageAt(0L))
+        assertEquals(CheatStage.WAITING, stageAt(wait - 1))
+        assertEquals(CheatStage.RUNNING, stageAt(wait))
+        assertEquals(CheatStage.RUNNING, stageAt(wait + duration - 1))
+        assertEquals(CheatStage.USED, stageAt(wait + duration))
+        assertEquals(CheatStage.USED, stageAt(wait + duration + 60_000L))
     }
 
     @Test
-    fun `runs until the end and not a second longer`() {
-        val until = CheatPass.endsAt(now)
-        assertTrue(CheatPass.isActive(until, now))
-        assertTrue(CheatPass.isActive(until, now + fiveMinutes - 1))
-        assertFalse(CheatPass.isActive(until, now + fiveMinutes))
-        assertFalse(CheatPass.isActive(until, now + fiveMinutes + 1))
-    }
-
-    @Test
-    fun `nothing is running before the first redemption`() {
-        assertFalse(CheatPass.isActive(untilMillis = 0L, nowMillis = now))
+    fun `a new day frees it again`() {
+        assertEquals(CheatStage.FREE, CheatPass.stage(now, today - 1, today, now + wait + duration))
     }
 
     /**
-     * Die Falle, die einen Cheat sonst unendlich macht: Wer die Systemuhr zurückstellt,
-     * schiebt das gespeicherte Ende beliebig weit in die Zukunft. Mehr als eine volle
-     * Cheat-Dauer Rest kann es nie geben — also gilt das als beendet.
+     * Die Falle, die den Cheat sonst endlos machte: Wer die Systemuhr zurückstellt, schiebt den
+     * gespeicherten Beginn beliebig weit in die Zukunft. Mehr Vorlauf als die volle Wartezeit
+     * kann es nie geben — also gilt das als verbraucht.
      */
     @Test
     fun `a rewound clock ends the cheat instead of extending it`() {
-        val until = CheatPass.endsAt(now)
-        assertFalse(CheatPass.isActive(until, now - 60 * 60 * 1000L))
+        assertEquals(CheatStage.USED, stageAt(-(60 * 60 * 1000L)))
     }
 
     @Test
-    fun `remaining time rounds up to full seconds`() {
-        val until = CheatPass.endsAt(now)
-        assertEquals(300, CheatPass.remainingSeconds(until, now))
-        assertEquals(1, CheatPass.remainingSeconds(until, now + fiveMinutes - 1))
-        assertEquals(0, CheatPass.remainingSeconds(until, now + fiveMinutes))
+    fun `the waiting countdown runs down to the second`() {
+        assertEquals(CheatPass.WAIT_SECONDS, CheatPass.waitRemainingSeconds(now, now))
+        assertEquals(1, CheatPass.waitRemainingSeconds(now, now + wait - 1))
+        assertEquals(0, CheatPass.waitRemainingSeconds(now, now + wait))
+    }
+
+    @Test
+    fun `the running countdown only starts after the wait`() {
+        assertEquals(0, CheatPass.runRemainingSeconds(now, now))
+        assertEquals(300, CheatPass.runRemainingSeconds(now, now + wait))
+        assertEquals(1, CheatPass.runRemainingSeconds(now, now + wait + duration - 1))
+        assertEquals(0, CheatPass.runRemainingSeconds(now, now + wait + duration))
     }
 }

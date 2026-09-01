@@ -26,10 +26,14 @@ nicht mehr benutzen; wer ein Reel zu viel sieht, ärgert sich kurz. Im Zweifel n
 - **`Rules.BROWSER_URL_BAR_IDS` muss vor `BLOCK_RULES` stehen.** Kotlin initialisiert
   object-Eigenschaften in Textreihenfolge; andersherum ist die Liste noch null und die ganze
   Klasse schlägt beim Laden fehl.
-- **Der Cheat sitzt vor der Kontingent-Uhr** in `shouldIntervene` — sonst würden die
-  geschenkten Minuten das Tagesbudget aufbrauchen. Und ein gespeichertes Cheat-Ende, das weiter
-  als die Cheat-Dauer in der Zukunft liegt, heißt zurückgestellte Systemuhr: dann gilt der Cheat
-  als beendet, nie als endlos.
+- **Der Cheat hebt in `shouldIntervene` die Sperre auf, nicht die Uhr.** Bis v0.7 stand er vor
+  der Kontingent-Uhr, damit die geschenkten Minuten das Budget nicht aufbrauchen. Seit v0.8 ist
+  genau das gewollt: Die Uhr tickt weiter, ihr Ergebnis wird nur nicht zum Blocken benutzt. Wer
+  die Reihenfolge „aufräumt“, macht den Cheat wieder gratis.
+- **Der Cheat hängt an einem einzigen Zeitstempel** (`cheatArmedAtMillis`). Wartezeit, Laufzeit
+  und Ende rechnet `CheatPass` daraus aus — kein Wecker, der bei abgeräumtem Dienst verloren
+  ginge. Ein Beginn, der weiter als die Wartezeit in der Zukunft liegt, heißt zurückgestellte
+  Systemuhr: dann gilt der Cheat als verbraucht, nie als endlos.
 - **`org.json` ist im JVM-Unit-Test nur ein Stub**, der bei jedem Aufruf wirft. Module, die es
   benutzen, brauchen `testImplementation(libs.org.json)`.
 
@@ -43,7 +47,7 @@ Android-Abhängige bleibt eine dünne Hülle drumherum. Neue Erkennung genauso b
 | `service/RuleMatcher.kt`, `service/Rules.kt` | `service/BlockerAccessibilityService.kt` |
 | `service/FeedPolicy.kt`, `service/TikTokPolicy.kt` | `service/AccessibilityUiNode.kt` |
 | `data/StatsHistory.kt`, `data/WatchBudget.kt` | `data/StatsRepository.kt` |
-| `data/CheatPass.kt`, `service/Reminders.kt` | `service/ReminderOverlay.kt` |
+| `data/CheatPass.kt`, `data/CheatPhrase.kt`, `service/Reminders.kt` | `service/ReminderOverlay.kt` |
 | `service/SharedClip.kt` | — |
 | `wissen/data/WikipediaParser.kt` | `wissen/data/WikipediaSource.kt` |
 

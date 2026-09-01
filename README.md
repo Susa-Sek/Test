@@ -154,26 +154,35 @@ eines fremden Accounts.
 
 Einmal am Tag **fünf Minuten für alles** — Reels, Shorts, TikTok, auch bei aktivem Ganz-Block.
 
-Das schließt die Lücke, die das Kontingent offen lässt: Ein Kontingent läuft ab, sobald man die
-App öffnet, und ist damit weg, bevor das eine Video kommt, für das man es aufheben wollte. Der
-Cheat ist das Gegenteil — es läuft nichts, bis man ihn ausdrücklich einlöst.
+In v0.5 war das ein einziger Tipp auf den Bedienungshilfen-Knopf und lief sofort. Genau die
+Geste, die man aus Reflex macht, und genau in dem Moment, in dem der Reflex am stärksten ist:
+direkt nachdem geblockt wurde. Seit v0.8 stehen drei Hürden davor:
 
-**Ausgelöst wird er nur vom Bedienungshilfen-Knopf**, dem schwebenden Kreis am Bildschirmrand.
-Nicht aus der App heraus, und ausdrücklich **nicht** aus dem Erinnerungs-Popup: Ein Knopf direkt
-unter dem Spruch wäre nach drei Tagen Reflex. So muss man den Satz lesen und danach eine andere
-Geste machen. Dieser kleine Umweg ist die ganze Hürde, und er ist der Sinn der Sache.
+| Hürde | Wogegen |
+|---|---|
+| **Satz abtippen** | gegen die gedankenlose Geste. Drei Sätze im Wechsel, nie zweimal hintereinander derselbe — einen festen hätte man nach drei Tagen im Muskelgedächtnis |
+| **60 Sekunden Wartezeit** | gegen den Impuls. In dieser Minute wird weiter geblockt. Die wirksamste der drei |
+| **Kostet Tageskontingent** | gegen „ist ja gratis". Wo „Immer" eingestellt ist, gibt es nichts zu zahlen — das steht auch so im Dialog |
 
-Der Preis: Der Kurzbefehl schaltet ShortBlock danach nicht mehr an und aus — das geht weiter über
-die Systemeinstellungen. Der Einrichtungstext sagt das.
+Der Bedienungshilfen-Knopf gewährt damit nichts mehr, er **führt nur noch zur Tür**: Ein Druck
+öffnet ShortBlock auf der Cheat-Anfrage. Läuft oder wartet schon einer, zeigt er nur die
+Restzeit.
 
-Die Regel steht als reine Funktion in
-[`CheatPass.kt`](app/src/main/java/de/shortblock/app/data/CheatPass.kt), das Gatter sitzt an
-derselben einen Stelle wie das Kontingent (`shouldIntervene`) — deshalb gilt der Cheat ohne eine
-einzige Sonderregel überall. Er verbraucht **kein** Tageskontingent.
+**Für ein geschicktes Reel ist der Cheat damit unbrauchbar** — bis er läuft, ist die Minute
+vorbei. Das ist kein Nebeneffekt, sondern der Zweck. Dafür gibt es „Geteilte Videos ansehen".
 
-Eine Falle ist ausdrücklich abgedeckt: Wer die Systemuhr zurückstellt, schiebt das gespeicherte
-Ende beliebig weit in die Zukunft. Mehr als eine volle Cheat-Dauer Rest kann es nie geben — also
-gilt das als beendet, nicht als endlos. Im Zweifel blocken.
+Zwei Entwurfsentscheidungen, die man beim Anfassen kennen muss:
+
+- **Alle Phasen hängen an einem einzigen gespeicherten Zeitstempel**
+  ([`CheatPass.kt`](app/src/main/java/de/shortblock/app/data/CheatPass.kt)). Sonst bräuchte es
+  einen Wecker, der genau beim Ende der Wartezeit feuert — und ein Dienst, den der Hersteller
+  zwischendurch abräumt, verlöre ihn.
+- **Der Cheat hebt in `shouldIntervene` die Sperre auf, nicht die Uhr.** Bis v0.7 stand er vor
+  der Kontingent-Uhr; seit v0.8 tickt sie weiter, ihr Ergebnis wird nur nicht zum Blocken
+  benutzt. Wer die Reihenfolge „aufräumt", macht den Cheat wieder gratis.
+
+Die Uhr-Falle bleibt: Ein Beginn, der weiter als die Wartezeit in der Zukunft liegt, heißt
+zurückgestellte Systemuhr — dann gilt der Cheat als verbraucht, nie als endlos.
 
 ## Das Erinnerungs-Popup
 
