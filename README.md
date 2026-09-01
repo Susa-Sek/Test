@@ -140,15 +140,32 @@ Der Schalter erzwingt den chronologischen „Folge ich"-Feed und stoppt an desse
 Instagram wieder Fremd-Inhalte nachschiebt. Umgeschaltet wird auf **zwei** Wegen, weil Instagram
 je nach Version zwei Oberflächen hat:
 
-1. **Titel oben links antippen** und im Aufklappmenü „Folge ich" wählen.
-2. **Tab-Leiste** — „Für dich" und „Folge ich" nebeneinander, wie bei TikTok. Diesen Weg gibt es
-   seit v0.6; vorher fand die Policy weder Titel noch Menü und tat auf solchen Oberflächen
-   **still gar nichts**. Der stillste aller Fehler.
+1. **Titel oben links antippen** und im Aufklappmenü „Folge ich" wählen — über bekannte
+   View-IDs gefunden.
+2. **Tab-Leiste** — „Für dich" und „Folge ich" nebeneinander, wie bei TikTok, erkannt über den
+   Auswahl-Zustand (seit v0.6).
+3. **Mittiger Titel über Text und Position**, ganz ohne View-ID (seit v0.8.1): ein sichtbarer
+   Knoten in den obersten 20 % des Fensters, dessen Text **exakt** „Für dich" oder „Folge ich"
+   lautet.
 
-Beim Tab-Weg gilt ein hartes UND-Gatter: umgeschaltet wird nur, wenn der „Für dich"-Tab
-*ausgewählt* ist und der Zieltab sichtbar daneben liegt. Ohne die Auswahl-Bedingung würde die App
-auf jeden Text „Folge ich" tippen, der irgendwo im Baum steht — etwa auf den Knopf im Profil
-eines fremden Accounts.
+Die Reihenfolge ist Absicht — jeder spätere Weg ist ungenauer als der vorige und kommt deshalb
+später dran.
+
+**Warum es den dritten Weg braucht.** Instagram hat die Kopfzeile inzwischen dreimal umgebaut.
+Jedes Mal brachen die View-IDs, und die App tat auf der neuen Oberfläche *still gar nichts* — der
+stillste aller Fehler, zweimal in derselben Datei. Der Text „Für dich" hat alle drei Layouts
+überlebt. Das ist dieselbe Lehre, die `TikTokPolicy` von Anfang an ziehen musste.
+
+Zwei Gatter halten den Textweg zusammen, beide notwendig:
+
+- **Exakte Gleichheit, nicht `contains`.** Im Feed steht „Vorgeschlagen für dich" an einzelnen
+  Beiträgen; mit `contains` würde die App mitten in den Feed tippen.
+- **Oberste 20 %.** Der Folge-ich-Knopf in einem fremden Profil sitzt unter Bild und Bio und
+  bleibt damit draußen; der Stories-Streifen beginnt erst bei rund einem Viertel der Höhe.
+
+Meldet Instagram bei einer Tab-Leiste keinen Tab als ausgewählt, greift der Textweg und tippt
+„Folge ich" in der Kopfzeile an. Das ist gewollt: Entweder schaltet es um, oder wir sind schon
+dort und nichts passiert. Bis v0.8.0 tat die App in diesem Fall gar nichts.
 
 ## Tages-Cheat
 

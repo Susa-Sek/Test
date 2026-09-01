@@ -576,8 +576,11 @@ class BlockerAccessibilityService : AccessibilityService() {
         const val SCAN_INTERVAL_MS = 150L
         const val BROWSER_SCAN_INTERVAL_MS = 500L
         const val BACK_COOLDOWN_MS = 800L
-        const val CLICK_COOLDOWN_MS = 600L
-        const val MAX_FEED_SWITCH_ATTEMPTS = 2
+        // 900 statt 600 ms seit v0.8.1: Instagrams mittiges Feed-Menü geht animiert auf.
+        // Ist es nach 600 ms noch nicht im Baum, tippt die App den Titel ein zweites Mal — und
+        // schließt damit genau das Menü, das sie gerade geöffnet hat.
+        const val CLICK_COOLDOWN_MS = 900L
+        const val MAX_FEED_SWITCH_ATTEMPTS = 3
         const val HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000L
         const val REMINDER_COOLDOWN_MS = 20_000L
     }

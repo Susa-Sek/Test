@@ -167,15 +167,25 @@ class FeedPolicyTest {
     }
 
     /**
-     * Das UND-Gatter: Ohne die Auswahl-Bedingung würde die App auf jeden Text „Folge ich“
-     * tippen, der irgendwo im Baum steht — etwa auf den Knopf im Profil eines Accounts.
+     * Meldet Instagram keinen Tab als ausgewählt, greift seit v0.8.1 der Textweg und tippt den
+     * „Folge ich“-Tab in der Kopfzeile an.
+     *
+     * Bis v0.8.0 stand hier `Idle` mit der Begründung, sonst würde die App auf jeden Text
+     * „Folge ich“ tippen, der irgendwo im Baum steht. Diese Sorge trägt zwei eigene Gatter
+     * (`isOnHomeFeed` und die Positionsschranke) und ihren eigenen Test — siehe
+     * `a following button outside the home feed is never tapped` und
+     * `the same text further down the screen is ignored`.
+     *
+     * Innerhalb der Kopfzeile des Startfeeds ist ein Tipp auf „Folge ich“ dagegen genau die
+     * gewünschte Handlung: Entweder schaltet er um, oder wir sind schon dort und nichts
+     * passiert. Der alte Zustand war der stille Fehler — die App tat gar nichts, sobald
+     * Instagram den Auswahl-Zustand nicht mehr meldete.
      */
     @Test
-    fun `no selected tab means do not tap blindly`() {
-        assertEquals(
-            FeedDecision.Idle,
-            FeedPolicy.evaluate(tabs(forYouSelected = false, followingSelected = false)),
-        )
+    fun `an unreported selection still switches to following`() {
+        val decision = FeedPolicy.evaluate(tabs(forYouSelected = false, followingSelected = false))
+        assertTrue(decision is FeedDecision.ChooseFollowing)
+        assertEquals("Folge ich", (decision as FeedDecision.ChooseFollowing).node.text)
     }
 
     @Test
@@ -184,9 +194,80 @@ class FeedPolicyTest {
             id = "root",
             children = listOf(
                 igNode(id = "profile_header"),
-                igNode(id = "follow_button", text = "Folge ich", selected = false),
+                // Echte Bounds statt Vollbild: Der Folge-ich-Knopf eines Profils sitzt unter
+                // Bild und Bio, weit unterhalb der Kopfzeile. Vor v0.8.1 spielte die Position
+                // keine Rolle, deshalb stand hier der Standardwert.
+                igNode(
+                    id = "follow_button",
+                    text = "Folge ich",
+                    selected = false,
+                    bounds = NodeBounds(60, 900, 1020, 1020),
+                ),
             ),
         )
         assertEquals(FeedDecision.Idle, FeedPolicy.evaluate(profile))
+    }
+
+    // --- Dritte Kopfzeile: mittiger Titel, keine bekannte View-ID (ab v0.8.1) -----------
+    //
+    // Instagram hat die Kopfzeile dreimal umgebaut. Bei jedem Umbau brachen die View-IDs; der
+    // Text „Für dich" hat alle drei überlebt. Diese Fälle sichern den Weg ohne View-ID ab.
+
+    /** Oberste 20 % eines 2400 hohen Fensters. */
+    private fun headerBounds() = NodeBounds(330, 130, 750, 220)
+
+    private fun centeredHeader(label: String, extra: List<FakeNode> = emptyList()) = igNode(
+        id = "root",
+        children = buildList {
+            add(igNode(id = "unbekannte_liste"))
+            add(igNode(text = label, bounds = headerBounds()))
+            addAll(extra)
+        },
+    )
+
+    @Test
+    fun `a centered header without any known view id opens the switcher`() {
+        val decision = FeedPolicy.evaluate(centeredHeader("Für dich"))
+        assertTrue(decision is FeedDecision.OpenSwitcher)
+        assertEquals("Für dich", (decision as FeedDecision.OpenSwitcher).node.text)
+    }
+
+    @Test
+    fun `with the menu open the centered header picks following`() {
+        val withMenu = centeredHeader(
+            "Für dich",
+            extra = listOf(igNode(id = "menu_item", text = "Folge ich")),
+        )
+        assertTrue(FeedPolicy.evaluate(withMenu) is FeedDecision.ChooseFollowing)
+    }
+
+    @Test
+    fun `a centered header already on following needs no action`() {
+        assertEquals(FeedDecision.AlreadyFiltered, FeedPolicy.evaluate(centeredHeader("Folge ich")))
+    }
+
+    /** Der Test, der einen Fehlalarm mitten im Feed verhindert. */
+    @Test
+    fun `the same text further down the screen is ignored`() {
+        val inFeed = igNode(
+            id = "root",
+            children = listOf(
+                igNode(id = "unbekannte_liste"),
+                igNode(text = "Für dich", bounds = NodeBounds(60, 1400, 500, 1480)),
+            ),
+        )
+        assertEquals(FeedDecision.Idle, FeedPolicy.evaluate(inFeed))
+    }
+
+    /**
+     * Verglichen wird exakt, nicht per `contains` — sonst träfe „Vorgeschlagen für dich" an
+     * einem einzelnen Beitrag zu und die App tippte mitten in den Feed.
+     */
+    @Test
+    fun `a longer label containing the title does not count`() {
+        assertEquals(
+            FeedDecision.Idle,
+            FeedPolicy.evaluate(centeredHeader("Vorgeschlagen für dich")),
+        )
     }
 }

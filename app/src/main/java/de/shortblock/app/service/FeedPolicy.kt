@@ -39,13 +39,25 @@ object FeedPolicy {
         if (root == null) return FeedDecision.Idle
         if (!isOnHomeFeed(root)) return FeedDecision.Idle
 
-        // Weg 1: Titel oben links mit Aufklappmenü. Weg 2: Tab-Leiste. Welchen Instagram zeigt,
-        // hängt von der Version ab — vor v0.6 kannte die Policy nur den ersten und tat auf
-        // Tab-Oberflächen still gar nichts.
-        val title = findTitleNode(root) ?: return evaluateTabs(root)
+        // Drei Bauarten der Kopfzeile, in dieser Reihenfolge — jede spätere ist ungenauer als
+        // die vorige, deshalb kommt sie später dran:
+        //   1. Titel mit bekannter View-ID (Aufklappmenü, seit v0.1)
+        //   2. Tab-Leiste über den Auswahl-Zustand (seit v0.6)
+        //   3. Titel über Text und Position, ganz ohne View-ID (seit v0.8.1)
+        findTitleNodeByViewId(root)?.let { return fromTitle(root, it) }
+
+        val byTabs = evaluateTabs(root)
+        if (byTabs != FeedDecision.Idle) return byTabs
+
+        val header = headerTitleNode(root) ?: return FeedDecision.Idle
+        return fromTitle(root, header)
+    }
+
+    /** Der gemeinsame Ablauf, sobald der Titelknoten feststeht — egal, wie er gefunden wurde. */
+    private fun fromTitle(root: UiNode, title: UiNode): FeedDecision {
         val titleLabel = normalizeForMatch(title.text)
             ?: normalizeForMatch(title.contentDescription)
-            ?: return evaluateTabs(root)
+            ?: return FeedDecision.Idle
 
         if (Rules.InstagramFeed.FOLLOWING_TITLES.any { titleLabel == it }) {
             val marker = visibleEndMarker(root)
@@ -53,9 +65,9 @@ object FeedPolicy {
         }
 
         if (Rules.InstagramFeed.ALGORITHMIC_TITLES.none { titleLabel == it }) {
-            // Unbekannter Titel — vielleicht eine Tab-Oberfläche, vielleicht ein neues Layout.
-            // Erst die Tabs prüfen, sonst nichts tun statt blind irgendwo hinzutippen.
-            return evaluateTabs(root)
+            // Unbekannter Titel — vermutlich ein neues Layout. Lieber nichts tun als blind
+            // irgendwo hinzutippen.
+            return FeedDecision.Idle
         }
 
         val menuEntry = findFollowingMenuEntry(root)
@@ -95,8 +107,8 @@ object FeedPolicy {
             labels.any { label == it }
         }
 
-    private fun isOnHomeFeed(root: UiNode): Boolean =
-        RuleMatcher.containsNode(root) { node ->
+    private fun isOnHomeFeed(root: UiNode): Boolean {
+        val byViewId = RuleMatcher.containsNode(root) { node ->
             val viewId = normalizeForMatch(node.viewId) ?: return@containsNode false
             when {
                 Rules.InstagramFeed.FEED_ROOT_VIEW_IDS.any { viewId.contains(it) } -> true
@@ -104,8 +116,61 @@ object FeedPolicy {
                 else -> false
             }
         }
+        if (byViewId) return true
 
-    private fun findTitleNode(root: UiNode): UiNode? =
+        // Ohne diese zweite Zeile stiege evaluate() in der ersten aus, und der Textweg käme
+        // nie zum Zug. Eine Kopfzeile, die exakt „Für dich“ oder „Folge ich“ heißt, ist ein
+        // belastbarer Beleg für den Startfeed — diese Beschriftung trägt in Instagram kein
+        // anderer Bildschirm.
+        return headerTitleNode(root) != null
+    }
+
+    /**
+     * Der dritte Weg: die Kopfzeile über **Text und Position**, ganz ohne View-ID.
+     *
+     * Instagram hat die Kopfzeile inzwischen dreimal umgebaut — Titel links mit Aufklappmenü,
+     * Tab-Leiste, und jetzt ein mittiger Titel zwischen „+“ und Herz. Bei jedem Umbau brachen
+     * die View-IDs; der Text „Für dich“ hat alle drei überlebt. Deshalb dieselbe Entscheidung
+     * wie bei [TikTokPolicy], die von Anfang an ohne IDs auskommen musste.
+     *
+     * Zwei Bedingungen, beide notwendig:
+     *
+     * 1. **Exakte Gleichheit**, nicht `contains`. Im Feed steht „Vorgeschlagen für dich“ an
+     *    einzelnen Beiträgen; mit `contains` würde die App mitten im Feed zutreffen und dort
+     *    hintippen.
+     * 2. **Oberste [HEADER_FRACTION] des Fensters.** Der Stories-Streifen beginnt bei rund
+     *    einem Viertel der Höhe und bleibt damit draußen; für große Schrift und Notch ist Luft.
+     */
+    private fun headerTitleNode(root: UiNode): UiNode? {
+        val windowBottom = root.bounds?.bottom ?: return null
+        val windowTop = root.bounds?.top ?: return null
+        val height = windowBottom - windowTop
+        if (height <= 0) return null
+        val limit = windowTop + (height * HEADER_FRACTION).toInt()
+
+        return RuleMatcher.findNode(root) { node ->
+            val top = node.bounds?.top ?: return@findNode false
+            if (top > limit) return@findNode false
+            val label = normalizeForMatch(node.text)
+                ?: normalizeForMatch(node.contentDescription)
+                ?: return@findNode false
+            label in HEADER_TITLES
+        }
+    }
+
+    private const val HEADER_FRACTION = 0.20f
+
+    /**
+     * Beschriftungen, die eine Kopfzeile allein schon ausweisen.
+     *
+     * Ausdrücklich **ohne** „instagram“ aus [Rules.InstagramFeed.ALGORITHMIC_TITLES]: Das Wort
+     * steht überall in der App — im Logo, in Beschreibungen, auf Explore. Als Beleg für den
+     * Startfeed taugt nur die Feed-Beschriftung selbst.
+     */
+    private val HEADER_TITLES: Set<String> =
+        (Rules.InstagramFeed.FOLLOWING_TITLES + Rules.InstagramFeed.TAB_FOR_YOU_LABELS).toSet()
+
+    private fun findTitleNodeByViewId(root: UiNode): UiNode? =
         RuleMatcher.findNode(root) { node ->
             val viewId = normalizeForMatch(node.viewId) ?: return@findNode false
             Rules.InstagramFeed.TITLE_VIEW_IDS.any { viewId.contains(it) }
