@@ -15,11 +15,9 @@
     <string name="step_battery_title">3. Von Akku-Optimierung ausnehmen (optional)</string>
     <string name="step_battery_body">Empfohlen auf Xiaomi-, Samsung- und OnePlus-Geräten — die beenden Hintergrunddienste aggressiv. Auf Xiaomi/HyperOS zusätzlich in der App-Info „Autostart“ erlauben und die App in der Übersicht der offenen Apps fixieren; sonst schaltet das System die Bedienungshilfe nach einem Neustart oder über Nacht wieder ab.</string>
     <string name="step_battery_button">Akku-Einstellungen öffnen</string>
-    <string name="step_done">Erledigt</string>
     <string name="onboarding_continue">Weiter</string>
 
     <!-- Home -->
-    <string name="service_active">Dienst läuft</string>
     <string name="service_inactive">Dienst ist aus — es wird nichts geblockt</string>
     <string name="service_inactive_hint">Einrichtung öffnen</string>
     <string name="toggle_reels_title">Instagram Reels blocken</string>
@@ -28,14 +26,20 @@
     <string name="toggle_feed_desc">Erzwingt den chronologischen „Folge ich“-Feed und stoppt an dessen Ende, bevor die Vorschläge anfangen.</string>
     <string name="toggle_shorts_title">YouTube Shorts blocken</string>
     <string name="toggle_shorts_desc">Schließt den Shorts-Player, den Shorts-Tab und youtube.com/shorts im Browser. Normale Videos, Suche und Abos funktionieren weiter.</string>
+    <string name="group_general">Allgemein</string>
+    <string name="pill_running">läuft</string>
+    <string name="pill_asleep">schläft</string>
+    <string name="pill_off">aus</string>
+    <string name="hero_unit">Min</string>
+    <string name="hero_caption">heute nicht verloren</string>
+    <string name="budget_label">Tageskontingent</string>
+    <string name="budget_remaining_short">%1$d von %2$d Min</string>
+    <string name="step_not_checkable">nicht prüfbar</string>
     <string name="blocked_today">Heute geblockt: %1$d</string>
     <string name="budget_always">Immer</string>
     <string name="budget_minutes">%1$d Min</string>
-    <string name="budget_remaining">noch %1$d von %2$d Min heute</string>
     <string name="budget_spent">aufgebraucht — blockt</string>
     <string name="toast_budget_spent">Tageskontingent aufgebraucht</string>
-    <string name="health_ok">Dienst läuft · letztes Ereignis vor %1$s</string>
-    <string name="health_idle">Dienst läuft · seit einer Weile nichts gesehen</string>
     <string name="health_broken_title">Dienst schläft</string>
     <string name="health_broken_body">Android meldet den Dienst als an, aber in diesem Prozess läuft er nicht. Bedienungshilfe einmal aus- und wieder einschalten — und die beiden Optionen unten aktivieren, damit es nicht wiederkommt.</string>
     <string name="health_battery">Von Akku-Optimierung ausnehmen</string>
@@ -45,12 +49,9 @@
     <string name="keep_alive_title">ShortBlock ist aktiv</string>
     <string name="keep_alive_text">Hält den Blocker am Leben</string>
     <string name="privacy_note">Keine Internet-Berechtigung, keine Analytics, nichts verlässt das Gerät.</string>
-    <string name="saved_today">%1$s gespart</string>
     <string name="saved_nothing_yet">Heute noch nichts geblockt</string>
     <string name="saved_blocks">%1$d Unterbrechungen heute vermieden</string>
     <string name="saved_assumption">geschätzt, 25 s je geblocktem Aufruf</string>
-    <string name="week_title">Letzte 7 Tage</string>
-    <string name="day_bar_description">%1$s: %2$d geblockt</string>
     <string name="toggle_tiktok_fyp_title">„Für dich“-Feed blocken</string>
     <string name="toggle_tiktok_fyp_desc">Erzwingt den „Folge ich“-Tab. DMs, Suche und Profile bleiben nutzbar.</string>
     <string name="toggle_tiktok_all_title">TikTok ganz blocken</string>
@@ -62,14 +63,9 @@
     <string name="recent_block_chip">Zuletzt: %1$s, vor %2$s</string>
     <string name="just_now">einem Moment</string>
     <string name="minutes_short">%1$d Min</string>
-    <string name="step_of">Schritt %1$d von %2$d</string>
     <string name="block_log_title">Zuletzt ausgelöst</string>
     <string name="block_log_empty">Noch hat keine Regel gefeuert.</string>
-    <string name="last_block_title">Zuletzt ausgelöst</string>
-    <string name="last_block_none">Noch nichts geblockt.</string>
     <string name="last_block_hint">Falls die App etwas geschlossen hat, das sie nicht sollte: Das hier ist die Regel, die gefeuert hat. Zeile melden, dann lässt sie sich eingrenzen.</string>
-    <string name="open_diagnostics">Diagnose</string>
-    <string name="open_setup">Einrichtung</string>
 
     <!-- Wächter -->
     <string name="watchdog_channel">Dienst abgeschaltet</string>
@@ -114,7 +110,6 @@
     <string name="diagnostics_hint">Wenn Instagram oder YouTube ihr Layout ändern, blockt die App stillschweigend nicht mehr. Dann hier aufzeichnen einschalten, den nicht mehr geblockten Screen öffnen, zurückkommen und die passenden IDs in Rules.kt übernehmen.</string>
     <string name="diagnostics_empty">Noch nichts aufgezeichnet. Aufzeichnen einschalten und Instagram oder YouTube öffnen.</string>
     <string name="diagnostics_clear">Leeren</string>
-    <string name="back">Zurück</string>
 
     <!-- Service-Toasts -->
     <string name="toast_feed_end">Ende des „Folge ich“-Feeds</string>

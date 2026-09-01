@@ -20,11 +20,9 @@
     <string name="step_battery_title">3. Exclude from battery optimisation (optional)</string>
     <string name="step_battery_body">Recommended on Xiaomi, Samsung and OnePlus devices — they stop background services aggressively. On Xiaomi/HyperOS also allow “Autostart” in the app info and lock the app in the recents view; otherwise the system switches the accessibility service off again after a reboot or overnight.</string>
     <string name="step_battery_button">Open battery settings</string>
-    <string name="step_done">Done</string>
     <string name="onboarding_continue">Continue</string>
 
     <!-- Home -->
-    <string name="service_active">Service is running</string>
     <string name="service_inactive">Service is off — nothing is being blocked</string>
     <string name="service_inactive_hint">Open setup</string>
     <string name="toggle_reels_title">Block Instagram Reels</string>
@@ -33,14 +31,20 @@
     <string name="toggle_feed_desc">Forces the chronological “Following” feed and stops at the end of it, before the suggested posts start.</string>
     <string name="toggle_shorts_title">Block YouTube Shorts</string>
     <string name="toggle_shorts_desc">Closes the Shorts player, the Shorts tab and youtube.com/shorts in the browser. Normal videos, search and subscriptions keep working.</string>
+    <string name="group_general">General</string>
+    <string name="pill_running">running</string>
+    <string name="pill_asleep">asleep</string>
+    <string name="pill_off">off</string>
+    <string name="hero_unit">min</string>
+    <string name="hero_caption">not lost today</string>
+    <string name="budget_label">Daily allowance</string>
+    <string name="budget_remaining_short">%1$d of %2$d min</string>
+    <string name="step_not_checkable">cannot be checked</string>
     <string name="blocked_today">Blocked today: %1$d</string>
     <string name="budget_always">Always</string>
     <string name="budget_minutes">%1$d min</string>
-    <string name="budget_remaining">%1$d of %2$d min left today</string>
     <string name="budget_spent">used up — blocking</string>
     <string name="toast_budget_spent">Daily allowance used up</string>
-    <string name="health_ok">Service is running · last event %1$s ago</string>
-    <string name="health_idle">Service is running · nothing seen for a while</string>
     <string name="health_broken_title">Service is asleep</string>
     <string name="health_broken_body">Android reports the service as on, but it is not running in this process. Switch the accessibility service off and on again — and turn on the two options below so it stops happening.</string>
     <string name="health_battery">Exclude from battery optimisation</string>
@@ -50,12 +54,9 @@
     <string name="keep_alive_title">ShortBlock is active</string>
     <string name="keep_alive_text">Keeping the blocker alive</string>
     <string name="privacy_note">No internet permission, no analytics, nothing leaves the device.</string>
-    <string name="saved_today">%1$s saved</string>
     <string name="saved_nothing_yet">Nothing blocked today</string>
     <string name="saved_blocks">%1$d interruptions avoided today</string>
     <string name="saved_assumption">estimated, 25 s per blocked opening</string>
-    <string name="week_title">Last 7 days</string>
-    <string name="day_bar_description">%1$s: %2$d blocked</string>
     <string name="group_instagram" translatable="false">Instagram</string>
     <string name="group_youtube" translatable="false">YouTube</string>
     <string name="group_tiktok" translatable="false">TikTok</string>
@@ -70,14 +71,9 @@
     <string name="recent_block_chip">Last: %1$s, %2$s ago</string>
     <string name="just_now">a moment</string>
     <string name="minutes_short">%1$d min</string>
-    <string name="step_of">Step %1$d of %2$d</string>
     <string name="block_log_title">Last actions</string>
     <string name="block_log_empty">No rule has fired yet.</string>
-    <string name="last_block_title">Last action</string>
-    <string name="last_block_none">Nothing blocked yet.</string>
     <string name="last_block_hint">If the app closed something it should not have: this is the rule that fired. Report the line and it can be narrowed down.</string>
-    <string name="open_diagnostics">Diagnostics</string>
-    <string name="open_setup">Setup</string>
 
     <!-- Watchdog -->
     <string name="watchdog_channel">Service switched off</string>
@@ -122,7 +118,6 @@
     <string name="diagnostics_hint">When Instagram or YouTube change their layout, blocking silently stops working. Turn this on, open the screen that is no longer blocked, come back here and copy the matching IDs into Rules.kt.</string>
     <string name="diagnostics_empty">Nothing recorded yet. Turn recording on and open Instagram or YouTube.</string>
     <string name="diagnostics_clear">Clear</string>
-    <string name="back">Back</string>
 
     <!-- Service toasts -->
     <string name="toast_feed_end">End of the Following feed</string>

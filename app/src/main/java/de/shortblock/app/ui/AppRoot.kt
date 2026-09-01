@@ -1,12 +1,15 @@
 package de.shortblock.app.ui
 
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -19,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -36,6 +40,7 @@ import de.shortblock.app.service.Feature
 import de.shortblock.app.service.Health
 import de.shortblock.app.service.ServiceHealth
 import de.shortblock.app.service.classifyHealth
+import de.shortblock.app.ui.components.StatusPill
 import de.shortblock.app.system.SystemSettings
 import kotlinx.coroutines.launch
 
@@ -77,8 +82,26 @@ fun AppRoot() {
     val current = if (!serviceEnabled && !onboardingSeen) Screen.ONBOARDING else screen
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            // Die Titelzeile beantwortet beim Scrollen die häufigste stille Frage dieser App:
+            // „blockt das gerade überhaupt?“ Deshalb steht sie über allen drei Seiten.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(R.string.home_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.weight(1f),
+                )
+                StatusPill(health)
+            }
+        },
         bottomBar = {
-            NavigationBar {
+            NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                 NavItem(Screen.HOME, current, Icons.Filled.Home, R.string.nav_overview) { screen = it }
                 NavItem(Screen.ONBOARDING, current, Icons.Filled.Settings, R.string.nav_setup) {
                     onboardingSeen = true

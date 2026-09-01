@@ -278,6 +278,29 @@ verschleiert, die Kürzel wechseln mit jeder Version. Die Tab-Erkennung läuft d
 sichtbaren Text („Für dich" / „Folge ich"), und der ist übersetzt. Wenn der Tabwechsel nicht
 mehr greift, stehen die tatsächlichen Beschriftungen im Diagnose-Screen.
 
+## Aussehen
+
+Feste eigene Palette, **kein** Material You. Bis v0.6 übernahm die App die Farben aus dem
+Hintergrundbild des Nutzers — das Ergebnis sah auf jedem Gerät anders und auf keinem nach etwas
+aus. Der Preis der Umstellung ist genau diese Anpassung; der Gewinn ist ein Gesicht.
+
+Ein Akzent, sonst nichts Buntes: Bernstein trägt die große Zahl, den aktiven Reiter und die
+gewählte Kontingent-Option. **Grün heißt ausschließlich „läuft", Rot ausschließlich „kaputt".**
+Wer Farben für Dekoration verbraucht, kann mit ihnen später nichts mehr sagen. Die einzige
+Ausnahme sind die drei Farbpunkte der App-Gruppen; sie ordnen zu, ohne dass die Karten selbst
+bunt werden müssten.
+
+Die Werte stehen benannt in
+[`ui/theme/Color.kt`](app/src/main/java/de/shortblock/app/ui/theme/Color.kt), die Zuordnung zu
+den Material-Rollen in `Theme.kt`. Wer eine Fläche einfärbt, greift zu einer Rolle
+(`tertiaryContainer` = gut, `errorContainer` = kaputt), nie zu einer Farbe direkt — sonst driften
+die Bedeutungen mit jedem neuen Bildschirm auseinander.
+
+Gemeinsame Bausteine in `ui/components/`: `InfoCard` (Karte mit Ton), `SettingRow` (Titel,
+Beschreibung, Schalter), `SectionHeader` (Farbpunkt plus Name), `StatusPill` (Dienst-Zustand),
+`HeroCard` (Zahl und Wochenverlauf in einem). Vorher baute jeder Screen dieselben Dinge selbst —
+daran sieht man einer App an, dass sie gewachsen und nicht gestaltet ist.
+
 ## Selbst bauen
 
 ```bash

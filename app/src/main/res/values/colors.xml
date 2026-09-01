@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#101418</color>
+    <!-- Muss zu Palette.LightBackground in ui/theme/Color.kt passen. -->
+    <color name="window_background">#F6F4EF</color>
+    <color name="ic_launcher_background">#0E1815</color>
 </resources>
