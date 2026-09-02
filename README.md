@@ -218,34 +218,44 @@ Zwei Entscheidungen dahinter:
 - **Höchstens alle 20 Sekunden.** Nach einem Block läuft nur eine Sperre von 800 ms; ein Popup in
   diesem Takt wäre unerträglich. Dazwischen wird still geblockt wie bisher.
 
-## Geteilte Videos einmal ansehen
+## Ein Video, kein Feed
 
-Wer eine DM mit einem Reel bekommt, soll sie lesen können. Der Feind ist nicht das einzelne
-Video, sondern die Endlosschleife danach. Deshalb der Schalter **„Geteilte Videos ansehen"**
-(Voreinstellung an): Ein geschicktes Reel oder Short läuft einmal ganz, **der Wisch zum nächsten
-blockt**.
+Wer ein Reel in einer Story, auf einem Profil, in einer DM oder über einen Link antippt, hat
+**ausgewählt** — das läuft einmal ganz. Wer den Reels-Tab öffnet, überlässt die Auswahl dem
+Algorithmus — das bleibt zu. **Der Wisch zum nächsten blockt immer.** Der Feind war nie das
+einzelne Video, sondern die Endlosschleife.
 
-„Geteilt" heißt dabei immer dasselbe — *du bist nicht in der App dorthin navigiert*:
+Der Schalter heißt „Angetipptes Video ansehen" und ist voreingestellt an.
 
-- aus einer anderen App heraus geöffnet (der Viewer war das Erste nach dem App-Wechsel), **oder**
-- unmittelbar aus einem DM-Verlauf, und zwar innerhalb von 10 Sekunden. Ohne diese Frist würde
-  eine DM von vorhin später den Reels-Tab freischalten — der Dienst merkt sich den letzten
-  Bildschirm, nicht die Absicht dahinter.
+**Was sich in v0.9 geändert hat.** Bis v0.8 entschied die *Herkunft*: erlaubt war nur, was aus
+einer anderen App kam oder frisch aus einem DM-Verlauf, samt 10-Sekunden-Frist und einer
+Paketverfolgung, die dafür extra vorgezogen werden musste. Ein Reel aus einer Story fiel durch,
+weil vorher ein Instagram-Bildschirm zu sehen war. Das war der komplizierteste Teil der App und
+beantwortete die falsche Frage — nicht „woher kamst du", sondern „hast du das ausgewählt". Die
+ganze Mechanik ist ersatzlos entfallen.
 
-Aus dem Reels- oder Shorts-Tab bleibt alles gesperrt: Dorthin kommt man über die Startseite, die
-vorher sichtbar ist.
+Übrig bleibt eine Frage: **Ist das der Tab-Strom?** Zwei Merkmale, eines genügt:
 
-Drei Enden, jedes für sich ausreichend:
-
-| Ende | Wozu |
+| Merkmal | Warum |
 |---|---|
-| **Der Wisch** | zählt nur aus der Video-Seitenliste (`PAGER_VIEW_IDS`). Im Kommentar-Bereich zu scrollen wirft ausdrücklich **nicht** raus |
-| **Reißleine nach 90 s** | falls ein Update die Pager-ID nicht mehr meldet. Ohne sie stünde die Ausnahme irgendwann still auf Dauer offen, ohne dass es jemand merkt |
-| **App verlassen** | setzt die Herkunftsprüfung zurück |
+| Ein **ausgewählter** Reels-Tab (`clips_tab`, oder Beschriftung „Reels") | direkt und eindeutig |
+| Die **untere Navigationsleiste ist sichtbar**, während der Viewer läuft | das robustere: Ein aus Story, DM oder Profil geöffnetes Reel kommt als Vollbild ohne Tableiste. Braucht weder Beschriftung noch Auswahl-Zustand — beides ändert Instagram gern |
 
-Die Regel steht rein in
-[`SharedClip.kt`](app/src/main/java/de/shortblock/app/service/SharedClip.kt), die Muster wie
-immer in `Rules.kt`. TikTok und der Feed-Filter sind davon unberührt.
+Bei YouTube braucht es nichts davon: Dort trennen die Regeln das längst
+(`yt_shorts_tab_selected` ist der Tab, `yt_shorts_player` das Video).
+
+Beendet wird die Ausnahme durch:
+
+- **den Wisch** — zählt nur aus der Video-Seitenliste (`PAGER_VIEW_IDS`); im Kommentar-Bereich zu
+  scrollen wirft ausdrücklich **nicht** raus;
+- **die Reißleine nach 5 Minuten** — der Notnagel, falls ein Update die Pager-ID nicht mehr
+  meldet. Bis v0.8 waren es 90 Sekunden, aus der Annahme „länger ist kein Reel"; die stimmt nicht
+  mehr und brach ein bewusst angetipptes Video mittendrin ab;
+- **das Verlassen des Viewers** — die nächste Auswahl beginnt von vorn.
+
+Bekannte Lücke, bewusst in Kauf genommen: Erkennt die App den Reels-Tab auf einer
+Instagram-Version nicht, gibt der Tab **ein** Reel pro Öffnen statt sofort zu schließen. Die
+Endlosschleife ist auch dann tot; die echte View-ID steht in der Diagnose und wird nachgetragen.
 
 ## Wenn ein Blocker gar nichts tut
 

@@ -73,8 +73,8 @@
     <string name="watchdog_text">Android hat die Bedienungshilfe deaktiviert — es wird gerade nichts geblockt. Zum Wiedereinschalten tippen.</string>
 
     <!-- Tages-Cheat und Erinnerungs-Popup -->
-    <string name="shared_clips_title">Geteilte Videos ansehen</string>
-    <string name="shared_clips_desc">Ein Reel oder Short, das dir jemand schickt, läuft einmal ganz. Der Wisch zum nächsten blockt. Aus dem Reels- oder Shorts-Tab bleibt alles gesperrt.</string>
+    <string name="single_clip_title">Angetipptes Video ansehen</string>
+    <string name="single_clip_desc">Ein Reel oder Short, das du bewusst antippst — in einer Story, auf einem Profil, in einer DM, über einen Link — läuft einmal ganz. Der Wisch zum nächsten blockt. Der Reels- und der Shorts-Tab bleiben zu.</string>
     <string name="overlay_dismiss">Okay</string>
     <string name="overlay_cheat_hint">Deine 5 Minuten für heute sind noch frei — der Knopf am Bildschirmrand.</string>
     <string name="toast_blocked">Jetzt nicht.</string>

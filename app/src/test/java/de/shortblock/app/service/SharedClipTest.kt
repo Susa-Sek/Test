@@ -4,70 +4,80 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+/**
+ * „Ein Video, kein Feed“.
+ *
+ * Bis v0.8 prüfte diese Datei die **Herkunft** — kam der Viewer aus einer anderen App oder
+ * frisch aus einer DM? Damit fiel ein Reel aus einer Story oder von einem Profil durch. Seit
+ * v0.9 zählt nur noch, ob **du** ausgewählt hast oder der Algorithmus.
+ */
 class SharedClipTest {
 
     private val now = 1_800_000_000_000L
+    private val fiveMinutes = 5 * 60 * 1000L
 
-    // --- Herkunft ---------------------------------------------------------------------
+    // --- Ausgewählt oder Tab-Strom? ---------------------------------------------------
 
     @Test
-    fun `opened straight from another app counts as shared`() {
-        assertTrue(
-            SharedClip.cameFromShare(
-                sawOwnScreenBeforeViewer = false,
-                directSeenAtMs = 0L,
-                nowMs = now,
+    fun `a selected reels tab is the algorithmic stream`() {
+        val tab = igNode(
+            id = "root",
+            children = listOf(
+                igNode(id = "clips_viewer"),
+                igNode(id = "clips_tab", selected = true),
             ),
         )
-    }
-
-    /** Der Reels-Tab: Dorthin kommt man über die Startseite, die vorher sichtbar ist. */
-    @Test
-    fun `navigating inside the app is never shared`() {
-        assertFalse(
-            SharedClip.cameFromShare(
-                sawOwnScreenBeforeViewer = true,
-                directSeenAtMs = 0L,
-                nowMs = now,
-            ),
-        )
+        assertTrue(SharedClip.looksLikeAlgorithmicStream(tab))
     }
 
     @Test
-    fun `a direct message just now counts as shared`() {
-        assertTrue(
-            SharedClip.cameFromShare(
-                sawOwnScreenBeforeViewer = true,
-                directSeenAtMs = now - 3_000L,
-                nowMs = now,
+    fun `the reels tab is also recognised by its label`() {
+        val tab = igNode(
+            id = "root",
+            children = listOf(
+                igNode(id = "clips_viewer"),
+                igNode(id = "unbekannt", description = "Reels", selected = true),
             ),
         )
+        assertTrue(SharedClip.looksLikeAlgorithmicStream(tab))
     }
 
     /**
-     * Ohne diese Frist würde eine DM von vorhin später den Reels-Tab freischalten — der Dienst
-     * merkt sich den letzten Bildschirm, nicht die Absicht dahinter.
+     * Das robustere Merkmal: Im Tab bleibt die untere Leiste stehen, ein aus Story, DM oder
+     * Profil geöffnetes Reel kommt als Vollbild ohne sie.
      */
     @Test
-    fun `a stale direct message does not unlock the reels tab`() {
-        assertFalse(
-            SharedClip.cameFromShare(
-                sawOwnScreenBeforeViewer = true,
-                directSeenAtMs = now - 11_000L,
-                nowMs = now,
-            ),
+    fun `a visible tab bar alone is enough`() {
+        val withBar = igNode(
+            id = "root",
+            children = listOf(igNode(id = "clips_viewer"), igNode(id = "tab_bar")),
         )
+        assertTrue(SharedClip.looksLikeAlgorithmicStream(withBar))
+    }
+
+    /** Der Fall, um den es dem Nutzer geht: aus einer Story oder von einem Profil angetippt. */
+    @Test
+    fun `a fullscreen viewer without a tab bar is a chosen video`() {
+        val chosen = igNode(
+            id = "root",
+            children = listOf(igNode(id = "clips_viewer"), igNode(id = "video_container")),
+        )
+        assertFalse(SharedClip.looksLikeAlgorithmicStream(chosen))
+    }
+
+    /** Ein unausgewählter Reels-Tab-Knoten ohne sichtbare Leiste zählt nicht. */
+    @Test
+    fun `an unselected reels entry does not count`() {
+        val node = igNode(
+            id = "root",
+            children = listOf(igNode(id = "clips_tab", selected = false)),
+        )
+        assertFalse(SharedClip.looksLikeAlgorithmicStream(node))
     }
 
     @Test
-    fun `a rewound clock does not count as a fresh share`() {
-        assertFalse(
-            SharedClip.cameFromShare(
-                sawOwnScreenBeforeViewer = true,
-                directSeenAtMs = now + 60_000L,
-                nowMs = now,
-            ),
-        )
+    fun `nothing at all is not the stream`() {
+        assertFalse(SharedClip.looksLikeAlgorithmicStream(null))
     }
 
     // --- Wisch ------------------------------------------------------------------------
@@ -88,27 +98,28 @@ class SharedClipTest {
     // --- Ende der Ausnahme ------------------------------------------------------------
 
     @Test
+    fun `the algorithmic stream is never allowed`() {
+        assertFalse(SharedClip.mayWatch(chosen = false, swipes = 0, startedAtMs = 0L, nowMs = now))
+    }
+
+    @Test
     fun `the first swipe ends it`() {
-        assertTrue(SharedClip.mayWatch(fromShare = true, swipes = 0, startedAtMs = now, nowMs = now))
-        assertFalse(SharedClip.mayWatch(fromShare = true, swipes = 1, startedAtMs = now, nowMs = now))
+        assertTrue(SharedClip.mayWatch(chosen = true, swipes = 0, startedAtMs = now, nowMs = now))
+        assertFalse(SharedClip.mayWatch(chosen = true, swipes = 1, startedAtMs = now, nowMs = now))
     }
 
     /**
-     * Die Reißleine ist der Grund, warum die Ausnahme kein Scheunentor werden kann: Meldet ein
-     * Update die Pager-ID nicht mehr, endet sie trotzdem.
+     * Die Reißleine steht seit v0.9 bei fünf statt anderthalb Minuten: Die alten 90 Sekunden
+     * brachen ein bewusst angetipptes Video mittendrin ab.
      */
     @Test
-    fun `it ends after ninety seconds even without a detected swipe`() {
-        assertTrue(
-            SharedClip.mayWatch(true, swipes = 0, startedAtMs = now, nowMs = now + 89_000L),
-        )
-        assertFalse(
-            SharedClip.mayWatch(true, swipes = 0, startedAtMs = now, nowMs = now + 91_000L),
-        )
+    fun `it runs for five minutes and not longer`() {
+        assertTrue(SharedClip.mayWatch(true, 0, startedAtMs = now, nowMs = now + fiveMinutes - 1000L))
+        assertFalse(SharedClip.mayWatch(true, 0, startedAtMs = now, nowMs = now + fiveMinutes + 1000L))
     }
 
     @Test
-    fun `nothing is allowed when it did not come from a share`() {
-        assertFalse(SharedClip.mayWatch(fromShare = false, swipes = 0, startedAtMs = 0L, nowMs = now))
+    fun `a rewound clock ends it instead of extending it`() {
+        assertFalse(SharedClip.mayWatch(true, 0, startedAtMs = now, nowMs = now - 60_000L))
     }
 }

@@ -349,12 +349,32 @@ object Rules {
      */
     object SharedClip {
 
-        /** Ein offener DM-Verlauf. Von hier aus geöffnete Reels gelten als geteilt. */
-        val DIRECT_VIEW_IDS = listOf(
-            "direct_thread",
-            "thread_message_list",
-            "message_list",
-            "direct_fragment",
+        /**
+         * Der Reels-Tab in der unteren Leiste. Ist er ausgewählt, wählt der Algorithmus das
+         * Video — dann greift die Ausnahme „ein Video, kein Feed“ nicht.
+         */
+        val REELS_TAB_VIEW_IDS = listOf(
+            "clips_tab",
+            "reels_tab",
+        )
+
+        /** Dieselbe Sache über die Beschriftung, falls die ID wieder einmal wechselt. */
+        val REELS_TAB_LABELS = setOf(
+            "reels",
+            "reel",
+        )
+
+        /**
+         * Die untere Navigationsleiste.
+         *
+         * Das robustere der beiden Merkmale: Ist sie sichtbar, während der Viewer läuft, sind
+         * wir im Reels-Tab. Ein aus Story, DM oder Profil geöffnetes Reel kommt als Vollbild
+         * ohne Tableiste — dafür braucht es weder eine Beschriftung noch einen
+         * Auswahl-Zustand, und beides ändert Instagram gern.
+         */
+        val TAB_BAR_VIEW_IDS = listOf(
+            "tab_bar",
+            "bottom_navigation",
         )
 
         /**

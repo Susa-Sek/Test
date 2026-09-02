@@ -145,7 +145,7 @@ fun AppRoot(openCheatOnStart: Boolean = false) {
                     onBudgetChange = { feature, minutes ->
                         scope.launch { settingsRepository.setBudgetMinutes(feature, minutes) }
                     },
-                    onToggleSharedClips = { scope.launch { settingsRepository.setAllowSharedClips(it) } },
+                    onToggleSingleClip = { scope.launch { settingsRepository.setAllowSingleClip(it) } },
                     onToggleCheat = { scope.launch { settingsRepository.setCheatEnabled(it) } },
                     onToggleKeepAlive = { enabled ->
                         scope.launch { settingsRepository.setKeepAlive(enabled) }

@@ -71,7 +71,7 @@ fun HomeScreen(
     lastBlock: BlockLog.Entry?,
     onToggle: (Feature, Boolean) -> Unit,
     onBudgetChange: (Feature, Int) -> Unit,
-    onToggleSharedClips: (Boolean) -> Unit,
+    onToggleSingleClip: (Boolean) -> Unit,
     onToggleCheat: (Boolean) -> Unit,
     onToggleKeepAlive: (Boolean) -> Unit,
     onOpenBattery: () -> Unit,
@@ -184,10 +184,10 @@ fun HomeScreen(
         )
         InfoCard {
             SettingRow(
-                title = stringResource(R.string.shared_clips_title),
-                description = stringResource(R.string.shared_clips_desc),
-                checked = settings.allowSharedClips,
-                onCheckedChange = onToggleSharedClips,
+                title = stringResource(R.string.single_clip_title),
+                description = stringResource(R.string.single_clip_desc),
+                checked = settings.allowSingleClip,
+                onCheckedChange = onToggleSingleClip,
             )
             RowDivider()
             SettingRow(

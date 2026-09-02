@@ -56,17 +56,15 @@ class BlockerAccessibilityService : AccessibilityService() {
     private var lastServiceInfoRefreshAt = 0L
 
     /**
-     * Zustand der Ausnahme „geteiltes Video“ — siehe [SharedClip].
+     * Zustand der Ausnahme „ein Video, kein Feed“ — siehe [SharedClip].
      *
-     * [sawOwnScreenSinceEntry] ist der Kern: Wer den Reels-Tab antippt, sieht vorher die
-     * Startseite. War der Viewer dagegen das Erste nach dem Wechsel in die App, kam er von
-     * außen.
+     * Seit v0.9 nur noch drei Felder. Die Herkunftserkennung davor (welcher Bildschirm war vor
+     * dem Viewer zu sehen, wie alt war der DM-Verlauf) ist ersatzlos entfallen: Sie beantwortete
+     * die falsche Frage.
      */
-    private var sawOwnScreenSinceEntry = false
-    private var directSeenAt = 0L
-    private var sharedWatchStartedAt = 0L
-    private var sharedWatchSwipes = 0
-    private var sharedWatchActive = false
+    private var singleWatchStartedAt = 0L
+    private var singleWatchSwipes = 0
+    private var singleWatchActive = false
 
     /** Für welche Features der „Kontingent aufgebraucht“-Hinweis heute schon kam. */
     private val exhaustedToastShown = mutableSetOf<Feature>()
@@ -174,13 +172,10 @@ class BlockerAccessibilityService : AccessibilityService() {
         // will. Solange die Aufzeichnung läuft, empfängt der Dienst Ereignisse aller Apps.
         if (settings.diagnostics) DiagnosticsBuffer.recordPackage(packageName)
 
-        // Der Paketwechsel wird bewusst VOR der WATCHED-Prüfung verbucht. Sonst bliebe ein
-        // Ausflug nach WhatsApp unsichtbar, und die Rückkehr in Instagram sähe aus wie „war
-        // immer schon da“ — womit ein aus WhatsApp geöffnetes Reel nicht als geteilt gälte.
         if (packageName != lastPackage) {
             lastPackage = packageName
             resetFeedState()
-            resetSharedWatch()
+            resetSingleWatch()
             // App gewechselt: Uhr anhalten, damit die Pause nicht als Sehdauer zählt.
             budgetClock.pause()
             flushBudget(force = true)
@@ -193,8 +188,8 @@ class BlockerAccessibilityService : AccessibilityService() {
         // Ein Wisch in der Seitenliste beendet die Ausnahme. Der Kommentar-Bereich scrollt
         // ebenfalls und ist deshalb durch das Muster-Gatter ausgeschlossen.
         if (event.eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED) {
-            if (sharedWatchActive && SharedClip.isSwipeToNext(event.source?.viewIdResourceName)) {
-                sharedWatchSwipes++
+            if (singleWatchActive && SharedClip.isSwipeToNext(event.source?.viewIdResourceName)) {
+                singleWatchSwipes++
             }
             return
         }
@@ -222,17 +217,21 @@ class BlockerAccessibilityService : AccessibilityService() {
             DiagnosticsBuffer.record(packageName, RuleMatcher.collectSignatures(root))
         }
 
-        trackScreen(root, packageName)
-
         val match = RuleMatcher.findFirstMatch(root, packageName, settings.enabled)
         if (match != null) {
-            val intervened = handleMatch(match)
+            val intervened = handleMatch(match, root)
             // Läuft „TikTok ganz blocken“ gerade auf Kontingent, ist TikTok bewusst offen — dann
             // muss der „Für dich“-Filter mit seinem eigenen Kontingent weiterlaufen. Nur für
             // diesen Fall wird weitergeschaut; sonst bleibt ein Treffer das Ende der Kette.
             // Bewusst eng: Ein allgemeines Durchfallen ließe die Instagram-Feed-Policy im
             // laufenden Reels-Kontingent tippen — Fehlalarmrisiko ohne Gegenwert.
             if (intervened || match.rule.feature != Feature.TIKTOK_ALL) return
+        } else {
+            // Kein Viewer mehr auf dem Schirm: Die nächste Auswahl beginnt von vorn. Das
+            // ersetzt das frühere `trackScreen` — überdeckt ein Bildschirm den Viewer kurz
+            // (Kommentare), startet danach nur das Zeitfenster neu. Das ist großzügiger als
+            // nötig, aber es wirft niemanden mitten im Video hinaus.
+            resetSingleWatch()
         }
 
         if (packageName == Packages.INSTAGRAM && Feature.INSTAGRAM_FEED in settings.enabled) {
@@ -244,66 +243,42 @@ class BlockerAccessibilityService : AccessibilityService() {
         }
     }
 
-    /**
-     * Merkt sich, was vor dem Viewer auf dem Schirm war.
-     *
-     * Läuft vor jeder Regelprüfung, weil die Herkunft nur aus dem Bildschirm *davor* ablesbar
-     * ist. Sobald der Viewer selbst sichtbar ist, wird nichts mehr gemerkt — sonst überschriebe
-     * er die Herkunft, die er gerade beantworten soll.
-     */
-    private fun trackScreen(root: UiNode, packageName: String) {
-        val onViewer = RuleMatcher.containsNode(root) { node ->
-            val viewId = normalizeForMatch(node.viewId) ?: return@containsNode false
-            Rules.SharedClip.PAGER_VIEW_IDS.any { viewId.contains(it) }
-        }
-        if (onViewer) return
-
-        // Läuft gerade eine Ausnahme, beendet sie nur der Wisch, die Reißleine oder ein
-        // App-Wechsel — nicht irgendein Bildschirm, der den Viewer bloß überdeckt. Ohne diese
-        // Bedingung würde das Öffnen der Kommentare mitten im geteilten Reel als „im App
-        // navigiert“ gelten und beim Zurückkehren sofort rauswerfen.
-        if (!sharedWatchActive) {
-            sawOwnScreenSinceEntry = true
-            sharedWatchStartedAt = 0L
-            sharedWatchSwipes = 0
-        }
-
-        if (packageName != Packages.INSTAGRAM) return
-        val inDirect = RuleMatcher.containsNode(root) { node ->
-            val viewId = normalizeForMatch(node.viewId) ?: return@containsNode false
-            Rules.SharedClip.DIRECT_VIEW_IDS.any { viewId.contains(it) }
-        }
-        if (inDirect) directSeenAt = System.currentTimeMillis()
-    }
-
-    private fun resetSharedWatch() {
-        sawOwnScreenSinceEntry = false
-        sharedWatchActive = false
-        sharedWatchStartedAt = 0L
-        sharedWatchSwipes = 0
+    private fun resetSingleWatch() {
+        singleWatchActive = false
+        singleWatchStartedAt = 0L
+        singleWatchSwipes = 0
     }
 
     /**
-     * Darf dieser Treffer als geteiltes Video durchgehen?
+     * Darf dieser Treffer als bewusst ausgewähltes Video durchgehen?
      *
      * Nur für Reels und Shorts — der TikTok-Ganzblock und der Feed-Filter bleiben unberührt.
      * Die eigentliche Regel steht in [SharedClip]; hier liegt nur der Zustand.
+     *
+     * Der Tab-Strom ist ausgenommen, und die Unterscheidung sieht je App anders aus: Bei YouTube
+     * trennen die Regeln das längst (`yt_shorts_tab_selected` ist der Tab,
+     * `yt_shorts_player` das Video), bei Instagram gibt es nur eine Regel — dort muss
+     * [SharedClip.looksLikeAlgorithmicStream] den Bildschirm ansehen.
      */
-    private fun allowsSharedClip(feature: Feature): Boolean {
-        if (!settings.allowSharedClips) return false
-        if (feature != Feature.INSTAGRAM_REELS && feature != Feature.YOUTUBE_SHORTS) return false
+    private fun allowsSingleClip(match: RuleMatch, root: UiNode): Boolean {
+        if (!settings.allowSingleClip) return false
+
+        val chosen = when (match.rule.feature) {
+            Feature.INSTAGRAM_REELS -> !SharedClip.looksLikeAlgorithmicStream(root)
+            Feature.YOUTUBE_SHORTS -> match.rule.id != "yt_shorts_tab_selected"
+            else -> return false
+        }
 
         val now = System.currentTimeMillis()
-        val fromShare = SharedClip.cameFromShare(sawOwnScreenSinceEntry, directSeenAt, now)
-        if (!SharedClip.mayWatch(fromShare, sharedWatchSwipes, sharedWatchStartedAt, now)) {
-            sharedWatchActive = false
+        if (!SharedClip.mayWatch(chosen, singleWatchSwipes, singleWatchStartedAt, now)) {
+            singleWatchActive = false
             return false
         }
 
-        if (!sharedWatchActive) {
-            sharedWatchActive = true
-            sharedWatchStartedAt = now
-            BlockLog.record("shared_clip_allowed", "einmal ansehen, Wisch blockt")
+        if (!singleWatchActive) {
+            singleWatchActive = true
+            singleWatchStartedAt = now
+            BlockLog.record("single_clip_allowed", "einmal ansehen, Wisch blockt")
         }
         return true
     }
@@ -351,9 +326,9 @@ class BlockerAccessibilityService : AccessibilityService() {
     }
 
     /** @return `true`, wenn tatsächlich geblockt wurde; `false`, wenn noch etwas erlaubt ist. */
-    private fun handleMatch(match: RuleMatch): Boolean {
+    private fun handleMatch(match: RuleMatch, root: UiNode): Boolean {
         val feature = match.rule.feature
-        if (allowsSharedClip(feature)) return false
+        if (allowsSingleClip(match, root)) return false
         if (!shouldIntervene(feature)) return false
 
         val spent = settings.budgetMinutes(feature) > 0

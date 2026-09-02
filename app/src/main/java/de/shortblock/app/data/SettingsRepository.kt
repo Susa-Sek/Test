@@ -23,8 +23,8 @@ data class BlockSettings(
     val keepAlive: Boolean = false,
     /** Darf der Tages-Cheat überhaupt eingelöst werden? */
     val cheatEnabled: Boolean = true,
-    /** Ein geschicktes Reel oder Short einmal ansehen dürfen — Weiterwischen blockt. */
-    val allowSharedClips: Boolean = true,
+    /** Ein bewusst angetipptes Reel oder Short einmal ansehen dürfen — Weiterwischen blockt. */
+    val allowSingleClip: Boolean = true,
     /** Tag (epochDay), an dem der Cheat zuletzt eingelöst wurde. 0 = noch nie. */
     val cheatUsedOnDay: Int = 0,
     /**
@@ -121,7 +121,7 @@ class SettingsRepository(context: Context) {
             budgets = BlockSettings.BUDGETABLE.associateWith { prefs[budgetKey(it)] ?: 0 },
             keepAlive = prefs[KEEP_ALIVE] ?: false,
             cheatEnabled = prefs[CHEAT_ENABLED] ?: true,
-            allowSharedClips = prefs[ALLOW_SHARED_CLIPS] ?: true,
+            allowSingleClip = prefs[ALLOW_SINGLE_CLIP] ?: true,
             cheatUsedOnDay = prefs[CHEAT_USED_ON_DAY] ?: 0,
             cheatArmedAtMillis = prefs[CHEAT_ARMED_AT] ?: 0L,
         )
@@ -143,8 +143,8 @@ class SettingsRepository(context: Context) {
         dataStore.edit { it[CHEAT_ENABLED] = enabled }
     }
 
-    suspend fun setAllowSharedClips(enabled: Boolean) {
-        dataStore.edit { it[ALLOW_SHARED_CLIPS] = enabled }
+    suspend fun setAllowSingleClip(enabled: Boolean) {
+        dataStore.edit { it[ALLOW_SINGLE_CLIP] = enabled }
     }
 
     /**
@@ -168,7 +168,9 @@ class SettingsRepository(context: Context) {
         val DIAGNOSTICS = booleanPreferencesKey("diagnostics")
         val KEEP_ALIVE = booleanPreferencesKey("keep_alive")
         val CHEAT_ENABLED = booleanPreferencesKey("cheat_enabled")
-        val ALLOW_SHARED_CLIPS = booleanPreferencesKey("allow_shared_clips")
+        // Der Schlüssel behält seinen alten Namen, damit die Einstellung das Update
+        // übersteht — umbenannt wurde nur, was die Sache heute bedeutet.
+        val ALLOW_SINGLE_CLIP = booleanPreferencesKey("allow_shared_clips")
         val CHEAT_USED_ON_DAY = intPreferencesKey("cheat_used_on_day")
         // Bewusst ein neuer Schlüssel: Der alte hielt das Ende, dieser den Beginn. Ein beim
         // Update laufender Cheat geht verloren — fünf Minuten, einmalig, keine Migration wert.
