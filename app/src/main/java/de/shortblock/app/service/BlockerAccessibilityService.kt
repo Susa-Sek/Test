@@ -65,6 +65,10 @@ class BlockerAccessibilityService : AccessibilityService() {
     private var singleWatchStartedAt = 0L
     private var singleWatchSwipes = 0
     private var singleWatchActive = false
+    /** Zuletzt gemeldeter Listenindex der Seitenliste, -1 = noch keiner. */
+    private var singleWatchIndex = -1
+    /** Zuletzt protokollierter Ablehnungsgrund — verhindert, dass das Protokoll überläuft. */
+    private var singleWatchLastReason: String? = null
 
     /** Für welche Features der „Kontingent aufgebraucht“-Hinweis heute schon kam. */
     private val exhaustedToastShown = mutableSetOf<Feature>()
@@ -188,8 +192,14 @@ class BlockerAccessibilityService : AccessibilityService() {
         // Ein Wisch in der Seitenliste beendet die Ausnahme. Der Kommentar-Bereich scrollt
         // ebenfalls und ist deshalb durch das Muster-Gatter ausgeschlossen.
         if (event.eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED) {
-            if (singleWatchActive && SharedClip.isSwipeToNext(event.source?.viewIdResourceName)) {
-                singleWatchSwipes++
+            if (singleWatchActive) {
+                val fromPager = SharedClip.isFromPager(event.source?.viewIdResourceName)
+                val index = event.fromIndex
+                val since = System.currentTimeMillis() - singleWatchStartedAt
+                if (SharedClip.countsAsSwipe(fromPager, index, singleWatchIndex, since)) {
+                    singleWatchSwipes++
+                }
+                if (fromPager && index >= 0) singleWatchIndex = index
             }
             return
         }
@@ -247,6 +257,8 @@ class BlockerAccessibilityService : AccessibilityService() {
         singleWatchActive = false
         singleWatchStartedAt = 0L
         singleWatchSwipes = 0
+        singleWatchIndex = -1
+        singleWatchLastReason = null
     }
 
     /**
@@ -261,26 +273,54 @@ class BlockerAccessibilityService : AccessibilityService() {
      * [SharedClip.looksLikeAlgorithmicStream] den Bildschirm ansehen.
      */
     private fun allowsSingleClip(match: RuleMatch, root: UiNode): Boolean {
-        if (!settings.allowSingleClip) return false
+        if (match.rule.feature != Feature.INSTAGRAM_REELS &&
+            match.rule.feature != Feature.YOUTUBE_SHORTS
+        ) {
+            return false
+        }
+        if (!settings.allowSingleClip) return noteSingleClipDenied("single_clip_off")
 
         val chosen = when (match.rule.feature) {
-            Feature.INSTAGRAM_REELS -> !SharedClip.looksLikeAlgorithmicStream(root)
             Feature.YOUTUBE_SHORTS -> match.rule.id != "yt_shorts_tab_selected"
-            else -> return false
+            else -> !SharedClip.looksLikeAlgorithmicStream(root)
         }
+        if (!chosen) return noteSingleClipDenied("single_clip_tab")
 
         val now = System.currentTimeMillis()
-        if (!SharedClip.mayWatch(chosen, singleWatchSwipes, singleWatchStartedAt, now)) {
+        if (!SharedClip.mayWatch(true, singleWatchSwipes, singleWatchStartedAt, now)) {
             singleWatchActive = false
-            return false
+            return noteSingleClipDenied(
+                if (singleWatchSwipes > 0) "single_clip_swiped" else "single_clip_timeout",
+            )
         }
 
         if (!singleWatchActive) {
             singleWatchActive = true
             singleWatchStartedAt = now
+            singleWatchIndex = -1
+            singleWatchLastReason = null
             BlockLog.record("single_clip_allowed", "einmal ansehen, Wisch blockt")
         }
         return true
+    }
+
+    /**
+     * Schreibt **einmal je Grund** ins Protokoll, warum die Ausnahme nicht griff.
+     *
+     * Das eigentliche Versäumnis der letzten Versionen: Griff die Ausnahme nicht, sah man nur,
+     * dass geblockt wurde — nie, welche Bedingung sie verworfen hat. Seither raten wir. Ab jetzt
+     * steht der Grund unter *Diagnose → Zuletzt ausgelöst*.
+     *
+     * Nur beim Wechsel des Grundes, sonst liefe das Protokoll im Scan-Takt über.
+     *
+     * @return immer `false` — die Funktion ist die Ablehnung.
+     */
+    private fun noteSingleClipDenied(reason: String): Boolean {
+        if (singleWatchLastReason != reason) {
+            singleWatchLastReason = reason
+            BlockLog.record(reason, "Ausnahme „ein Video“ hat nicht gegriffen")
+        }
+        return false
     }
 
     /**

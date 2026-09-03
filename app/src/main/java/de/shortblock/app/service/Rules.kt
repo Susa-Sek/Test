@@ -365,19 +365,6 @@ object Rules {
         )
 
         /**
-         * Die untere Navigationsleiste.
-         *
-         * Das robustere der beiden Merkmale: Ist sie sichtbar, während der Viewer läuft, sind
-         * wir im Reels-Tab. Ein aus Story, DM oder Profil geöffnetes Reel kommt als Vollbild
-         * ohne Tableiste — dafür braucht es weder eine Beschriftung noch einen
-         * Auswahl-Zustand, und beides ändert Instagram gern.
-         */
-        val TAB_BAR_VIEW_IDS = listOf(
-            "tab_bar",
-            "bottom_navigation",
-        )
-
-        /**
          * Die senkrechte Seitenliste des Viewers.
          *
          * Nur Scroll-Ereignisse aus ihr zählen als Wisch zum nächsten Video. Der

@@ -43,19 +43,22 @@ class SharedClipTest {
     }
 
     /**
-     * Das robustere Merkmal: Im Tab bleibt die untere Leiste stehen, ein aus Story, DM oder
-     * Profil geöffnetes Reel kommt als Vollbild ohne sie.
+     * Der Test für den Fehler aus v0.9.0.
+     *
+     * Dort galt eine sichtbare untere Navigationsleiste als Beleg für den Reels-Tab, mit der
+     * Begründung, ein aus Story oder Profil geöffnetes Reel komme als Vollbild ohne sie. Das
+     * war eine Annahme und sie war falsch: Instagram öffnet Deep Links innerhalb der normalen
+     * Tab-Hülle. Damit galt jedes angetippte Reel als Tab-Strom — und wurde geblockt.
      */
     @Test
-    fun `a visible tab bar alone is enough`() {
-        val withBar = igNode(
+    fun `a visible tab bar alone is not the stream`() {
+        val deepLink = igNode(
             id = "root",
             children = listOf(igNode(id = "clips_viewer"), igNode(id = "tab_bar")),
         )
-        assertTrue(SharedClip.looksLikeAlgorithmicStream(withBar))
+        assertFalse(SharedClip.looksLikeAlgorithmicStream(deepLink))
     }
 
-    /** Der Fall, um den es dem Nutzer geht: aus einer Story oder von einem Profil angetippt. */
     @Test
     fun `a fullscreen viewer without a tab bar is a chosen video`() {
         val chosen = igNode(
@@ -83,16 +86,53 @@ class SharedClipTest {
     // --- Wisch ------------------------------------------------------------------------
 
     @Test
-    fun `scrolling the video pager counts as moving on`() {
-        assertTrue(SharedClip.isSwipeToNext("com.instagram.android:id/clips_viewer_view_pager"))
-        assertTrue(SharedClip.isSwipeToNext("com.google.android.youtube:id/reel_recycler"))
+    fun `the video pager is recognised`() {
+        assertTrue(SharedClip.isFromPager("com.instagram.android:id/clips_viewer_view_pager"))
+        assertTrue(SharedClip.isFromPager("com.google.android.youtube:id/reel_recycler"))
     }
 
     /** Wer beim Lesen der Kommentare rausfliegt, hält die App für kaputt. */
     @Test
-    fun `scrolling the comments does not count`() {
-        assertFalse(SharedClip.isSwipeToNext("com.instagram.android:id/comment_thread_recycler"))
-        assertFalse(SharedClip.isSwipeToNext(null))
+    fun `the comments list is not the pager`() {
+        assertFalse(SharedClip.isFromPager("com.instagram.android:id/comment_thread_recycler"))
+        assertFalse(SharedClip.isFromPager(null))
+    }
+
+    @Test
+    fun `a changed index is a swipe`() {
+        assertTrue(SharedClip.countsAsSwipe(fromPager = true, index = 1, lastIndex = 0, sinceStartMs = 200L))
+    }
+
+    @Test
+    fun `the same index is not a swipe`() {
+        assertFalse(SharedClip.countsAsSwipe(fromPager = true, index = 0, lastIndex = 0, sinceStartMs = 9_000L))
+    }
+
+    /** Der erste gemeldete Index ist nur der Ausgangspunkt, nicht schon eine Bewegung. */
+    @Test
+    fun `the first reported index is not a swipe`() {
+        assertFalse(SharedClip.countsAsSwipe(fromPager = true, index = 0, lastIndex = -1, sinceStartMs = 9_000L))
+    }
+
+    /**
+     * Der Test für den zweiten Fehler aus v0.9.0: Eine RecyclerView meldet auch beim Einrasten
+     * in die erste Seite einen Scroll. Vorher stand der Zähler damit auf 1, bevor das Video das
+     * erste Bild gezeigt hatte.
+     */
+    @Test
+    fun `an unknown index right after opening is settling, not a swipe`() {
+        assertFalse(SharedClip.countsAsSwipe(fromPager = true, index = -1, lastIndex = -1, sinceStartMs = 300L))
+    }
+
+    /** Ohne Indizes bleibt nur die Zeit — sonst stünde die Ausnahme still auf Dauer offen. */
+    @Test
+    fun `an unknown index later on does count`() {
+        assertTrue(SharedClip.countsAsSwipe(fromPager = true, index = -1, lastIndex = -1, sinceStartMs = 5_000L))
+    }
+
+    @Test
+    fun `nothing outside the pager ever counts`() {
+        assertFalse(SharedClip.countsAsSwipe(fromPager = false, index = 7, lastIndex = 0, sinceStartMs = 9_000L))
     }
 
     // --- Ende der Ausnahme ------------------------------------------------------------

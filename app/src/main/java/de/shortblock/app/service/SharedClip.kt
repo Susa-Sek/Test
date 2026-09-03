@@ -27,27 +27,25 @@ object SharedClip {
      */
     const val MAX_WATCH_MS = 5 * 60 * 1000L
 
+    /** Wie lange nach dem Öffnen ein Scroll noch als Einrasten gilt, nicht als Wisch. */
+    const val SETTLE_MS = 1_500L
+
     /**
      * Zeigt der Bildschirm den algorithmischen Reels-Strom statt eines ausgewählten Videos?
      *
-     * Zwei Merkmale, **eines genügt**:
+     * Ein **ausgewählter** Knoten, der sich als Reels-Tab ausweist — mehr nicht.
      *
-     * 1. Ein sichtbarer Knoten der unteren Leiste ist **ausgewählt** und weist sich als Reels
-     *    aus.
-     * 2. Die untere Navigationsleiste ist überhaupt sichtbar. Tippt man ein Reel in einer Story,
-     *    einer DM oder auf einem Profil an, öffnet Instagram es als Vollbild **ohne** Tableiste;
-     *    im Reels-Tab bleibt sie stehen. Dieses Merkmal ist das robustere — es braucht weder
-     *    eine Beschriftung noch einen Auswahl-Zustand, und beides ändert Instagram gern.
+     * In v0.9.0 zählte hier zusätzlich eine sichtbare untere Navigationsleiste, mit der
+     * Begründung, ein aus Story oder Profil geöffnetes Reel komme als Vollbild ohne sie. Das
+     * war eine Annahme und sie war falsch: Instagram öffnet Deep Links innerhalb der normalen
+     * Tab-Hülle, die Leiste steht also da — und damit galt **jedes** angetippte Reel als
+     * Tab-Strom. Genau das war der gemeldete Fehler.
      */
     fun looksLikeAlgorithmicStream(root: UiNode?): Boolean {
         if (root == null) return false
         return RuleMatcher.containsNode(root) { node ->
-            val viewId = normalizeForMatch(node.viewId)
-
-            if (viewId != null && Rules.SharedClip.TAB_BAR_VIEW_IDS.any { viewId.contains(it) }) {
-                return@containsNode true
-            }
             if (!node.isSelected) return@containsNode false
+            val viewId = normalizeForMatch(node.viewId)
             if (viewId != null && Rules.SharedClip.REELS_TAB_VIEW_IDS.any { viewId.contains(it) }) {
                 return@containsNode true
             }
@@ -59,11 +57,35 @@ object SharedClip {
     /**
      * Zählt dieses Scroll-Ereignis als Wisch zum nächsten Video?
      *
+     * In v0.9.0 galt jedes Scroll-Ereignis aus der Seitenliste als Wisch. Eine RecyclerView
+     * meldet aber auch beim **Einrasten in die erste Seite** einen Scroll — damit stand der
+     * Zähler auf 1, bevor das Video das erste Bild gezeigt hatte, und der nächste Scan blockte.
+     *
+     * @param fromPager ob das Ereignis aus der Video-Seitenliste kam.
+     * @param index gemeldeter Listenindex, -1 wenn unbekannt.
+     * @param lastIndex zuletzt gesehener Index, -1 wenn noch keiner.
+     * @param sinceStartMs wie lange die Ausnahme schon läuft.
+     */
+    fun countsAsSwipe(fromPager: Boolean, index: Int, lastIndex: Int, sinceStartMs: Long): Boolean {
+        if (!fromPager) return false
+        if (index >= 0) {
+            // Der eindeutige Fall — und der einzige, der ohne Zeitannahme auskommt.
+            return lastIndex >= 0 && index != lastIndex
+        }
+        // Ohne Index bleibt nur die Zeit. Der Rückfall ist nötig: Meldet Android hier nie einen
+        // Index, wäre die Ausnahme sonst allein durch die Reißleine begrenzt — wieder eine Tür,
+        // die still offen steht.
+        return sinceStartMs > SETTLE_MS
+    }
+
+    /**
+     * Kam dieses Scroll-Ereignis aus der Video-Seitenliste?
+     *
      * Das Gatter auf die Seitenliste ist notwendig, nicht kosmetisch: Im Kommentar-Bereich
      * scrollt man ebenfalls, und wer beim Lesen der Kommentare rausfliegt, hält die App für
      * kaputt.
      */
-    fun isSwipeToNext(scrollSourceViewId: String?): Boolean {
+    fun isFromPager(scrollSourceViewId: String?): Boolean {
         val viewId = normalizeForMatch(scrollSourceViewId) ?: return false
         return Rules.SharedClip.PAGER_VIEW_IDS.any { viewId.contains(it) }
     }

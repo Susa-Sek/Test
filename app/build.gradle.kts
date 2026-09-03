@@ -14,8 +14,8 @@ android {
         applicationId = "de.shortblock.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 12
-        versionName = "0.9.0"
+        versionCode = 13
+        versionName = "0.9.1"
     }
 
     buildTypes {

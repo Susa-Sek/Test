@@ -236,22 +236,36 @@ ganze Mechanik ist ersatzlos entfallen.
 
 Übrig bleibt eine Frage: **Ist das der Tab-Strom?** Zwei Merkmale, eines genügt:
 
-| Merkmal | Warum |
-|---|---|
-| Ein **ausgewählter** Reels-Tab (`clips_tab`, oder Beschriftung „Reels") | direkt und eindeutig |
-| Die **untere Navigationsleiste ist sichtbar**, während der Viewer läuft | das robustere: Ein aus Story, DM oder Profil geöffnetes Reel kommt als Vollbild ohne Tableiste. Braucht weder Beschriftung noch Auswahl-Zustand — beides ändert Instagram gern |
+Erkannt wird er an einem **ausgewählten** Reels-Tab (`clips_tab`, `reels_tab`, oder Beschriftung
+„Reels").
+
+v0.9.0 wertete zusätzlich eine sichtbare untere Navigationsleiste als Beleg, mit der Begründung,
+ein aus Story oder Profil geöffnetes Reel komme als Vollbild ohne sie. Das war eine Annahme, und
+sie war falsch: Instagram öffnet Deep Links **innerhalb** der normalen Tab-Hülle. Damit galt jedes
+angetippte Reel als Tab-Strom und wurde geblockt — genau das, was die Ausnahme verhindern sollte.
+Die Annahme ist raus.
 
 Bei YouTube braucht es nichts davon: Dort trennen die Regeln das längst
 (`yt_shorts_tab_selected` ist der Tab, `yt_shorts_player` das Video).
 
 Beendet wird die Ausnahme durch:
 
-- **den Wisch** — zählt nur aus der Video-Seitenliste (`PAGER_VIEW_IDS`); im Kommentar-Bereich zu
-  scrollen wirft ausdrücklich **nicht** raus;
+- **den Wisch** — zählt nur aus der Video-Seitenliste (`PAGER_VIEW_IDS`) und nur bei einem
+  **echten Seitenwechsel**: Der gemeldete Listenindex muss sich ändern. Meldet Android keinen
+  Index, zählt ein Scroll erst nach 1,5 Sekunden. Beides, weil eine RecyclerView auch beim
+  Einrasten in die erste Seite einen Scroll meldet — vorher stand der Zähler damit auf 1, bevor
+  das Video das erste Bild gezeigt hatte. Im Kommentar-Bereich zu scrollen wirft ausdrücklich
+  **nicht** raus;
 - **die Reißleine nach 5 Minuten** — der Notnagel, falls ein Update die Pager-ID nicht mehr
   meldet. Bis v0.8 waren es 90 Sekunden, aus der Annahme „länger ist kein Reel"; die stimmt nicht
   mehr und brach ein bewusst angetipptes Video mittendrin ab;
 - **das Verlassen des Viewers** — die nächste Auswahl beginnt von vorn.
+
+**Warum es nicht griff, steht jetzt in der App.** Verwirft die Ausnahme ein Video, schreibt sie
+den Grund ins Protokoll — `single_clip_tab` (als Tab-Strom eingestuft), `single_clip_swiped`,
+`single_clip_timeout` oder `single_clip_off`. Nachzulesen unter *Diagnose → Zuletzt ausgelöst*.
+Bis v0.9.0 sah man nur, dass geblockt wurde, nie welche Bedingung es war — und genau deshalb war
+die Fehlersuche dreimal Raten.
 
 Bekannte Lücke, bewusst in Kauf genommen: Erkennt die App den Reels-Tab auf einer
 Instagram-Version nicht, gibt der Tab **ein** Reel pro Öffnen statt sofort zu schließen. Die
