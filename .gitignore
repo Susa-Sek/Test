@@ -3,8 +3,8 @@
 /local.properties
 /.idea/
 .DS_Store
-/build
-/app/build
+# Gilt fuer jedes Modul, nicht nur app: sonst landen Build-Ausgaben im Repo.
+build/
 /captures
 .externalNativeBuild
 .cxx
