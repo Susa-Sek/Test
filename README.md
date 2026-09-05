@@ -1,8 +1,9 @@
-# ShortBlock & Wissenshappen
+# ShortBlock, Wissenshappen & TrimBox
 
-Zwei Apps in einem Repo, die zusammengehören: **ShortBlock** nimmt den Kurzvideo-Sog weg,
-**Wissenshappen** füllt die Lücke. Beide werden vom selben CI-Lauf gebaut und liegen dort als
-getrennte Artifacts (`shortblock-debug-apk`, `wissenshappen-debug-apk`).
+Drei Apps in einem Repo. **ShortBlock** nimmt den Kurzvideo-Sog weg, **Wissenshappen** füllt die
+Lücke, **TrimBox** räumt den Posteingang auf — dieselbe Grundidee, drei Orte: weniger von dem,
+was ungefragt an einem zieht. Alle drei werden vom selben CI-Lauf gebaut und liegen dort als
+getrennte Artifacts (`shortblock-debug-apk`, `wissenshappen-debug-apk`, `trimbox-debug-apk`).
 
 ---
 
@@ -458,3 +459,100 @@ wahr.
 - Kein Offline-Vorrat: Ohne Verbindung bleibt der Feed leer, statt gespeicherte Karten zu zeigen.
 - Die Merkliste liegt als JSON in DataStore. Für ein paar hundert Karten reicht das; wer
   Tausende sammelt, sollte auf Room umstellen.
+
+---
+
+# TrimBox
+
+Verbindet sich mit deinem Postfach, zeigt dir, wer dir am meisten schreibt, meldet dich bei den
+ausgewählten Verteilern ab und räumt deren alte Mails in den Papierkorb.
+
+| | |
+|---|---|
+| **Zugang** | IMAP mit App-Passwort — direkt vom Gerät zum Mailserver |
+| **Server** | keiner. Es gibt keinen TrimBox-Dienst, der etwas zu sehen bekäme |
+| **Gelesen wird** | nur die Kopfzeile jeder Mail, nie der Inhalt |
+| **Gelöscht wird** | nichts. Mails wandern in den Papierkorb und lassen sich zurückholen |
+| **Abmeldung** | über `List-Unsubscribe`, per Ein-Klick-POST oder Abmelde-Mail |
+
+## Wie ein Durchlauf abläuft
+
+1. **Verbinden.** Adresse eintippen, Server werden für die gängigen Anbieter vorgeschlagen.
+2. **Lesen.** Die Kopfzeilen der letzten 30, 90 oder 180 Tage — bei einem gut gefüllten Postfach
+   eine Sache von Sekunden, weil eben nur Kopfzeilen über die Leitung gehen.
+3. **Auswählen.** Absender nach Anzahl sortiert, je zwei Häkchen: *abmelden* und *aufräumen*.
+4. **Bestätigen.** Im Klartext, was passieren wird. Erst dieser Knopf löst etwas aus.
+5. **Bericht.** Was geklappt hat und was nicht.
+
+## Zwei Häkchen, nicht eins
+
+Abmelden und Aufräumen sind verschiedene Dinge, und das ist keine Erbsenzählerei: **Eine
+Abmeldung verrät dem Absender, dass diese Adresse gelesen wird.** Bei einem Newsletter, den man
+selbst bestellt hat, ist das in Ordnung. Bei etwas, das man nie bestellt hat, ist es eine
+Bestätigung, auf die man verzichten möchte — dort will man nur wegräumen. Deshalb entscheidet
+man beides getrennt.
+
+## Was beim Abmelden wirklich passiert
+
+Drei Wege, in dieser Reihenfolge:
+
+| Was der Absender anbietet | Was TrimBox tut |
+|---|---|
+| `List-Unsubscribe-Post: List-Unsubscribe=One-Click` **und** eine `https`-Adresse | Ein-Klick-Abmeldung nach RFC 8058: ein POST, sonst nichts. Ohne Rückfrage sicher, weil der Absender genau das zugesagt hat |
+| nur eine `mailto:`-Adresse | Abmelde-Mail aus deinem Postausgang, Betreff so, wie der Absender ihn verlangt |
+| nur einen Link ohne diese Zusage | **nichts automatisch.** Der Link steht im Bericht und wird auf Tippen im Browser geöffnet |
+
+Der dritte Fall ist Absicht. Ohne die Zusage aus `List-Unsubscribe-Post` weiss niemand, was
+hinter dem Link liegt — eine Bestätigungsseite, ein Zählpixel, im dümmsten Fall eine Anmeldung.
+Ein stiller Aufruf im Hintergrund wäre geraten, und geraten wird hier nicht.
+
+Im Text der Mail nach „Abmelden"-Links zu suchen, macht TrimBox ebenfalls nicht: Das wäre
+unzuverlässig und hiesse, jede Mail vollständig herunterzuladen.
+
+## Aufräumen heisst Papierkorb
+
+Nie endgültig löschen. Den Papierkorb sucht die App zuerst über das IMAP-Attribut `\Trash`
+(RFC 6154) und erst danach über Namen wie `Papierkorb`, `Trash` oder `Gelöschte Objekte` —
+Gmail und deutsche Anbieter benennen ihn verschieden, das Attribut ist überall gleich. Findet
+sich keiner, wird **nichts** verschoben und die App sagt es.
+
+Verschoben wird mit `MOVE` (RFC 6851); kann der Server das nicht, mit Kopie plus `UID EXPUNGE`
+(RFC 4315), das nachweislich nur die genannten Nachrichten trifft. Was TrimBox nie tut, ist ein
+`expunge()` ohne Argumente: Das löscht alles endgültig, was im Ordner als gelöscht markiert ist,
+auch was jemand vor Wochen selbst markiert hat.
+
+## Zugangsdaten
+
+Das Passwort wird mit einem Schlüssel aus dem **Android Keystore** verschlüsselt (AES/GCM). Der
+Schlüssel verlässt die Hardware nie und lässt sich nicht auslesen — wer die App-Daten kopiert,
+hat damit nichts gewonnen. „Postfach trennen" löscht den Schlüssel mit, damit der
+zurückbleibende Geheimtext auch theoretisch nicht mehr aufgeht.
+
+## Welche Postfächer gehen
+
+Vorgeschlagene Server für Gmail, GMX, Web.de, Posteo, Mailbox.org, iCloud, Yahoo, T-Online und
+IONOS. Jede andere Adresse funktioniert auch, dann trägt man Server und Port selbst ein.
+
+Bei den meisten Anbietern braucht es ein **App-Passwort**, nicht das Passwort der Webseite: bei
+Gmail erst Zwei-Faktor-Anmeldung einschalten, dann ein App-Passwort anlegen; bei GMX und Web.de
+zusätzlich den Schalter für den Zugriff externer Programme.
+
+## Grenzen
+
+- **Outlook.com, Hotmail und Live gehen nicht.** Microsoft hat die Anmeldung per Passwort für
+  private Konten abgeschaltet; dort hilft nur OAuth. Die App erkennt diese Adressen und sagt es
+  vorher, statt dich dreimal dein Passwort für falsch halten zu lassen.
+- **Ein Postfach, ein Durchlauf.** Kein zweites Konto, kein Hintergrundlauf, keine Dauerregeln
+  für künftige Mails. Wer regelmässig aufräumen will, startet die App erneut.
+- **Absender mit weniger als zwei Mails im Zeitraum tauchen nicht auf.** Wer zweimal im
+  Vierteljahr schreibt, ist kein Verteiler, sondern ein Mensch.
+- **Abmelden ist eine Bitte, kein Schalter.** Ob der Absender sie befolgt, liegt bei ihm. Der
+  Bericht sagt, was verschickt wurde — nicht, was angekommen ist.
+- Der Name ist noch nicht endgültig: Ein kommerzielles Produkt heisst bereits so.
+
+## Selbst bauen
+
+```bash
+./gradlew :trimbox:testDebugUnitTest   # Kopfzeilen-Parser und Papierkorb-Auswahl pruefen
+./gradlew :trimbox:assembleDebug       # APK nach trimbox/build/outputs/apk/debug/
+```

@@ -18,6 +18,10 @@ coil = "2.7.0"
 # Nur fuer den Waechter, der meldet, wenn Android die Bedienungshilfe abgeschaltet hat.
 # Braucht kein Netz — WorkManager plant lokal und ueberlebt einen Neustart.
 work = "2.10.5"
+# Der Android-Zweig von JavaMail (Namensraum javax.mail). Bewusst NICHT die neuere
+# Jakarta-/Angus-Linie 2.x: die braucht jakarta.activation und Java 11 und laesst sich
+# auf Android nicht sauber bauen.
+javamail = "1.6.8"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -35,6 +39,8 @@ junit = { group = "junit", name = "junit", version.ref = "junit" }
 org-json = { group = "org.json", name = "json", version.ref = "orgJson" }
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 androidx-work-runtime = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work" }
+javamail-android = { group = "com.sun.mail", name = "android-mail", version.ref = "javamail" }
+javamail-activation = { group = "com.sun.mail", name = "android-activation", version.ref = "javamail" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

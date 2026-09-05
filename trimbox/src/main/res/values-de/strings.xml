@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Verbinden -->
+    <string name="connect_title">Postfach verbinden</string>
+    <string name="connect_intro">TrimBox spricht mit deinem Mailserver und mit sonst niemandem. Das Passwort bleibt verschlüsselt auf diesem Gerät — es gibt keinen TrimBox-Server.</string>
+    <string name="connect_address">E-Mail-Adresse</string>
+    <string name="connect_password">Passwort</string>
+    <string name="connect_hint_app_password">Die meisten Anbieter wollen hier ein eigenes App-Passwort, nicht das von der Webseite. Bei Gmail brauchst du zuerst die Zwei-Faktor-Anmeldung und legst dann ein App-Passwort an.</string>
+    <string name="connect_unsupported">Microsoft hat die Anmeldung per Passwort für private Konten abgeschaltet. Outlook.com und Hotmail brauchen OAuth, und das kann TrimBox noch nicht.</string>
+    <string name="connect_server">Server</string>
+    <string name="connect_imap_host">IMAP-Server</string>
+    <string name="connect_smtp_host">SMTP-Server</string>
+    <string name="connect_port">Port</string>
+    <string name="connect_smtp_why">Der Postausgang wird nur gebraucht, wenn ein Absender die Abmeldung per E-Mail verlangt.</string>
+    <string name="connect_go">Verbinden</string>
+    <string name="connect_working">Verbinde…</string>
+
+    <!-- Durchlauf -->
+    <string name="scan_title">Postfach wird gelesen</string>
+    <string name="scan_note">Geladen werden nur Kopfzeilen, nie der Inhalt deiner Mails.</string>
+
+    <!-- Ergebnis -->
+    <string name="result_title">Wer am meisten schreibt</string>
+    <string name="result_subtitle">%1$d Absender, %2$d Mails aus den letzten %3$d Tagen</string>
+    <string name="result_empty">Keine Vielschreiber gefunden. Dein Postfach ist erstaunlich ruhig.</string>
+    <string name="result_unsubscribe">Abmelden</string>
+    <string name="result_cleanup">Aufräumen</string>
+    <string name="result_no_unsubscribe">Bietet keine Abmeldung an</string>
+    <string name="result_browser_only">Abmeldung geht nur im Browser</string>
+    <string name="result_warning">Eine Abmeldung verrät dem Absender, dass die Adresse gelesen wird. Was du nicht kennst, lieber nur aufräumen.</string>
+    <string name="result_continue">Weiter</string>
+
+    <!-- Bestätigen -->
+    <string name="confirm_title">Wirklich ausführen?</string>
+    <string name="confirm_nothing">Noch nichts ausgewählt.</string>
+    <string name="confirm_trash_note">Nichts wird endgültig gelöscht — alles liegt danach im Papierkorb und lässt sich zurückholen.</string>
+    <string name="confirm_go">Ausführen</string>
+
+    <!-- Bericht -->
+    <string name="report_title">Fertig</string>
+    <string name="report_no_trash">Kein Papierkorb gefunden — es wurde nichts verschoben.</string>
+    <string name="report_marked_only">Dein Server kann Mails nicht sicher verschieben. Sie sind als gelöscht markiert und dein Mailprogramm räumt sie weg.</string>
+    <string name="report_open">Öffnen</string>
+
+    <!-- Allgemein -->
+    <string name="back">Zurück</string>
+    <string name="cancel">Abbrechen</string>
+    <string name="done">Fertig</string>
+    <string name="disconnect">Postfach trennen</string>
+    <string name="error_auth">Der Server hat die Anmeldung abgelehnt. Die meisten Anbieter brauchen hier ein App-Passwort, nicht dein normales.</string>
+    <string name="error_network">Server nicht erreichbar. Prüf die Verbindung und den Servernamen.</string>
+    <string name="error_generic">Da ging etwas schief: %1$s</string>
+    <!-- Zahlwörter: „1 Absender brauchen“ wäre falsch, deshalb echte Plurale. -->
+    <plurals name="connect_days">
+        <item quantity="one">Den letzten Tag ansehen</item>
+        <item quantity="other">Die letzten %1$d Tage ansehen</item>
+    </plurals>
+    <plurals name="scan_progress">
+        <item quantity="one">%1$d Kopfzeile gelesen</item>
+        <item quantity="other">%1$d Kopfzeilen gelesen</item>
+    </plurals>
+    <plurals name="result_mails">
+        <item quantity="one">%1$d Mail</item>
+        <item quantity="other">%1$d Mails</item>
+    </plurals>
+    <plurals name="confirm_unsubscribe">
+        <item quantity="one">Bei einem Absender abmelden.</item>
+        <item quantity="other">Bei %1$d Absendern abmelden.</item>
+    </plurals>
+    <plurals name="confirm_move">
+        <item quantity="one">Eine Mail in den Papierkorb verschieben.</item>
+        <item quantity="other">%1$d Mails in den Papierkorb verschieben.</item>
+    </plurals>
+    <plurals name="report_unsubscribed">
+        <item quantity="one">Eine Abmeldung verschickt</item>
+        <item quantity="other">%1$d Abmeldungen verschickt</item>
+    </plurals>
+    <plurals name="report_moved">
+        <item quantity="one">Eine Mail in den Papierkorb</item>
+        <item quantity="other">%1$d Mails in den Papierkorb</item>
+    </plurals>
+    <plurals name="report_browser_pending">
+        <item quantity="one">Ein Absender braucht einen Klick im Browser</item>
+        <item quantity="other">%1$d Absender brauchen einen Klick im Browser</item>
+    </plurals>
+    <plurals name="report_failed">
+        <item quantity="one">Eines hat nicht geklappt</item>
+        <item quantity="other">%1$d haben nicht geklappt</item>
+    </plurals>
+</resources>

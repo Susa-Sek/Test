@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">TrimBox</string>
+
+    <!-- Connect -->
+    <string name="connect_title">Connect a mailbox</string>
+    <string name="connect_intro">TrimBox talks to your mail server and to nobody else. Your password stays encrypted on this device — there is no TrimBox server.</string>
+    <string name="connect_address">Email address</string>
+    <string name="connect_password">Password</string>
+    <string name="connect_hint_app_password">Most providers want a separate app password here, not the one you type into the website. With Gmail you need two-factor sign-in first, then an app password.</string>
+    <string name="connect_unsupported">Microsoft turned off password sign-in for personal accounts. Outlook.com and Hotmail need OAuth, which TrimBox cannot do yet.</string>
+    <string name="connect_server">Server</string>
+    <string name="connect_imap_host">IMAP server</string>
+    <string name="connect_smtp_host">SMTP server</string>
+    <string name="connect_port">Port</string>
+    <string name="connect_smtp_why">The outgoing server is only used when a sender asks to be unsubscribed by email.</string>
+    <string name="connect_go">Connect</string>
+    <string name="connect_working">Connecting…</string>
+
+    <!-- Scan -->
+    <string name="scan_title">Reading your mailbox</string>
+    <string name="scan_note">Only headers are downloaded, never the contents of your mail.</string>
+
+    <!-- Result -->
+    <string name="result_title">Who writes the most</string>
+    <string name="result_subtitle">%1$d senders, %2$d mails from the last %3$d days</string>
+    <string name="result_empty">No repeat senders found. Your mailbox is remarkably quiet.</string>
+    <string name="result_unsubscribe">Unsubscribe</string>
+    <string name="result_cleanup">Clean up</string>
+    <string name="result_no_unsubscribe">Offers no way to unsubscribe</string>
+    <string name="result_browser_only">Unsubscribe only works in the browser</string>
+    <string name="result_warning">Unsubscribing tells the sender your address is read. For anything you do not recognise, clean up instead.</string>
+    <string name="result_continue">Continue</string>
+
+    <!-- Confirm -->
+    <string name="confirm_title">Go ahead?</string>
+    <string name="confirm_nothing">Nothing selected yet.</string>
+    <string name="confirm_trash_note">Nothing is deleted for good — everything lands in your trash folder and can be moved back.</string>
+    <string name="confirm_go">Do it</string>
+
+    <!-- Report -->
+    <string name="report_title">Done</string>
+    <string name="report_no_trash">No trash folder found — nothing was moved.</string>
+    <string name="report_marked_only">Your server cannot move mail safely. The mails are marked as deleted and your mail app will clear them.</string>
+    <string name="report_open">Open</string>
+
+    <!-- Shared -->
+    <string name="back">Back</string>
+    <string name="cancel">Cancel</string>
+    <string name="done">Done</string>
+    <string name="disconnect">Disconnect mailbox</string>
+    <string name="error_auth">The server refused the sign-in. Most providers need an app password here, not your normal one.</string>
+    <string name="error_network">Could not reach the server. Check your connection and the server name.</string>
+    <string name="error_generic">Something went wrong: %1$s</string>
+    <!-- Counts. German needs a real singular here, so these are plurals, not %d + noun. -->
+    <plurals name="connect_days">
+        <item quantity="one">Look at the last day</item>
+        <item quantity="other">Look at the last %1$d days</item>
+    </plurals>
+    <plurals name="scan_progress">
+        <item quantity="one">%1$d header read</item>
+        <item quantity="other">%1$d headers read</item>
+    </plurals>
+    <plurals name="result_mails">
+        <item quantity="one">%1$d mail</item>
+        <item quantity="other">%1$d mails</item>
+    </plurals>
+    <plurals name="confirm_unsubscribe">
+        <item quantity="one">Unsubscribe from one sender.</item>
+        <item quantity="other">Unsubscribe from %1$d senders.</item>
+    </plurals>
+    <plurals name="confirm_move">
+        <item quantity="one">Move one mail to the trash.</item>
+        <item quantity="other">Move %1$d mails to the trash.</item>
+    </plurals>
+    <plurals name="report_unsubscribed">
+        <item quantity="one">One unsubscribe sent</item>
+        <item quantity="other">%1$d unsubscribes sent</item>
+    </plurals>
+    <plurals name="report_moved">
+        <item quantity="one">One mail moved to the trash</item>
+        <item quantity="other">%1$d mails moved to the trash</item>
+    </plurals>
+    <plurals name="report_browser_pending">
+        <item quantity="one">One sender needs a click in the browser</item>
+        <item quantity="other">%1$d senders need a click in the browser</item>
+    </plurals>
+    <plurals name="report_failed">
+        <item quantity="one">One did not work</item>
+        <item quantity="other">%1$d did not work</item>
+    </plurals>
+</resources>

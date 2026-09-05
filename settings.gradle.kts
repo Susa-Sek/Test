@@ -17,3 +17,4 @@ dependencyResolutionManagement {
 rootProject.name = "ShortBlock"
 include(":app")
 include(":wissen")
+include(":trimbox")
