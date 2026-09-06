@@ -1,9 +1,10 @@
-# ShortBlock, Wissenshappen & TrimBox
+# ShortBlock, Wissenshappen, TrimBox & Klarzeit
 
-Drei Apps in einem Repo. **ShortBlock** nimmt den Kurzvideo-Sog weg, **Wissenshappen** füllt die
-Lücke, **TrimBox** räumt den Posteingang auf — dieselbe Grundidee, drei Orte: weniger von dem,
-was ungefragt an einem zieht. Alle drei werden vom selben CI-Lauf gebaut und liegen dort als
-getrennte Artifacts (`shortblock-debug-apk`, `wissenshappen-debug-apk`, `trimbox-debug-apk`).
+Vier Apps in einem Repo, dieselbe Grundidee an vier Orten: weniger von dem, was ungefragt an
+einem zieht. **ShortBlock** nimmt den Kurzvideo-Sog weg, **Wissenshappen** füllt die Lücke,
+**TrimBox** räumt den Posteingang auf, **Klarzeit** sagt dir, wohin der Tag ging. Alle vier
+werden vom selben CI-Lauf gebaut und liegen dort als getrennte Artifacts
+(`shortblock-debug-apk`, `wissenshappen-debug-apk`, `trimbox-debug-apk`, `klarzeit-debug-apk`).
 
 ---
 
@@ -555,4 +556,93 @@ zusätzlich den Schalter für den Zugriff externer Programme.
 ```bash
 ./gradlew :trimbox:testDebugUnitTest   # Kopfzeilen-Parser und Papierkorb-Auswahl pruefen
 ./gradlew :trimbox:assembleDebug       # APK nach trimbox/build/outputs/apk/debug/
+```
+
+---
+
+# Klarzeit
+
+Bildschirmzeit, aber ehrlich: Navigation, Musik und Wecker zählen nicht mit. Übrig bleibt die
+Zahl, um die es eigentlich geht — und die steht als Widget auf dem Startbildschirm.
+
+| | |
+|---|---|
+| **Quelle** | Androids Nutzungsdaten, von Hand freigegeben |
+| **Netz** | keins. Die App hat **keine** `INTERNET`-Berechtigung |
+| **Ausschlüsse** | frei wählbar, mit einem Vorschlag zum Start |
+| **Widget** | bereinigte Zahl, Gesamtzeit, die drei grössten Zeitfresser |
+| **Tagesziel** | einstellbar, eine Meldung beim Überschreiten — mehr nicht |
+
+## Warum nicht Digital Wellbeing
+
+Androids eingebaute Anzeige kann eines nicht: unterscheiden. Sie wirft drei Stunden Navigation
+auf der Autobahn in denselben Topf wie drei Stunden Kurzvideos und liefert eine Summe, die
+niemandem etwas sagt. Wer sie ansieht, denkt entweder „so schlimm ist es ja doch nicht" oder
+„das ist gelogen, ich hab doch nur navigiert" — beides Gründe, nicht mehr hinzusehen.
+
+Klarzeit zeigt beide Zahlen: gross die bereinigte, klein daneben die volle. Die grosse ist die,
+mit der man etwas anfangen kann.
+
+## Was ausgeschlossen ist
+
+Beim ersten Start ein Vorschlag — Maps, Waze, DB Navigator, Spotify, YouTube Music, Deezer,
+AntennaPod, Wecker, Telefon, Kalender, Nachrichten. Alles abwählbar, und jede andere App lässt
+sich dazunehmen.
+
+Zwei Dinge tauchen gar nicht erst auf: Systemoberfläche und Einstellungen. Das ist keine
+Entscheidung, die jemand trifft.
+
+## Wie die Zeit gemessen wird
+
+Nicht über Androids fertige Tagessumme — die ist gerundet, je nach Hersteller verschieden und
+am laufenden Tag unzuverlässig. Klarzeit liest die rohen Ereignisse und rechnet selbst. Vier
+Fälle entscheiden dabei über richtig und offensichtlich falsch:
+
+| Fall | Ohne Behandlung |
+|---|---|
+| App ist gerade offen | die aktuelle Sitzung fehlt — also genau die, die man sehen will |
+| Sitzung begann gestern | Mitternacht verschluckt sie ganz |
+| Bildschirm geht aus | die letzte App läuft die Nacht durch und meldet morgens acht Stunden |
+| Wechsel ohne Pause | die vorherige App läuft im Hintergrund weiter |
+
+Jeder davon hat einen eigenen Test in `UsageSessionsTest`.
+
+## Das Widget
+
+Die bereinigte Zahl gross, daneben klein die Gesamtzeit, darunter die drei grössten Apps, die
+auch zählen. Über dem Tagesziel färbt sich die Zahl rot — die einzige Wertung, die sich das
+Widget erlaubt.
+
+Aktualisiert wird alle 15 Minuten über WorkManager. Androids eigener Widget-Takt feuert
+frühestens alle 30 Minuten, und auf einen halbstündlich springenden Wert würde niemand
+vertrauen.
+
+## Einrichten
+
+1. App öffnen, **Einstellungen öffnen** tippen.
+2. Unter *Spezieller App-Zugriff → Nutzungsdaten* Klarzeit erlauben.
+3. Zurück in die App, **Habe ich erlaubt** tippen.
+4. Widget auf den Startbildschirm ziehen.
+
+Der Umweg ist Android, nicht die App: `PACKAGE_USAGE_STATS` lässt sich nicht per Dialog
+erfragen.
+
+## Grenzen
+
+- **Nur heute.** Kein Wochenverlauf, keine Historie. Android hebt die Ereignisse zwar ein paar
+  Tage auf, aber v1 wertet nur den laufenden Tag aus.
+- **Vordergrundzeit, nicht Aufmerksamkeit.** Ein Video, das mit dem Bildschirm an durchläuft,
+  zählt als Nutzung. Umgekehrt zählt ein Podcast bei ausgeschaltetem Bildschirm nicht — was
+  meistens richtig ist, aber eben eine Annahme.
+- **Die Ausschlussliste ist eine Entscheidung, kein Urteil.** Wer Spotify sechs Stunden am Tag
+  aktiv durchsucht, blendet sich damit selbst etwas aus. Die volle Zahl steht deshalb immer
+  daneben.
+- **Ein Tagesziel blockt nichts.** Es meldet sich einmal. Wer wirklich blocken will, hat
+  ShortBlock daneben liegen.
+
+## Selbst bauen
+
+```bash
+./gradlew :klarzeit:testDebugUnitTest   # Zeitberechnung und Zielstatus pruefen
+./gradlew :klarzeit:assembleDebug       # APK nach klarzeit/build/outputs/apk/debug/
 ```

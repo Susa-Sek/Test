@@ -1,12 +1,13 @@
-# ShortBlock, Wissenshappen & TrimBox
+# ShortBlock, Wissenshappen, TrimBox & Klarzeit
 
-Drei Android-Apps in einem Gradle-Projekt. Ausführliches in der `README.md`.
+Vier Android-Apps in einem Gradle-Projekt. Ausführliches in der `README.md`.
 
 | Modul | App | Besonderheit |
 |---|---|---|
 | `app` | **ShortBlock** — blockt Reels, Shorts, TikTok-Algorithmus | Bedienungshilfe, **keine** `INTERNET`-Berechtigung |
 | `wissen` | **Wissenshappen** — Wikipedia-Karten statt Kurzvideos | Internet, **keine** Bedienungshilfe |
 | `trimbox` | **TrimBox** — meldet von Newslettern ab und räumt sie weg | Internet + IMAP/SMTP, Zugangsdaten im Keystore |
+| `klarzeit` | **Klarzeit** — Bildschirmzeit ohne die Apps, die nicht zählen | Nutzungsdaten-Zugriff, Widget, **keine** `INTERNET`-Berechtigung |
 
 Die Trennung ist Absicht und darf nicht aufgehoben werden: Nur so bleibt ShortBlocks Zusage „kann
 technisch nichts senden" wahr. TrimBox spricht ausschliesslich mit dem Mailserver des Nutzers —
@@ -61,6 +62,26 @@ Für TrimBox zusätzlich:
   Jakarta-/Angus-Linie 2.x braucht `jakarta.activation` und Java 11 und lässt sich auf Android
   nicht sauber bauen.
 
+Für Klarzeit zusätzlich:
+
+- **`PACKAGE_USAGE_STATS` lässt sich nicht per Dialog erfragen.** Es ist keine gewöhnliche
+  Berechtigung: `checkSelfPermission` sagt darüber nichts, gefragt wird `AppOpsManager`, und
+  erteilt wird sie nur von Hand in den Einstellungen. Der Aufruf heisst dort ab Android 10
+  `unsafeCheckOpNoThrow` und davor `checkOpNoThrow` — ohne die Weiche in `UsageReader`
+  stürzt die App auf Android 8 und 9 beim ersten Start ab.
+- **Nicht `queryUsageStats`, sondern `queryEvents`.** Die fertige Summe ist gerundet, je nach
+  Hersteller verschieden und am laufenden Tag unzuverlässig. `UsageSessions` rechnet aus den
+  rohen Ereignissen; die vier Fälle, die dabei zählen (offene Sitzung, Sitzung von gestern,
+  Bildschirm aus, Wechsel ohne Pause), haben jeder einen eigenen Test.
+- **Ohne `SCREEN_OFF` läuft die App die ganze Nacht weiter** und meldet morgens acht Stunden
+  Instagram. Wer die Ereignisliste in `UsageReader.typeOf` aufräumt, nimmt genau das wieder
+  heraus.
+- **Ohne das `<queries>`-Element im Manifest gibt es nur Paketnamen.** Seit Android 11 sieht
+  eine App die anderen nicht mehr von selbst; ohne den Filter auf Startmenü-Einträge stünde
+  in der Liste `com.instagram.android` statt „Instagram".
+- **Das Widget liest synchron (`runBlocking`).** Android gibt einem Widget nur Sekunden. Wer
+  daraus einen Hintergrundaufruf macht, bekommt beim Einblenden einen leeren Kasten.
+
 ## Wo Logik hingehört
 
 Alles Fehleranfällige liegt als **reine Funktion ohne Android** in testbaren Dateien; das
@@ -77,6 +98,8 @@ Android-Abhängige bleibt eine dünne Hülle drumherum. Neue Erkennung genauso b
 | `trimbox/data/UnsubscribeHeader.kt`, `SenderKey.kt` | `trimbox/mail/ImapScanner.kt` |
 | `trimbox/data/TrashFolder.kt`, `ProviderPresets.kt` | `trimbox/mail/MailboxCleaner.kt` |
 | `trimbox/data/SenderTally.kt` | `trimbox/mail/Unsubscriber.kt`, `data/AccountStore.kt` |
+| `klarzeit/data/UsageSessions.kt`, `TimeFormat.kt` | `klarzeit/data/UsageReader.kt` |
+| `klarzeit/data/GoalState.kt`, `DefaultExclusions.kt` | `klarzeit/widget/KlarzeitWidget.kt` |
 
 Möglich macht das `service/UiNode.kt`: Es kapselt `AccessibilityNodeInfo`, das auf der JVM nicht
 instanziierbar ist.
@@ -92,7 +115,8 @@ echo "sdk.dir=/opt/android-sdk" > local.properties   # in dieser Umgebung
 ```
 
 APKs: `app/build/outputs/apk/debug/app-debug.apk`, `wissen/build/outputs/apk/debug/wissen-debug.apk`,
-`trimbox/build/outputs/apk/debug/trimbox-debug.apk`
+`trimbox/build/outputs/apk/debug/trimbox-debug.apk`,
+`klarzeit/build/outputs/apk/debug/klarzeit-debug.apk`
 
 Tests und Lint müssen grün bleiben. Die Tests unter `app/src/test/.../service/` sichern ab, dass
 Änderungen an Oberfläche oder Statistik die Erkennung nicht angefasst haben.

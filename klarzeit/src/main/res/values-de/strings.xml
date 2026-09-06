@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_description">Die Bildschirmzeit von heute, ohne die Apps, die nicht zählen.</string>
+
+    <!-- Berechtigung -->
+    <string name="permission_title">Klarzeit braucht Zugriff auf die Nutzungsdaten</string>
+    <string name="permission_body">Android gibt die Bildschirmzeit nur an Apps heraus, die man von Hand erlaubt. Der Schalter steht in den Einstellungen unter „Spezieller App-Zugriff → Nutzungsdaten“.</string>
+    <string name="permission_note">Klarzeit hat keine Internet-Berechtigung. Die Zahlen entstehen auf deinem Telefon und bleiben dort — es gibt niemanden, an den sie gehen könnten.</string>
+    <string name="permission_open">Einstellungen öffnen</string>
+    <string name="permission_recheck">Habe ich erlaubt</string>
+
+    <!-- Startseite -->
+    <string name="home_net_label">Heute gezählt</string>
+    <string name="home_total">%1$s Bildschirmzeit insgesamt</string>
+    <string name="home_excluded">%1$s davon zählen nicht</string>
+    <string name="home_goal">Ziel %1$s</string>
+    <string name="home_goal_over">%1$s über dem Ziel</string>
+    <string name="home_goal_left">Noch %1$s heute</string>
+    <string name="home_apps">Apps heute</string>
+    <string name="home_empty">Heute noch nichts erfasst.</string>
+    <string name="home_excluded_marker">zählt nicht</string>
+    <string name="home_edit_excluded">Auswählen, was zählt</string>
+
+    <!-- Ausschlüsse -->
+    <string name="exclusions_title">Was nicht zählt</string>
+    <string name="exclusions_hint">Apps mit Haken bleiben aus der Summe heraus. Navigation, Musik und Wecker laufen lange, ohne dass jemand auf den Bildschirm starrt.</string>
+    <string name="exclusions_search">Apps durchsuchen</string>
+    <string name="exclusions_used_today">Heute benutzt</string>
+    <string name="exclusions_all">Alle Apps</string>
+
+    <!-- Ziel -->
+    <string name="goal_hint">Klarzeit blockt nichts. Es sagt einmal Bescheid, wenn du darüber bist — und schweigt dann für den Rest des Tages.</string>
+    <string name="goal_off">Kein Ziel</string>
+    <string name="goal_notification_title">Tagesziel erreicht</string>
+    <string name="goal_notification_body">%1$s heute gezählt — dein Ziel waren %2$s.</string>
+    <string name="goal_channel_name">Tagesziel</string>
+    <string name="goal_channel_description">Eine Meldung an dem Tag, an dem du über dein Ziel gehst.</string>
+
+    <!-- Widget -->
+    <string name="widget_total_short">von %1$s</string>
+    <string name="widget_no_permission">Tippen, um Nutzungsdaten zu erlauben</string>
+
+    <!-- Allgemein -->
+    <string name="done">Fertig</string>
+</resources>

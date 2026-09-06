@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!--
+      Wie ShortBlock: keine INTERNET-Berechtigung. Die Zahlen entstehen auf dem Gerät und
+      bleiben dort — es gibt niemanden, an den diese App sie schicken könnte.
+
+      PACKAGE_USAGE_STATS lässt sich nicht per Dialog erteilen. Android verlangt dafür den
+      Weg über Einstellungen → Spezieller App-Zugriff → Nutzungsdaten; die App führt beim
+      ersten Start dorthin. Lint hält die Zeile für einen Fehler, weil normale Apps sie
+      nicht bekommen — sie ist genau richtig, sonst erscheint die App dort gar nicht erst.
+    -->
+    <uses-permission
+        android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
+
+    <!-- Nur für die Meldung beim Überschreiten des Tagesziels. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!--
+      Seit Android 11 sieht eine App die anderen nicht mehr von selbst. Ohne diesen Block
+      lieferte die Auswertung nackte Paketnamen statt "Instagram" — und die Ausschlussliste
+      wäre unbedienbar. Bewusst nicht QUERY_ALL_PACKAGES: Gefragt sind nur Apps mit einem
+      Symbol im Startmenü, und genau die beschreibt dieser Filter.
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
+    <application
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Klarzeit">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.Klarzeit">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <receiver
+            android:name=".widget.KlarzeitWidget"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info" />
+        </receiver>
+
+    </application>
+
+</manifest>

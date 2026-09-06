@@ -54,6 +54,13 @@ jobs:
           path: trimbox/build/outputs/apk/debug/trimbox-debug.apk
           if-no-files-found: error
 
+      - name: Upload Klarzeit APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: klarzeit-debug-apk
+          path: klarzeit/build/outputs/apk/debug/klarzeit-debug.apk
+          if-no-files-found: error
+
       - name: Upload test report on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -63,4 +70,5 @@ jobs:
             app/build/reports/tests/testDebugUnitTest
             wissen/build/reports/tests/testDebugUnitTest
             trimbox/build/reports/tests/testDebugUnitTest
+            klarzeit/build/reports/tests/testDebugUnitTest
           if-no-files-found: ignore
