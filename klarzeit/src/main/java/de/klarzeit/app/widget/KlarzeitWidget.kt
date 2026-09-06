@@ -35,6 +35,16 @@ class KlarzeitWidget : AppWidgetProvider() {
         appWidgetIds.forEach { id -> appWidgetManager.updateAppWidget(id, buildViews(context)) }
     }
 
+    /**
+     * Der Knopf oben rechts. Ein Widget aktualisiert sich sonst frühestens alle 15 Minuten —
+     * wer gerade eine App geschlossen hat und nachsehen will, ob es sich gelohnt hat, will
+     * nicht so lange warten.
+     */
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
+        if (intent.action == ACTION_REFRESH) refresh(context)
+    }
+
     override fun onEnabled(context: Context) {
         // Sobald das erste Widget liegt, lohnt der Viertelstundentakt.
         WidgetRefreshWorker.schedule(context)
@@ -45,6 +55,8 @@ class KlarzeitWidget : AppWidgetProvider() {
     }
 
     companion object {
+
+        private const val ACTION_REFRESH = "de.klarzeit.app.REFRESH_WIDGET"
 
         /** Von aussen anstossen, etwa nachdem sich die Ausschlussliste geändert hat. */
         fun refresh(context: Context) {
@@ -61,21 +73,27 @@ class KlarzeitWidget : AppWidgetProvider() {
 
             views.setOnClickPendingIntent(R.id.widget_net, openApp(context))
             views.setOnClickPendingIntent(R.id.widget_label, openApp(context))
+            views.setOnClickPendingIntent(R.id.widget_refresh, refreshIntent(context))
 
             if (!today.hasPermission) {
                 views.setTextViewText(R.id.widget_net, "—")
                 views.setTextViewText(R.id.widget_total, "")
-                views.setTextViewText(R.id.widget_app_1, context.getString(R.string.widget_no_permission))
-                views.setViewVisibility(R.id.widget_goal, View.GONE)
-                views.setTextViewText(R.id.widget_app_2, "")
-                views.setTextViewText(R.id.widget_app_3, "")
+                views.setViewVisibility(R.id.widget_goal, View.VISIBLE)
+                views.setTextViewText(
+                    R.id.widget_goal,
+                    context.getString(R.string.widget_no_permission),
+                )
+                ROWS.forEach { row -> views.setViewVisibility(row.container, View.GONE) }
                 return views
             }
 
             views.setTextViewText(R.id.widget_net, TimeFormat.short(today.summary.countedMillis))
             views.setTextViewText(
                 R.id.widget_total,
-                context.getString(R.string.widget_total_short, TimeFormat.short(today.summary.totalMillis)),
+                context.getString(
+                    R.string.widget_total_short,
+                    TimeFormat.short(today.summary.totalMillis),
+                ),
             )
 
             // Über dem Ziel wird die Zahl rot — das ist die einzige Wertung, die das
@@ -111,28 +129,45 @@ class KlarzeitWidget : AppWidgetProvider() {
             }
 
             val catalog = AppCatalog(context)
-            val rows = listOf(R.id.widget_app_1, R.id.widget_app_2, R.id.widget_app_3)
-            val top = today.summary.topCounted(rows.size)
-            rows.forEachIndexed { index, viewId ->
+            val top = today.summary.topCounted(ROWS.size)
+            ROWS.forEachIndexed { index, row ->
                 val app = top.getOrNull(index)
-                views.setTextViewText(
-                    viewId,
-                    if (app == null) {
-                        ""
-                    } else {
-                        "${catalog.label(app.packageName)}   ${TimeFormat.short(app.millis)}"
-                    },
-                )
+                if (app == null) {
+                    // Leere Zeilen ausblenden statt mit Leerstrings zu füllen: sonst
+                    // klafft unter einer kurzen Liste ein Loch.
+                    views.setViewVisibility(row.container, View.GONE)
+                } else {
+                    views.setViewVisibility(row.container, View.VISIBLE)
+                    views.setTextViewText(row.name, catalog.label(app.packageName))
+                    views.setTextViewText(row.time, TimeFormat.short(app.millis))
+                }
             }
 
             return views
         }
+
+        private data class Row(val container: Int, val name: Int, val time: Int)
+
+        private val ROWS = listOf(
+            Row(R.id.widget_app_1, R.id.widget_app_1_name, R.id.widget_app_1_time),
+            Row(R.id.widget_app_2, R.id.widget_app_2_name, R.id.widget_app_2_time),
+            Row(R.id.widget_app_3, R.id.widget_app_3_name, R.id.widget_app_3_time),
+        )
 
         private fun openApp(context: Context): PendingIntent = PendingIntent.getActivity(
             context,
             0,
             Intent(context, MainActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+
+        private fun refreshIntent(context: Context): PendingIntent = PendingIntent.getBroadcast(
+            context,
+            1,
+            // Ausdrücklich an die eigene Komponente: ein loser Broadcast käme seit
+            // Android 8 im Hintergrund gar nicht mehr an.
+            Intent(context, KlarzeitWidget::class.java).setAction(ACTION_REFRESH),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
     }

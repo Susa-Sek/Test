@@ -2,28 +2,51 @@
 <!--
   Bewusst klassische RemoteViews statt Glance: Ein Widget, das nach einem Android-Update
   als leerer Kasten auf dem Startbildschirm steht, ist schlimmer als eines ohne Compose.
-  Und mehr als Text in Zeilen braucht diese Ansicht nicht.
+
+  Jede App-Zeile ist eine eigene waagerechte Reihe mit Name links und Zeit rechts. Die
+  Zeiten stehen damit untereinander bündig — bei drei zusammengeklebten Textzeilen
+  springen sie und die Liste wird unlesbar.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/widget_background"
     android:orientation="vertical"
-    android:padding="16dp">
-
-    <TextView
-        android:id="@+id/widget_label"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/home_net_label"
-        android:textColor="@color/widget_muted"
-        android:textSize="11sp"
-        android:textAllCaps="true" />
+    android:paddingStart="16dp"
+    android:paddingTop="12dp"
+    android:paddingEnd="12dp"
+    android:paddingBottom="14dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/widget_label"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/home_net_label"
+            android:textAllCaps="true"
+            android:textColor="@color/widget_muted"
+            android:textSize="11sp" />
+
+        <ImageView
+            android:id="@+id/widget_refresh"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/widget_refresh"
+            android:padding="6dp"
+            android:src="@drawable/ic_refresh"
+            android:tint="@color/widget_muted" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
         android:baselineAligned="true"
         android:orientation="horizontal">
 
@@ -48,44 +71,85 @@
         android:id="@+id/widget_goal"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="1dp"
         android:textColor="@color/widget_muted"
         android:textSize="12sp"
         android:visibility="gone" />
 
     <LinearLayout
+        android:id="@+id/widget_app_1"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
-        android:orientation="vertical">
+        android:orientation="horizontal">
 
         <TextView
-            android:id="@+id/widget_app_1"
-            android:layout_width="match_parent"
+            android:id="@+id/widget_app_1_name"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:ellipsize="end"
             android:maxLines="1"
             android:textColor="@color/widget_text"
             android:textSize="13sp" />
 
         <TextView
-            android:id="@+id/widget_app_2"
-            android:layout_width="match_parent"
+            android:id="@+id/widget_app_1_time"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
+            android:layout_marginStart="8dp"
+            android:textColor="@color/widget_muted"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/widget_app_2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="3dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/widget_app_2_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:ellipsize="end"
             android:maxLines="1"
             android:textColor="@color/widget_text"
             android:textSize="13sp" />
 
         <TextView
-            android:id="@+id/widget_app_3"
-            android:layout_width="match_parent"
+            android:id="@+id/widget_app_2_time"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
+            android:layout_marginStart="8dp"
+            android:textColor="@color/widget_muted"
+            android:textSize="13sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/widget_app_3"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="3dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/widget_app_3_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:ellipsize="end"
             android:maxLines="1"
             android:textColor="@color/widget_text"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/widget_app_3_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:textColor="@color/widget_muted"
             android:textSize="13sp" />
     </LinearLayout>
 

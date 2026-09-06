@@ -4,6 +4,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -25,6 +27,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import de.klarzeit.app.R
+import de.klarzeit.app.data.AppCatalog
 import de.klarzeit.app.data.TimeFormat
 
 /**
@@ -39,10 +42,11 @@ fun ExclusionsScreen(
     usedToday: List<Pair<String, Long>>,
     allApps: List<String>,
     excluded: Set<String>,
-    labelOf: (String) -> String,
+    catalog: AppCatalog,
     onToggle: (String) -> Unit,
     onBack: () -> Unit,
 ) {
+    val labelOf: (String) -> String = catalog::label
     var query by remember { mutableStateOf("") }
 
     val usedFiltered = remember(query, usedToday) {
@@ -80,6 +84,8 @@ fun ExclusionsScreen(
                 item { SectionHeader(stringResource(R.string.exclusions_used_today)) }
                 items(usedFiltered, key = { "used-${it.first}" }) { (pkg, millis) ->
                     AppRow(
+                        catalog = catalog,
+                        packageName = pkg,
                         label = labelOf(pkg),
                         detail = TimeFormat.short(millis),
                         checked = pkg in excluded,
@@ -91,6 +97,8 @@ fun ExclusionsScreen(
                 item { SectionHeader(stringResource(R.string.exclusions_all)) }
                 items(restFiltered, key = { "all-$it" }) { pkg ->
                     AppRow(
+                        catalog = catalog,
+                        packageName = pkg,
                         label = labelOf(pkg),
                         detail = null,
                         checked = pkg in excluded,
@@ -121,6 +129,8 @@ private fun SectionHeader(text: String) {
 
 @Composable
 private fun AppRow(
+    catalog: AppCatalog,
+    packageName: String,
     label: String,
     detail: String?,
     checked: Boolean,
@@ -134,6 +144,8 @@ private fun AppRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Checkbox(checked = checked, onCheckedChange = { onToggle() })
+        AppIcon(catalog = catalog, packageName = packageName, size = 28)
+        Spacer(Modifier.width(12.dp))
         Text(
             text = label,
             maxLines = 1,

@@ -11,14 +11,13 @@
 
     <!-- Startseite -->
     <string name="home_net_label">Heute gezählt</string>
-    <string name="home_total">%1$s Bildschirmzeit insgesamt</string>
-    <string name="home_excluded">%1$s davon zählen nicht</string>
     <string name="home_goal">Ziel %1$s</string>
     <string name="home_goal_over">%1$s über dem Ziel</string>
     <string name="home_goal_left">Noch %1$s heute</string>
-    <string name="home_apps">Apps heute</string>
+    <string name="home_section_counted">Zählt mit</string>
+    <string name="home_section_excluded">Zählt nicht</string>
+    <string name="home_hint_tap">Tippen schiebt eine App zwischen beiden hin und her.</string>
     <string name="home_empty">Heute noch nichts erfasst.</string>
-    <string name="home_excluded_marker">zählt nicht</string>
     <string name="home_edit_excluded">Auswählen, was zählt</string>
 
     <!-- Ausschlüsse -->
@@ -30,7 +29,8 @@
 
     <!-- Ziel -->
     <string name="goal_hint">Klarzeit blockt nichts. Es sagt einmal Bescheid, wenn du darüber bist — und schweigt dann für den Rest des Tages.</string>
-    <string name="goal_off">Kein Ziel</string>
+    <string name="goal_off">Kein Tagesziel — zum Setzen tippen</string>
+    <string name="goal_dialog_title">Tagesziel</string>
     <string name="goal_notification_title">Tagesziel erreicht</string>
     <string name="goal_notification_body">%1$s heute gezählt — dein Ziel waren %2$s.</string>
     <string name="goal_channel_name">Tagesziel</string>
@@ -39,7 +39,9 @@
     <!-- Widget -->
     <string name="widget_total_short">von %1$s</string>
     <string name="widget_no_permission">Tippen, um Nutzungsdaten zu erlauben</string>
+    <string name="widget_refresh">Aktualisieren</string>
 
     <!-- Allgemein -->
     <string name="done">Fertig</string>
+    <string name="cancel">Abbrechen</string>
 </resources>

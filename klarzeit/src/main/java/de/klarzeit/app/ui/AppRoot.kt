@@ -41,6 +41,7 @@ fun AppRoot() {
     val excluded by settings.excluded.collectAsStateWithLifecycle(emptySet())
 
     var screen by rememberSaveable { mutableStateOf(Screen.HOME) }
+    var editingGoal by remember { mutableStateOf(false) }
     // Zaehlt hoch, wenn der Nutzer sagt, er habe die Berechtigung erteilt.
     var recheck by remember { mutableIntStateOf(0) }
 
@@ -64,24 +65,40 @@ fun AppRoot() {
                 usedToday = current.summary.apps.map { it.packageName to it.millis },
                 allApps = allApps,
                 excluded = excluded,
-                labelOf = catalog::label,
+                catalog = catalog,
                 onToggle = { pkg -> scope.launch { settings.toggleExcluded(pkg) } },
                 onBack = { screen = Screen.HOME },
             )
 
             else -> HomeScreen(
                 today = current,
-                labelOf = catalog::label,
-                onEditExclusions = { screen = Screen.EXCLUSIONS },
-                onGoalChange = { millis ->
+                catalog = catalog,
+                onToggleExcluded = { pkg -> scope.launch { settings.toggleExcluded(pkg) } },
+                onOpenExclusions = { screen = Screen.EXCLUSIONS },
+                onEditGoal = { editingGoal = true },
+                onRefresh = {
                     scope.launch {
-                        settings.setGoalMillis(millis)
                         repository.refresh()
                         KlarzeitWidget.refresh(context)
                     }
                 },
             )
         }
+    }
+
+    if (editingGoal) {
+        GoalDialog(
+            goalMillis = today?.goalMillis ?: SettingsRepository.DEFAULT_GOAL_MILLIS,
+            onDismiss = { editingGoal = false },
+            onConfirm = { millis ->
+                editingGoal = false
+                scope.launch {
+                    settings.setGoalMillis(millis)
+                    repository.refresh()
+                    KlarzeitWidget.refresh(context)
+                }
+            },
+        )
     }
 }
 

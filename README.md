@@ -633,7 +633,24 @@ Widget erlaubt.
 
 Aktualisiert wird alle 15 Minuten über WorkManager. Androids eigener Widget-Takt feuert
 frühestens alle 30 Minuten, und auf einen halbstündlich springenden Wert würde niemand
-vertrauen.
+vertrauen. Für alles dazwischen sitzt oben rechts ein **Knopf**: Wer gerade eine App
+geschlossen hat und wissen will, ob es sich gelohnt hat, wartet nicht erst eine Viertelstunde.
+
+## Die Startseite
+
+Oben die bereinigte Zahl, daneben die volle. Darunter die Apps in **zwei Abschnitten** —
+„Zählt mit" und „Zählt nicht". Ein Tipp auf eine Zeile schiebt die App von einem in den
+anderen.
+
+Das ist die Entscheidung, um die es in dieser App überhaupt geht, und sie gehört nicht hinter
+einen zweiten Bildschirm. Den gibt es trotzdem noch (Symbol oben rechts) — für Apps, die
+heute gar nicht liefen und deshalb in keiner der beiden Listen stehen.
+
+Jede Zeile trägt ihr App-Symbol und einen Balken, der sich am grössten Eintrag des Tages misst,
+nicht an der Tagessumme: Sonst wären an einem vollen Tag alle Balken gleich kurz.
+
+Das Tagesziel liegt als Balken darüber und öffnet auf Tippen den Regler. Es steht bewusst
+nicht dauerhaft als Schieber auf der Startseite — gesetzt wird es einmal, angesehen täglich.
 
 ## Einrichten
 
