@@ -73,6 +73,15 @@ Für Klarzeit zusätzlich:
   Hersteller verschieden und am laufenden Tag unzuverlässig. `UsageSessions` rechnet aus den
   rohen Ereignissen; die vier Fälle, die dabei zählen (offene Sitzung, Sitzung von gestern,
   Bildschirm aus, Wechsel ohne Pause), haben jeder einen eigenen Test.
+- **`ACTIVITY_STOPPED` darf nicht als "im Hintergrund" gelten.** Android schickt es
+  verspätet, wenn die nächste Ansicht derselben App längst läuft (YouTube-Liste → Player).
+  Wer es auswertet, beendet die gerade offene Sitzung und verliert alles danach — in v0.1.0
+  rund ein Viertel der Bildschirmzeit. `UsageEventTypes` verwirft es deshalb; Sitzungen
+  enden über `ACTIVITY_PAUSED`, das nächste `ACTIVITY_RESUMED` oder den Bildschirm.
+- **Der Startbildschirm zählt nicht mit.** Er taucht in den Nutzungsdaten als normale App
+  auf und sammelt viel Zeit, ist aber der Weg zu einer App und nicht das Ziel. Ermittelt
+  wird er über `CATEGORY_HOME` statt festgeschrieben — jeder Hersteller bringt einen
+  anderen mit.
 - **Ohne `SCREEN_OFF` läuft die App die ganze Nacht weiter** und meldet morgens acht Stunden
   Instagram. Wer die Ereignisliste in `UsageReader.typeOf` aufräumt, nimmt genau das wieder
   heraus.

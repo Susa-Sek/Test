@@ -14,6 +14,7 @@ class ScreenTimeRepository(context: Context) {
 
     private val reader = UsageReader(context)
     private val settings = SettingsRepository(context)
+    private val catalog = AppCatalog(context)
 
     data class Today(
         val summary: UsageSessions.Summary,
@@ -48,7 +49,7 @@ class ScreenTimeRepository(context: Context) {
             summary = UsageSessions.summarize(
                 perPackage = reader.today(now),
                 excluded = settings.excluded.first(),
-                ignored = DefaultExclusions.ALWAYS_IGNORED,
+                ignored = DefaultExclusions.ALWAYS_IGNORED + catalog.homeScreenPackages(),
             ),
             goalMillis = settings.goalMillis.first(),
             hasPermission = true,

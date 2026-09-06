@@ -111,6 +111,40 @@ class UsageSessionsTest {
     }
 
     @Test
+    fun `a late background event of the same app does not kill the running session`() {
+        // Der Ablauf, der v0.1.0 rund ein Viertel der Zeit gekostet hat: YouTube wechselt
+        // von der Liste in den Player, und Androids STOPPED der Liste trifft erst ein,
+        // wenn der Player laengst laeuft. Wuerde es als "im Hintergrund" gelten, endete
+        // die Sitzung hier — und die 25 Minuten Video danach zaehlten nicht mehr.
+        //
+        // Deshalb wertet UsageEventTypes ACTIVITY_STOPPED gar nicht erst aus; hier steht
+        // nur noch das, was uebrig bleibt: PAUSED, dann sofort wieder RESUMED.
+        val result = compute(
+            listOf(
+                fg("youtube", 0),
+                bg("youtube", 5),
+                fg("youtube", 5),
+            ),
+            endMinutes = 30,
+        )
+
+        assertEquals(30 * minute, result["youtube"])
+    }
+
+    @Test
+    fun `going to the home screen ends the session even without a pause`() {
+        // Ohne STOPPED braucht es einen anderen Abschluss fuer Apps, die kein PAUSED
+        // schicken. Der Startbildschirm ist selbst eine App und liefert ihn.
+        val result = compute(
+            listOf(fg("youtube", 0), fg("launcher", 20)),
+            endMinutes = 30,
+        )
+
+        assertEquals(20 * minute, result["youtube"])
+        assertEquals(10 * minute, result["launcher"])
+    }
+
+    @Test
     fun `a double foreground event does not double count`() {
         val result = compute(listOf(fg("insta", 10), fg("insta", 10), bg("insta", 25)), endMinutes = 60)
 

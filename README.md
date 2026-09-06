@@ -604,8 +604,26 @@ Fälle entscheiden dabei über richtig und offensichtlich falsch:
 | Sitzung begann gestern | Mitternacht verschluckt sie ganz |
 | Bildschirm geht aus | die letzte App läuft die Nacht durch und meldet morgens acht Stunden |
 | Wechsel ohne Pause | die vorherige App läuft im Hintergrund weiter |
+| Verspätetes `ACTIVITY_STOPPED` | die laufende Sitzung wird abgewürgt, ein Viertel der Zeit fehlt |
 
-Jeder davon hat einen eigenen Test in `UsageSessionsTest`.
+Jeder davon hat einen eigenen Test.
+
+Der letzte Fall hat v0.1.0 tatsächlich erwischt: Beim Wechsel von der YouTube-Liste in den
+Player schickt Android `PAUSED(Liste)`, `RESUMED(Player)` und **danach** `STOPPED(Liste)`.
+Das letzte Ereignis sieht aus wie „YouTube ist im Hintergrund", obwohl das Video läuft.
+Seit v0.1.1 wird `ACTIVITY_STOPPED` gar nicht erst ausgewertet.
+
+## Warum die Zahl von Googles Anzeige abweicht
+
+Sie wird es immer ein Stück weit, und das ist kein Fehler:
+
+- **Der Startbildschirm zählt hier nicht mit.** Er sammelt beachtliche Zeit — jeder Blick
+  aufs Telefon geht durch ihn hindurch —, ist aber der Weg zu einer App und nicht das Ziel.
+  Googles eigene Anzeige führt ihn aus demselben Grund nicht auf.
+- **Klarzeit zeigt oben die bereinigte Zahl.** Wer sie mit Googles Summe vergleicht,
+  vergleicht zwei verschiedene Dinge; die vergleichbare Zahl steht klein daneben.
+- **Die Sekunden werden abgerundet**, App für App. Bei dreissig Apps summiert sich das auf
+  ein paar Minuten. Absicht: Eine Bildschirmzeit darf nie grösser aussehen, als sie war.
 
 ## Das Widget
 

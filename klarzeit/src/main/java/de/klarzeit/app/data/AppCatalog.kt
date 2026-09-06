@@ -30,6 +30,26 @@ class AppCatalog(context: Context) {
     }.getOrNull()
 
     /**
+     * Der Startbildschirm selbst.
+     *
+     * Er taucht in den Nutzungsdaten als ganz normale App auf und sammelt beachtliche
+     * Zeit — jeder Blick aufs Telefon geht durch ihn hindurch. Als Zeitfresser aufgeführt
+     * zu werden hat er trotzdem nicht verdient: Der Startbildschirm ist der Weg zu einer
+     * App, nicht das Ziel. Googles eigene Anzeige führt ihn aus demselben Grund nicht.
+     *
+     * Ermittelt statt festgeschrieben, weil jeder Hersteller einen anderen mitbringt und
+     * viele Leute einen eigenen installieren.
+     */
+    fun homeScreenPackages(): Set<String> {
+        val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+        return runCatching {
+            packageManager.queryIntentActivities(intent, 0)
+                .mapNotNull { it.activityInfo?.packageName }
+                .toSet()
+        }.getOrDefault(emptySet())
+    }
+
+    /**
      * Alle Apps mit Symbol im Startmenü, alphabetisch. Nur diese kann der Nutzer bewusst
      * öffnen, und nur über die lohnt eine Entscheidung in der Ausschlussliste.
      */

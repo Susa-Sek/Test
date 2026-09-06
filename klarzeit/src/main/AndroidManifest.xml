@@ -29,6 +29,15 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent>
+        <!--
+          Der Startbildschirm trägt CATEGORY_HOME statt CATEGORY_LAUNCHER und fiele durch
+          den Filter darüber. Ohne diese zweite Abfrage stand in der Liste
+          "com.google.android.apps.nexuslauncher" statt eines Namens.
+        -->
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.HOME" />
+        </intent>
     </queries>
 
     <application

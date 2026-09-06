@@ -65,7 +65,7 @@ class UsageReader(context: Context) {
         val event = UsageEvents.Event()
         while (stream.hasNextEvent()) {
             stream.getNextEvent(event)
-            val type = typeOf(event.eventType) ?: continue
+            val type = UsageEventTypes.of(event.eventType) ?: continue
             events += UsageSessions.Event(
                 packageName = event.packageName.orEmpty(),
                 type = type,
@@ -73,25 +73,6 @@ class UsageReader(context: Context) {
             )
         }
         return events.filter { it.packageName.isNotEmpty() }
-    }
-
-    /**
-     * Nur diese Ereignisse sagen etwas über Bildschirmzeit aus; alles andere — Meldungen,
-     * Konfigurationswechsel, Sichtbarkeit von Fenstern — würde die Rechnung nur verrauschen.
-     */
-    private fun typeOf(eventType: Int): UsageSessions.Type? = when (eventType) {
-        UsageEvents.Event.ACTIVITY_RESUMED -> UsageSessions.Type.FOREGROUND
-        UsageEvents.Event.ACTIVITY_PAUSED,
-        UsageEvents.Event.ACTIVITY_STOPPED,
-        -> UsageSessions.Type.BACKGROUND
-
-        // Bildschirm aus oder Sperre an: Was gerade offen war, läuft nicht weiter.
-        UsageEvents.Event.SCREEN_NON_INTERACTIVE,
-        UsageEvents.Event.KEYGUARD_SHOWN,
-        UsageEvents.Event.DEVICE_SHUTDOWN,
-        -> UsageSessions.Type.SCREEN_OFF
-
-        else -> null
     }
 
     companion object {
