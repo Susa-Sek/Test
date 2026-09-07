@@ -51,7 +51,7 @@
     <string name="disconnect">Disconnect mailbox</string>
     <string name="error_auth">The server refused the sign-in. Most providers need an app password here, not your normal one.</string>
     <string name="error_network">Could not reach the server. Check your connection and the server name.</string>
-    <string name="error_generic">Something went wrong: %1$s</string>
+    <string name="error_unknown">The mailbox could not be opened. The server\'s own words are below.</string>
     <!-- Counts. German needs a real singular here, so these are plurals, not %d + noun. -->
     <plurals name="connect_days">
         <item quantity="one">Look at the last day</item>

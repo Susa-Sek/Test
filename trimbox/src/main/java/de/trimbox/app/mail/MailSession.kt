@@ -25,7 +25,6 @@ internal object MailSession {
             put("mail.imaps.port", account.imapPort.toString())
             put("mail.imaps.ssl.enable", "true")
             put("mail.imaps.ssl.checkserveridentity", "true")
-            put("mail.imaps.ssl.protocols", "TLSv1.2 TLSv1.3")
             put("mail.imaps.connectiontimeout", CONNECT_TIMEOUT_MS)
             put("mail.imaps.timeout", READ_TIMEOUT_MS)
             // Ohne das holt JavaMail bei manchen Servern die ganze Nachricht, sobald ein
@@ -43,7 +42,6 @@ internal object MailSession {
             put("mail.smtp.port", account.smtpPort.toString())
             put("mail.smtp.auth", "true")
             put("mail.smtp.ssl.checkserveridentity", "true")
-            put("mail.smtp.ssl.protocols", "TLSv1.2 TLSv1.3")
             put("mail.smtp.connectiontimeout", CONNECT_TIMEOUT_MS)
             put("mail.smtp.timeout", READ_TIMEOUT_MS)
             if (account.smtpStartTls) {

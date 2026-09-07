@@ -14,17 +14,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
@@ -38,29 +33,57 @@ import de.trimbox.app.data.MailAccount
 import de.trimbox.app.data.ProviderPresets
 
 /**
+ * Was im Formular steht.
+ *
+ * Der Zustand liegt bewusst **ausserhalb** dieses Bildschirms: Beim Verbinden wechselt die
+ * App auf die Fortschrittsansicht, und damit verschwindet dieser Bildschirm aus der
+ * Komposition. Läge der Zustand hier, wäre nach jedem Fehlversuch alles gelöscht — Adresse,
+ * Passwort, Server. Genau das war der Grund, warum sich die Anmeldung anfühlte, als
+ * passiere gar nichts.
+ */
+data class ConnectForm(
+    val address: String = "",
+    val password: String = "",
+    val account: MailAccount = MailAccount.suggestFor(""),
+) {
+    /** Adresse übernehmen und Server nachziehen, ohne selbst Eingetragenes zu überschreiben. */
+    fun withAddress(typed: String): ConnectForm {
+        val preset = ProviderPresets.forAddress(typed)
+        val updated = account.copy(address = typed.trim())
+        return copy(
+            address = typed,
+            account = if (preset == null) {
+                updated
+            } else {
+                updated.copy(
+                    imapHost = preset.imapHost,
+                    imapPort = preset.imapPort,
+                    smtpHost = preset.smtpHost,
+                    smtpPort = preset.smtpPort,
+                    smtpStartTls = preset.smtpStartTls,
+                )
+            },
+        )
+    }
+}
+
+/**
  * Der erste Bildschirm. Er nimmt dem Nutzer die Serversuche ab und sagt vorher, was
  * schiefgehen wird — die meisten gescheiterten Anmeldungen sind keine Tippfehler, sondern
  * ein fehlendes App-Passwort.
  */
 @Composable
 fun ConnectScreen(
-    busy: Boolean,
+    form: ConnectForm,
     errorText: String?,
-    initialAccount: MailAccount?,
-    initialPassword: String,
-    onConnect: (MailAccount, String) -> Unit,
+    errorDetail: String?,
+    hasSavedAccount: Boolean,
+    onFormChange: (ConnectForm) -> Unit,
+    onConnect: () -> Unit,
     onDisconnect: () -> Unit,
 ) {
-    // Auf das gespeicherte Konto geschlüsselt: Es kommt erst nach dem ersten Bild aus
-    // DataStore, und ohne den Schlüssel bliebe das Formular leer.
-    var address by remember(initialAccount) { mutableStateOf(initialAccount?.address.orEmpty()) }
-    var password by remember(initialAccount) { mutableStateOf(initialPassword) }
-    var account by remember(initialAccount) {
-        mutableStateOf(initialAccount ?: MailAccount.suggestFor(""))
-    }
-
-    val needsOAuth = remember(address) { ProviderPresets.needsOAuth(address) }
-    val ready = account.isComplete && password.isNotBlank() && !needsOAuth && !busy
+    val needsOAuth = ProviderPresets.needsOAuth(form.address)
+    val ready = form.account.isComplete && form.password.isNotBlank() && !needsOAuth
 
     Column(
         modifier = Modifier
@@ -70,23 +93,18 @@ fun ConnectScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(stringResource(R.string.connect_title), style = MaterialTheme.typography.headlineSmall)
+
+        // Der Fehler steht ganz oben, nicht unten am Knopf: Nach einem Fehlversuch schaut
+        // niemand ans Ende eines gescrollten Formulars.
+        if (errorText != null) {
+            Note(errorText, warning = true, detail = errorDetail)
+        }
+
         Text(stringResource(R.string.connect_intro), style = MaterialTheme.typography.bodyMedium)
 
         OutlinedTextField(
-            value = address,
-            onValueChange = { typed ->
-                address = typed
-                // Server nachziehen, solange der Nutzer sie nicht selbst angefasst hat.
-                val suggestion = MailAccount.suggestFor(typed)
-                account = account.copy(
-                    address = suggestion.address,
-                    imapHost = suggestion.imapHost.ifBlank { account.imapHost },
-                    imapPort = suggestion.imapPort,
-                    smtpHost = suggestion.smtpHost.ifBlank { account.smtpHost },
-                    smtpPort = suggestion.smtpPort,
-                    smtpStartTls = suggestion.smtpStartTls,
-                )
-            },
+            value = form.address,
+            onValueChange = { typed -> onFormChange(form.withAddress(typed)) },
             label = { Text(stringResource(R.string.connect_address)) },
             singleLine = true,
             keyboardOptions = KeyboardOptions(
@@ -101,8 +119,8 @@ fun ConnectScreen(
         }
 
         OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
+            value = form.password,
+            onValueChange = { onFormChange(form.copy(password = it)) },
             label = { Text(stringResource(R.string.connect_password)) },
             singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
@@ -117,60 +135,42 @@ fun ConnectScreen(
         Text(stringResource(R.string.connect_server), style = MaterialTheme.typography.titleMedium)
 
         HostRow(
-            host = account.imapHost,
-            port = account.imapPort,
+            host = form.account.imapHost,
+            port = form.account.imapPort,
             label = stringResource(R.string.connect_imap_host),
-            onHost = { account = account.copy(imapHost = it) },
-            onPort = { account = account.copy(imapPort = it) },
+            onHost = { onFormChange(form.copy(account = form.account.copy(imapHost = it))) },
+            onPort = { onFormChange(form.copy(account = form.account.copy(imapPort = it))) },
         )
         HostRow(
-            host = account.smtpHost,
-            port = account.smtpPort,
+            host = form.account.smtpHost,
+            port = form.account.smtpPort,
             label = stringResource(R.string.connect_smtp_host),
-            onHost = { account = account.copy(smtpHost = it) },
-            onPort = { account = account.copy(smtpPort = it) },
+            onHost = { onFormChange(form.copy(account = form.account.copy(smtpHost = it))) },
+            onPort = { onFormChange(form.copy(account = form.account.copy(smtpPort = it))) },
         )
         Note(stringResource(R.string.connect_smtp_why))
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(30, 90, 180).forEach { days ->
                 FilterChip(
-                    selected = account.days == days,
-                    onClick = { account = account.copy(days = days) },
+                    selected = form.account.days == days,
+                    onClick = { onFormChange(form.copy(account = form.account.copy(days = days))) },
                     label = { Text(pluralStringResource(R.plurals.connect_days, days, days)) },
                 )
             }
         }
 
-        if (errorText != null) {
-            Note(errorText, warning = true)
-        }
-
         Spacer(Modifier.height(8.dp))
         Button(
-            onClick = { onConnect(account, password) },
+            onClick = onConnect,
             enabled = ready,
             modifier = Modifier.fillMaxWidth(),
-        ) {
-            if (busy) {
-                CircularProgressIndicator(modifier = Modifier.height(18.dp), strokeWidth = 2.dp)
-                Spacer(Modifier.height(8.dp))
-                Text(stringResource(R.string.connect_working))
-            } else {
-                Text(stringResource(R.string.connect_go))
-            }
-        }
+        ) { Text(stringResource(R.string.connect_go)) }
 
-        if (initialAccount != null) {
-            TextButton(
-                onClick = {
-                    address = ""
-                    password = ""
-                    account = MailAccount.suggestFor("")
-                    onDisconnect()
-                },
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text(stringResource(R.string.disconnect)) }
+        if (hasSavedAccount) {
+            TextButton(onClick = onDisconnect, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.disconnect))
+            }
         }
     }
 }
@@ -205,9 +205,15 @@ private fun HostRow(
     }
 }
 
-/** Kleiner Hinweiskasten — grau für Erklärungen, farbig für Warnungen. */
+/**
+ * Kleiner Hinweiskasten — grau für Erklärungen, farbig für Warnungen.
+ *
+ * Der [detail] trägt den Originaltext des Servers. Er ist klein gesetzt und technisch, aber
+ * er steht da: Ohne ihn sieht ein fehlendes App-Passwort genauso aus wie ein Tippfehler im
+ * Servernamen, und der Nutzer probiert im Dunkeln.
+ */
 @Composable
-internal fun Note(text: String, warning: Boolean = false) {
+internal fun Note(text: String, warning: Boolean = false, detail: String? = null) {
     Card(
         colors = CardDefaults.cardColors(
             containerColor = if (warning) {
@@ -218,10 +224,16 @@ internal fun Note(text: String, warning: Boolean = false) {
         ),
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(12.dp),
-        )
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(text = text, style = MaterialTheme.typography.bodySmall)
+            if (!detail.isNullOrBlank()) {
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = detail,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }

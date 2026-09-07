@@ -49,7 +49,7 @@
     <string name="disconnect">Postfach trennen</string>
     <string name="error_auth">Der Server hat die Anmeldung abgelehnt. Die meisten Anbieter brauchen hier ein App-Passwort, nicht dein normales.</string>
     <string name="error_network">Server nicht erreichbar. Prüf die Verbindung und den Servernamen.</string>
-    <string name="error_generic">Da ging etwas schief: %1$s</string>
+    <string name="error_unknown">Das Postfach liess sich nicht öffnen. Was der Server dazu sagt, steht darunter.</string>
     <!-- Zahlwörter: „1 Absender brauchen“ wäre falsch, deshalb echte Plurale. -->
     <plurals name="connect_days">
         <item quantity="one">Den letzten Tag ansehen</item>

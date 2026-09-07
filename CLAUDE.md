@@ -58,6 +58,17 @@ Für TrimBox zusätzlich:
   sondern der Grund, warum die App Sekunden statt Minuten braucht und ihre Zusage halten kann,
   Mail-Inhalte nicht anzufassen. Wer dort ein Feld ergänzt, das nicht in der Kopfzeile steht,
   löst den Download ganzer Nachrichten aus.
+- **Keine `ssl.protocols`-Liste festschreiben.** JavaMail reicht sie unverändert an
+  `SSLSocket.setEnabledProtocols` weiter, und das wirft, sobald eine Fassung dem Gerät
+  unbekannt ist — auf Android 8 und 9 gibt es kein TLS 1.3. Ohne die Zeile handelt Android
+  selbst aus, und das tut es richtig.
+- **App-Passwörter werden als vier Vierergruppen angezeigt.** Wer sie einfügt, hat
+  Leerzeichen dabei; über IMAP gehen die mit und der Server lehnt ab. `AppPassword.normalize`
+  entfernt sie — aber nur bei genau diesem Muster, damit ein selbst vergebenes Passwort mit
+  Leerzeichen unangetastet bleibt.
+- **Formularzustand gehört nicht in den Bildschirm, der ihn absendet.** `ConnectScreen`
+  verschwindet beim Verbinden aus der Komposition; lag der Zustand dort, war nach jedem
+  Fehlversuch alles gelöscht und die Anmeldung fühlte sich an, als passiere nichts.
 - **JavaMail bleibt auf `com.sun.mail:android-mail` (Namensraum `javax.mail`).** Die neuere
   Jakarta-/Angus-Linie 2.x braucht `jakarta.activation` und Java 11 und lässt sich auf Android
   nicht sauber bauen.

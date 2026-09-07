@@ -22,6 +22,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import de.trimbox.app.R
 import de.trimbox.app.data.AccountStore
+import de.trimbox.app.data.AppPassword
 import de.trimbox.app.data.MailAccount
 import de.trimbox.app.data.TrimRepository
 import de.trimbox.app.mail.MailError
@@ -47,6 +48,9 @@ fun AppRoot() {
     val phase by repository.phase.collectAsStateWithLifecycle()
     val error by repository.error.collectAsStateWithLifecycle()
 
+    // Das Formular lebt hier, nicht im ConnectScreen: Beim Verbinden wechselt der
+    // Bildschirm, und ein dort gehaltener Zustand waere nach jedem Fehlversuch weg.
+    var form by remember { mutableStateOf(ConnectForm()) }
     var account by remember { mutableStateOf<MailAccount?>(null) }
     var password by remember { mutableStateOf("") }
     var scanJob by remember { mutableStateOf<Job?>(null) }
@@ -59,7 +63,11 @@ fun AppRoot() {
     var restored by remember { mutableStateOf<Restored?>(null) }
     LaunchedEffect(Unit) {
         val saved = store.account.first()
-        restored = Restored(saved, if (saved == null) "" else store.password().orEmpty())
+        val secret = if (saved == null) "" else store.password().orEmpty()
+        restored = Restored(saved, secret)
+        if (saved != null) {
+            form = ConnectForm(address = saved.address, password = secret, account = saved)
+        }
     }
 
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -67,11 +75,16 @@ fun AppRoot() {
             TrimRepository.Phase.Idle -> when (val saved = restored) {
                 null -> Loading()
                 else -> ConnectScreen(
-                    busy = false,
+                    form = form,
                     errorText = error?.let { messageFor(it) },
-                    initialAccount = saved.account,
-                    initialPassword = saved.password,
-                    onConnect = { chosen, secret ->
+                    errorDetail = error?.detail,
+                    hasSavedAccount = saved.account != null,
+                    onFormChange = { form = it },
+                    onConnect = {
+                        // Leerzeichen aus eingefuegten App-Passwoertern entfernen — der
+                        // haeufigste Grund fuer eine abgelehnte Anmeldung mit richtigem Passwort.
+                        val secret = AppPassword.normalize(form.password)
+                        val chosen = form.account.copy(address = form.address.trim())
                         account = chosen
                         password = secret
                         unsubscribeFrom = emptySet()
@@ -90,6 +103,7 @@ fun AppRoot() {
                         scope.launch {
                             store.clear()
                             restored = Restored(null, "")
+                            form = ConnectForm()
                             account = null
                             password = ""
                         }
@@ -168,9 +182,9 @@ private fun Working(done: Int, total: Int) {
 
 @Composable
 private fun messageFor(error: MailError): String = when (error) {
-    MailError.Authentication -> stringResource(R.string.error_auth)
-    MailError.Network -> stringResource(R.string.error_network)
-    is MailError.Other -> stringResource(R.string.error_generic, error.message)
+    is MailError.Authentication -> stringResource(R.string.error_auth)
+    is MailError.Network -> stringResource(R.string.error_network)
+    is MailError.Other -> stringResource(R.string.error_unknown)
 }
 
 private fun Set<String>.toggle(value: String): Set<String> =
