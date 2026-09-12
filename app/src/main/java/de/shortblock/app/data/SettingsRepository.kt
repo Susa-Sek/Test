@@ -71,7 +71,9 @@ data class BlockSettings(
          * gar keine Zeitgrenze.
          *
          * Der Feed-Filter `INSTAGRAM_FEED` bleibt draußen: Das ist eine Grundsatzentscheidung
-         * über die Auswahl der Beiträge, keine Sehdauer.
+         * über die Auswahl der Beiträge, keine Sehdauer. `INSTAGRAM_EXPLORE` aus demselben
+         * Grund — dort ist jeder Beitrag ein Vorschlag, ein Kontingent hiesse „ein bisschen
+         * Algorithmus ist in Ordnung“.
          */
         val BUDGETABLE = listOf(
             Feature.INSTAGRAM_REELS,
@@ -87,7 +89,11 @@ data class BlockSettings(
          * genau einen Durchsetzungsweg hat. Ohne sie war `TIKTOK_FYP` budgetierbar, ohne dass
          * irgendwo ein Budget ausgewertet wurde — die Chips in der Oberfläche waren Attrappe.
          */
-        val POLICY_ENFORCED = setOf(Feature.INSTAGRAM_FEED, Feature.TIKTOK_FYP)
+        val POLICY_ENFORCED = setOf(
+            Feature.INSTAGRAM_FEED,
+            Feature.INSTAGRAM_EXPLORE,
+            Feature.TIKTOK_FYP,
+        )
 
         /** Auswahl in der Oberfläche; 0 steht für „Immer blocken“. */
         val BUDGET_CHOICES = listOf(0, 5, 10, 20, 30)

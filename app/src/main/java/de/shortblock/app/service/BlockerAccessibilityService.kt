@@ -95,6 +95,9 @@ class BlockerAccessibilityService : AccessibilityService() {
     private var feedSwitchAttempts = 0
     private var manualSwitchHintShown = false
 
+    /** Seit wann das Explore-Raster vorne steht; 0 heisst: steht es nicht. */
+    private var exploreSince = 0L
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         ServiceHealth.onConnected()
@@ -246,6 +249,10 @@ class BlockerAccessibilityService : AccessibilityService() {
 
         if (packageName == Packages.INSTAGRAM && Feature.INSTAGRAM_FEED in settings.enabled) {
             handleInstagramFeed(root)
+        }
+
+        if (packageName == Packages.INSTAGRAM && Feature.INSTAGRAM_EXPLORE in settings.enabled) {
+            handleInstagramExplore(root)
         }
 
         if (packageName in Packages.TIKTOK && Feature.TIKTOK_FYP in settings.enabled) {
@@ -456,6 +463,30 @@ class BlockerAccessibilityService : AccessibilityService() {
                 BlockLog.record("ig_feed_end", decision.marker)
                 toast(R.string.toast_feed_end)
                 blockAndGoBack(Feature.INSTAGRAM_FEED)
+            }
+        }
+    }
+
+    /**
+     * Explore verlassen, sobald das Vorschlagsraster länger als die Schonfrist vorne steht.
+     *
+     * Der Zeitstempel liegt hier und nicht in [ExplorePolicy]: Die Auswertung bleibt dadurch
+     * zustandslos und prüfbar, der Dienst hält nur die Uhr. Zurückgesetzt wird er, sobald
+     * Explore verlassen oder gesucht wird — sonst zählte die Schonfrist über einen ganzen
+     * Instagram-Besuch hinweg nur einmal.
+     */
+    private fun handleInstagramExplore(root: UiNode) {
+        val now = SystemClock.uptimeMillis()
+        when (val decision = ExplorePolicy.evaluate(root, exploreSince.takeIf { it != 0L }, now)) {
+            ExploreDecision.Idle, ExploreDecision.Searching -> exploreSince = 0L
+
+            ExploreDecision.Grace -> if (exploreSince == 0L) exploreSince = now
+
+            is ExploreDecision.Block -> {
+                BlockLog.record("ig_explore_grid", decision.marker)
+                toast(R.string.toast_explore_blocked)
+                exploreSince = 0L
+                blockAndGoBack(Feature.INSTAGRAM_EXPLORE)
             }
         }
     }

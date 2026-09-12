@@ -23,6 +23,8 @@
     <string name="toggle_reels_title">Instagram Reels blocken</string>
     <string name="toggle_reels_desc">Schließt den Reels-Viewer — aus dem Tab, aus Explore, aus einer DM oder aus dem Browser. Stories bleiben unangetastet.</string>
     <string name="toggle_feed_title">Instagram: „Für dich“-Feed blocken</string>
+    <string name="toggle_explore_title">Instagram: Explore-Raster</string>
+    <string name="toggle_explore_desc">Verlässt das Vorschlagsraster hinter der Lupe. Die Suche bleibt nutzbar — für den Griff zum Suchfeld bleiben ein paar Sekunden.</string>
     <string name="toggle_feed_desc">Erzwingt den chronologischen „Folge ich“-Feed und stoppt an dessen Ende, bevor die Vorschläge anfangen.</string>
     <string name="toggle_shorts_title">YouTube Shorts blocken</string>
     <string name="toggle_shorts_desc">Schließt den Shorts-Player, den Shorts-Tab und youtube.com/shorts im Browser. Normale Videos, Suche und Abos funktionieren weiter.</string>
@@ -126,6 +128,7 @@
     <string name="diagnostics_clear">Leeren</string>
 
     <!-- Service-Toasts -->
+    <string name="toast_explore_blocked">Auf Explore ist alles Vorschlag</string>
     <string name="toast_feed_end">Ende des „Folge ich“-Feeds</string>
     <string name="toast_feed_switch_manual">Bitte oben links auf „Folge ich“ umschalten</string>
     <string name="overridden_by_tiktok_all">Greift nicht, solange TikTok ganz gesperrt ist</string>

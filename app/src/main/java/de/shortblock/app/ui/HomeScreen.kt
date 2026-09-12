@@ -120,6 +120,11 @@ fun HomeScreen(
                     title = stringResource(R.string.toggle_feed_title),
                     description = stringResource(R.string.toggle_feed_desc),
                 ),
+                ToggleRow(
+                    feature = Feature.INSTAGRAM_EXPLORE,
+                    title = stringResource(R.string.toggle_explore_title),
+                    description = stringResource(R.string.toggle_explore_desc),
+                ),
             ),
             settings = settings,
             counts = counts,

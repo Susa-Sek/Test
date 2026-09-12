@@ -37,6 +37,17 @@ nicht mehr benutzen; wer ein Reel zu viel sieht, ärgert sich kurz. Im Zweifel n
   und Ende rechnet `CheatPass` daraus aus — kein Wecker, der bei abgeräumtem Dienst verloren
   ginge. Ein Beginn, der weiter als die Wartezeit in der Zukunft liegt, heißt zurückgestellte
   Systemuhr: dann gilt der Cheat als verbraucht, nie als endlos.
+- **Explore hat keinen „Folge ich"-Schalter.** Deshalb wird dort nicht umgeschaltet wie im
+  Startfeed, sondern verlassen. `ExplorePolicy` fällt bewusst **nicht** auf „Lupen-Tab ist
+  ausgewählt" zurück, wenn keine Raster-Kennung passt: Dieser Rückfall würde auf einer
+  unbekannten Instagram-Fassung auch bei jeder Suche feuern. Lieber still nichts tun.
+- **Explore und Suche sind derselbe Tab.** Ohne die Schonfrist in `ExplorePolicy` käme
+  niemand mehr ans Suchfeld — die Sperre nähme eine Funktion mit, die niemand abschalten
+  wollte. Die Suchleiste selbst gilt deshalb NICHT als Suchbeleg (sie steht auch über dem
+  Raster); nur Trefferliste, „Zuletzt gesucht" und dergleichen.
+- **Ein Feature darf Policy *und* Browser-Regel haben.** `EnforcementCoverageTest` verbietet
+  den Doppelweg nur innerhalb der App; `INSTAGRAM_EXPLORE` wird in Instagram von einer Policy
+  und im Browser von einer Adressregel durchgesetzt. Das sind zwei Oberflächen.
 - **`org.json` ist im JVM-Unit-Test nur ein Stub**, der bei jedem Aufruf wirft. Module, die es
   benutzen, brauchen `testImplementation(libs.org.json)`.
 
@@ -111,6 +122,7 @@ Android-Abhängige bleibt eine dünne Hülle drumherum. Neue Erkennung genauso b
 |---|---|
 | `service/RuleMatcher.kt`, `service/Rules.kt` | `service/BlockerAccessibilityService.kt` |
 | `service/FeedPolicy.kt`, `service/TikTokPolicy.kt` | `service/AccessibilityUiNode.kt` |
+| `service/ExplorePolicy.kt` | — |
 | `data/StatsHistory.kt`, `data/WatchBudget.kt` | `data/StatsRepository.kt` |
 | `data/CheatPass.kt`, `data/CheatPhrase.kt`, `service/Reminders.kt` | `service/ReminderOverlay.kt` |
 | `service/SharedClip.kt` | — |

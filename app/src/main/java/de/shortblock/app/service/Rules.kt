@@ -15,6 +15,12 @@ package de.shortblock.app.service
 enum class Feature {
     INSTAGRAM_REELS,
     INSTAGRAM_FEED,
+
+    /**
+     * Das Vorschlagsraster hinter der Lupe. Die Suche selbst bleibt bedienbar — sie ist
+     * derselbe Tab, aber nicht dasselbe Ziel.
+     */
+    INSTAGRAM_EXPLORE,
     YOUTUBE_SHORTS,
 
     /** Nur den „Für dich“-Algorithmus abschalten, „Folge ich“ bleibt nutzbar. */
@@ -240,6 +246,13 @@ object Rules {
             textContains = listOf("instagram.com/reel"),
         ),
         Rule(
+            id = "browser_ig_explore",
+            feature = Feature.INSTAGRAM_EXPLORE,
+            packageName = browserPackage,
+            viewIdMustContain = BROWSER_URL_BAR_IDS,
+            textContains = listOf("instagram.com/explore"),
+        ),
+        Rule(
             id = "browser_tiktok",
             feature = Feature.TIKTOK_ALL,
             packageName = browserPackage,
@@ -335,6 +348,62 @@ object Rules {
             "vorgeschlagene beiträge",
             "vorschläge für dich",
         )
+    }
+
+    /**
+     * Muster für Instagrams Explore-Tab — das Raster hinter der Lupe.
+     *
+     * Der Startfeed lässt sich auf „Folge ich“ zwingen; für Explore gibt es kein Gegenstück,
+     * dort ist alles Vorschlag. Deshalb wird hier nicht umgeschaltet, sondern verlassen.
+     *
+     * Die Schwierigkeit ist, dass Explore und Suche derselbe Tab sind. Wer das Raster
+     * blockt, nimmt einem auch die Profilsuche — deshalb die Unterscheidung in
+     * [ExplorePolicy]: Sobald Instagram in den Suchmodus wechselt, ist das Raster weg und
+     * es wird nichts mehr geblockt.
+     */
+    object InstagramExplore {
+
+        /**
+         * Das Vorschlagsraster. Mehrere Kandidaten, weil Instagram den Namen über die Jahre
+         * mehrfach geändert hat und je nach Fassung ein anderer im Baum steht.
+         */
+        val GRID_VIEW_IDS = listOf(
+            "explore_grid",
+            "explore_recycler_view",
+            "explore_feed_recycler",
+            "discover_grid",
+            "discovery_recycler_view",
+        )
+
+        /**
+         * Zeichen dafür, dass gerade gesucht wird. Dann liegt kein Raster mehr vorn und die
+         * App hält still.
+         *
+         * Bewusst **nicht** in dieser Liste: die Suchleiste selbst. Die steht auch über dem
+         * Raster, und als Suchbeleg gewertet würde sie jede Sperre aushebeln.
+         */
+        val SEARCH_MODE_VIEW_IDS = listOf(
+            "search_results",
+            "recent_searches",
+            "search_recycler",
+            "typeahead",
+        )
+
+        /** Dieselbe Aussage über Text, falls die View-ID nicht passt. */
+        val SEARCH_MODE_LABELS = listOf(
+            "recent",
+            "zuletzt gesucht",
+            "kürzlich gesucht",
+            "letzte suchanfragen",
+        )
+
+        /**
+         * Mindestanteil am Fenster, damit ein Knoten als Raster zählt.
+         *
+         * Dieselbe Überlegung wie beim Reels-Viewer: Ein eingebettetes Raster in einem
+         * Profil ist klein, das Explore-Raster füllt den Bildschirm.
+         */
+        const val MIN_GRID_AREA_FRACTION = 0.35f
     }
 
     /**

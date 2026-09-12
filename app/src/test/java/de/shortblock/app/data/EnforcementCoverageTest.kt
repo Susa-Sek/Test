@@ -1,6 +1,7 @@
 package de.shortblock.app.data
 
 import de.shortblock.app.service.Feature
+import de.shortblock.app.service.Packages
 import de.shortblock.app.service.Rules
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -19,6 +20,19 @@ class EnforcementCoverageTest {
 
     private val ruleFeatures = Rules.BLOCK_RULES.map { it.feature }.toSet()
 
+    /**
+     * Regeln, die in der App selbst greifen — Browser-Regeln zählen nicht dazu.
+     *
+     * Der Unterschied wurde mit `INSTAGRAM_EXPLORE` nötig: In Instagram entscheidet eine
+     * Policy (Raster ja, Suche nein), im Browser genügt die Adresse `instagram.com/explore`.
+     * Das sind zwei Oberflächen, nicht zwei Wege für dieselbe — nur Letzteres wäre der
+     * Doppelweg, den dieser Test verhindern soll.
+     */
+    private val inAppRuleFeatures = Rules.BLOCK_RULES
+        .filterNot { it.packageName in Packages.BROWSERS }
+        .map { it.feature }
+        .toSet()
+
     @Test
     fun `every feature is enforced by exactly one mechanism`() {
         Feature.entries.forEach { feature ->
@@ -29,8 +43,8 @@ class EnforcementCoverageTest {
                 byRule || byPolicy,
             )
             assertTrue(
-                "$feature wird doppelt durchgesetzt (Regel und Policy)",
-                !(byRule && byPolicy),
+                "$feature wird in der App doppelt durchgesetzt (Regel und Policy)",
+                !(feature in inAppRuleFeatures && byPolicy),
             )
         }
     }
