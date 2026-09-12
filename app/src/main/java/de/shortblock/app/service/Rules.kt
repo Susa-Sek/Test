@@ -294,10 +294,18 @@ object Rules {
             "feed_type_menu_button",
         )
 
-        /** Titeltext, wenn der gefilterte Feed bereits aktiv ist — dann ist nichts zu tun. */
+        /**
+         * Titeltext, wenn der gefilterte Feed bereits aktiv ist — dann ist nichts zu tun.
+         *
+         * „Gefolgt“ ist die Beschriftung, die Instagram seit Herbst 2026 in der deutschen
+         * Fassung benutzt; „Folge ich“ steht daneben, weil ältere Fassungen sie noch tragen.
+         * Fehlte die neue, hielt die App den schon umgeschalteten Feed für einen unbekannten
+         * Titel und tat gar nichts mehr — auch das Feed-Ende wurde nie erkannt.
+         */
         val FOLLOWING_TITLES = listOf(
             "following",
             "folge ich",
+            "gefolgt",
             "favorites",
             "favoriten",
         )
@@ -309,10 +317,40 @@ object Rules {
             "für dich",
         )
 
-        /** Eintrag im aufklappenden Menü, der angetippt werden soll. */
+        /**
+         * Eintrag im aufklappenden Menü, der angetippt werden soll.
+         *
+         * Nur Beschriftungen, die in Instagram sonst nirgends als Knopf vorkommen. Sie dürfen
+         * ohne weiteren Nachweis angetippt werden.
+         */
         val MENU_FOLLOWING_ENTRIES = listOf(
             "following",
             "folge ich",
+        )
+
+        /**
+         * Dasselbe Ziel, aber mit einer Beschriftung, die anderswo gefährlich ist.
+         *
+         * **„Gefolgt“ ist auch der Zustand des Folgen-Knopfes an einem Beitrag.** Wer das Wort
+         * blind in [MENU_FOLLOWING_ENTRIES] legt, riskiert, dass die App im „Für dich“-Feed
+         * auf den Knopf eines vorgeschlagenen Beitrags tippt — und dem Nutzer stillschweigend
+         * ein Abo kündigt. Ein Fehlalarm ist teurer als eine Lücke, und dieser hier wäre
+         * teurer als die meisten.
+         *
+         * Deshalb wird ein solcher Eintrag nur angetippt, wenn [MENU_COMPANION_ENTRIES]
+         * daneben sichtbar ist — dann steht fest, dass ein Menü offen ist und kein Beitrag.
+         */
+        val MENU_AMBIGUOUS_FOLLOWING_ENTRIES = listOf(
+            "gefolgt",
+        )
+
+        /**
+         * Der jeweils andere Eintrag des Umschaltmenüs. Seine Anwesenheit ist der Beweis, dass
+         * das Menü offen ist: Ein Folgen-Knopf an einem Beitrag hat kein „Favoriten“ neben sich.
+         */
+        val MENU_COMPANION_ENTRIES = listOf(
+            "favorites",
+            "favoriten",
         )
 
         /**

@@ -176,11 +176,36 @@ object FeedPolicy {
             Rules.InstagramFeed.TITLE_VIEW_IDS.any { viewId.contains(it) }
         }
 
-    private fun findFollowingMenuEntry(root: UiNode): UiNode? =
+    /**
+     * Den Eintrag „Folge ich“ im offenen Umschaltmenü finden.
+     *
+     * Zwei Stufen, und die zweite ist der Grund für die ganze Unterscheidung: Eindeutige
+     * Beschriftungen werden sofort genommen. Mehrdeutige — allen voran „Gefolgt“, das auch
+     * am Folgen-Knopf eines Beitrags steht — erst, wenn ein zweiter Menüeintrag daneben
+     * sichtbar ist. Ohne diesen Nachweis könnte die App im „Für dich“-Feed auf den Knopf
+     * eines vorgeschlagenen Beitrags tippen und ein Abo kündigen.
+     */
+    private fun findFollowingMenuEntry(root: UiNode): UiNode? {
         RuleMatcher.findNode(root) { node ->
             val label = normalizeForMatch(node.text) ?: return@findNode false
             Rules.InstagramFeed.MENU_FOLLOWING_ENTRIES.any { label == it }
+        }?.let { return it }
+
+        if (!hasOpenSwitcherMenu(root)) return null
+
+        return RuleMatcher.findNode(root) { node ->
+            val label = normalizeForMatch(node.text) ?: return@findNode false
+            Rules.InstagramFeed.MENU_AMBIGUOUS_FOLLOWING_ENTRIES.any { label == it }
         }
+    }
+
+    /** Steht ein zweiter Menüeintrag daneben? Dann ist das Menü offen und kein Beitrag. */
+    private fun hasOpenSwitcherMenu(root: UiNode): Boolean = RuleMatcher.containsNode(root) { node ->
+        val label = normalizeForMatch(node.text)
+            ?: normalizeForMatch(node.contentDescription)
+            ?: return@containsNode false
+        Rules.InstagramFeed.MENU_COMPANION_ENTRIES.any { label == it }
+    }
 
     private fun visibleEndMarker(root: UiNode): String? {
         val node = RuleMatcher.findNode(root) { candidate ->

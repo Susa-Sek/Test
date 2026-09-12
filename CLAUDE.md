@@ -37,6 +37,16 @@ nicht mehr benutzen; wer ein Reel zu viel sieht, ärgert sich kurz. Im Zweifel n
   und Ende rechnet `CheatPass` daraus aus — kein Wecker, der bei abgeräumtem Dienst verloren
   ginge. Ein Beginn, der weiter als die Wartezeit in der Zukunft liegt, heißt zurückgestellte
   Systemuhr: dann gilt der Cheat als verbraucht, nie als endlos.
+- **Instagram nennt den gefilterten Feed inzwischen „Gefolgt", nicht mehr „Folge ich".**
+  Stand die neue Beschriftung nicht in `FOLLOWING_TITLES`, hielt die App den umgeschalteten
+  Feed für einen unbekannten Titel und tat gar nichts mehr — auch das Feed-Ende feuerte nie.
+  Fehlte sie in den Menüeinträgen, öffnete die App das Menü und fand nichts zum Antippen.
+- **„Gefolgt" ist auch der Folgen-Knopf an einem Beitrag.** Deshalb steht das Wort in
+  `MENU_AMBIGUOUS_FOLLOWING_ENTRIES` und wird nur angetippt, wenn ein zweiter Menüeintrag
+  aus `MENU_COMPANION_ENTRIES` („Favoriten") daneben sichtbar ist. Ohne diesen Nachweis
+  könnte die App im „Für dich"-Feed auf den Knopf eines vorgeschlagenen Beitrags tippen und
+  stillschweigend ein Abo kündigen. Wer die Liste „aufräumt" und das Wort nach
+  `MENU_FOLLOWING_ENTRIES` schiebt, baut genau diesen Fehler wieder ein.
 - **Explore hat keinen „Folge ich"-Schalter.** Deshalb wird dort nicht umgeschaltet wie im
   Startfeed, sondern verlassen. `ExplorePolicy` fällt bewusst **nicht** auf „Lupen-Tab ist
   ausgewählt" zurück, wenn keine Raster-Kennung passt: Dieser Rückfall würde auf einer

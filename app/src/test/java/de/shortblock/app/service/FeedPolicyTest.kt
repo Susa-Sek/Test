@@ -271,3 +271,84 @@ class FeedPolicyTest {
         )
     }
 }
+
+/**
+ * Die Beschriftung, mit der Instagram im Herbst 2026 aufgetaucht ist: „Gefolgt“ statt
+ * „Folge ich“. Nachgebaut aus einem echten Screenshot — Titel „Für dich“, offenes Menü mit
+ * „Gefolgt“ und „Favoriten“.
+ */
+class FeedPolicyGefolgtTest {
+
+    private fun header(label: String) = igNode(
+        id = "action_bar_title",
+        text = label,
+        bounds = NodeBounds(0, 100, 1080, 260),
+    )
+
+    private fun feedRoot(vararg children: FakeNode) = igNode(
+        id = "root",
+        children = listOf(igNode(id = "feed_recycler_view")) + children,
+    )
+
+    @Test
+    fun `the open menu entry Gefolgt is tapped`() {
+        val root = feedRoot(
+            header("Für dich"),
+            igNode(text = "Gefolgt", bounds = NodeBounds(260, 420, 900, 520)),
+            igNode(text = "Favoriten", bounds = NodeBounds(260, 540, 900, 640)),
+        )
+
+        val decision = FeedPolicy.evaluate(root)
+
+        assertTrue("Erwartet: Menüeintrag antippen, war $decision", decision is FeedDecision.ChooseFollowing)
+        assertEquals("Gefolgt", (decision as FeedDecision.ChooseFollowing).node.text)
+    }
+
+    @Test
+    fun `a Gefolgt button on a post is never tapped`() {
+        // DER gefaehrliche Fall: "Gefolgt" ist auch der Zustand des Folgen-Knopfes an einem
+        // Beitrag. Ohne Menue daneben darf die App das niemals antippen — sonst kuendigt sie
+        // stillschweigend ein Abo.
+        val root = feedRoot(
+            header("Für dich"),
+            igNode(text = "Gefolgt", bounds = NodeBounds(700, 900, 1000, 980)),
+        )
+
+        val decision = FeedPolicy.evaluate(root)
+
+        assertTrue(
+            "Ohne offenes Menü darf nichts angetippt werden, war $decision",
+            decision is FeedDecision.OpenSwitcher,
+        )
+    }
+
+    @Test
+    fun `the switched feed is recognised as already filtered`() {
+        // Vorher hielt die App den umgeschalteten Feed fuer einen unbekannten Titel und tat
+        // gar nichts mehr — auch das Feed-Ende wurde nie erkannt.
+        val root = feedRoot(header("Gefolgt"))
+
+        assertEquals(FeedDecision.AlreadyFiltered, FeedPolicy.evaluate(root))
+    }
+
+    @Test
+    fun `the end of the switched feed still fires`() {
+        val root = feedRoot(
+            header("Gefolgt"),
+            igNode(text = "Du bist auf dem neuesten Stand", bounds = NodeBounds(0, 800, 1080, 900)),
+        )
+
+        val decision = FeedPolicy.evaluate(root)
+
+        assertTrue(decision is FeedDecision.EndOfFeed)
+    }
+
+    @Test
+    fun `the old label still works`() {
+        // Aeltere Instagram-Fassungen tragen weiterhin "Folge ich" — und zwar ohne dass ein
+        // Begleiteintrag noetig waere.
+        val root = feedRoot(header("Für dich"), igNode(text = "Folge ich"))
+
+        assertTrue(FeedPolicy.evaluate(root) is FeedDecision.ChooseFollowing)
+    }
+}
