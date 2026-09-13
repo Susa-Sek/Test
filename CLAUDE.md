@@ -37,6 +37,15 @@ nicht mehr benutzen; wer ein Reel zu viel sieht, ärgert sich kurz. Im Zweifel n
   und Ende rechnet `CheatPass` daraus aus — kein Wecker, der bei abgeräumtem Dienst verloren
   ginge. Ein Beginn, der weiter als die Wartezeit in der Zukunft liegt, heißt zurückgestellte
   Systemuhr: dann gilt der Cheat als verbraucht, nie als endlos.
+- **Kein Erkennungsweg in `FeedPolicy.evaluate` darf die Rückfallkette kappen.** Bis v0.10.1
+  gab Weg 1 (Titel über View-ID) sein `Idle` ungeprüft durch, sobald er irgendeinen Knoten
+  mit Titel-Kennung fand — die Wege 2 und 3 kamen nie zum Zug. Bei Instagrams mittiger
+  Kopfzeile, deren Beschriftung in einem Kindknoten steckt, war der Filter damit vollständig
+  wirkungslos, ohne dass irgendetwas auffiel. Jede Stufe gibt ihr Ergebnis nur weiter, wenn
+  es **nicht** `Idle` ist.
+- **Ein Titelknoten trägt seine Beschriftung nicht immer selbst.** `labelOf` schaut deshalb
+  eine Ebene tiefer. Nur eine: Wer tiefer sucht, findet irgendwann den ersten Beitrag und
+  hält ihn für den Titel.
 - **Instagram nennt den gefilterten Feed inzwischen „Gefolgt", nicht mehr „Folge ich".**
   Stand die neue Beschriftung nicht in `FOLLOWING_TITLES`, hielt die App den umgeschalteten
   Feed für einen unbekannten Titel und tat gar nichts mehr — auch das Feed-Ende feuerte nie.

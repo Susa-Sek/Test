@@ -352,3 +352,64 @@ class FeedPolicyGefolgtTest {
         assertTrue(FeedPolicy.evaluate(root) is FeedDecision.ChooseFollowing)
     }
 }
+
+/**
+ * Die Rückfallkette in [FeedPolicy.evaluate].
+ *
+ * Weg 1 (View-ID) durfte bis v0.10.1 die Kette kappen: Fand er einen Titelknoten, dessen
+ * eigener Text leer war, gab er `Idle` zurück — und die Wege 2 und 3 kamen nie zum Zug.
+ * Genau das passiert bei Instagrams mittiger Kopfzeile, wo die Beschriftung in einem
+ * Kindknoten steckt.
+ */
+class FeedPolicyFallbackTest {
+
+    private fun feedRoot(vararg children: FakeNode) = igNode(
+        id = "root",
+        children = listOf(igNode(id = "feed_recycler_view")) + children,
+    )
+
+    @Test
+    fun `a title container with the label in a child still switches`() {
+        val root = feedRoot(
+            igNode(
+                id = "action_bar_title",
+                bounds = NodeBounds(0, 100, 1080, 260),
+                children = listOf(
+                    igNode(text = "Für dich", bounds = NodeBounds(300, 120, 780, 240)),
+                ),
+            ),
+            igNode(text = "Folge ich"),
+        )
+
+        val decision = FeedPolicy.evaluate(root)
+
+        assertTrue(
+            "Weg 1 fand einen Titelknoten ohne eigenen Text und kappte die Kette; war $decision",
+            decision is FeedDecision.ChooseFollowing,
+        )
+    }
+
+    @Test
+    fun `an unknown title on path one does not kill the tab path`() {
+        val root = feedRoot(
+            igNode(id = "action_bar_title", text = "Etwas Unbekanntes", bounds = NodeBounds(0, 100, 1080, 260)),
+            igNode(text = "Für dich", selected = true),
+            igNode(text = "Folge ich", selected = false),
+        )
+
+        val decision = FeedPolicy.evaluate(root)
+
+        assertTrue(
+            "Der Tab-Weg hätte greifen müssen; war $decision",
+            decision is FeedDecision.ChooseFollowing,
+        )
+    }
+
+    @Test
+    fun `an empty title container without any label stays idle`() {
+        // Kein Titel, keine Tabs, kein Text — dann bleibt es beim sicheren Nichtstun.
+        val root = feedRoot(igNode(id = "action_bar_title", bounds = NodeBounds(0, 100, 1080, 260)))
+
+        assertEquals(FeedDecision.Idle, FeedPolicy.evaluate(root))
+    }
+}

@@ -44,7 +44,16 @@ object FeedPolicy {
         //   1. Titel mit bekannter View-ID (Aufklappmenü, seit v0.1)
         //   2. Tab-Leiste über den Auswahl-Zustand (seit v0.6)
         //   3. Titel über Text und Position, ganz ohne View-ID (seit v0.8.1)
-        findTitleNodeByViewId(root)?.let { return fromTitle(root, it) }
+        //
+        // KEINER dieser Wege darf die Kette kappen. Bis v0.10.1 gab Weg 1 sein `Idle`
+        // ungeprüft durch, sobald er irgendeinen Knoten mit Titel-Kennung fand — und die
+        // Wege 2 und 3 kamen nie zum Zug. Bei Instagrams mittiger Kopfzeile, deren
+        // Beschriftung in einem Kindknoten steckt, war der Filter damit vollständig
+        // wirkungslos: Die App hielt sich für zuständig und tat nichts.
+        findTitleNodeByViewId(root)?.let { title ->
+            val byViewId = fromTitle(root, title)
+            if (byViewId != FeedDecision.Idle) return byViewId
+        }
 
         val byTabs = evaluateTabs(root)
         if (byTabs != FeedDecision.Idle) return byTabs
@@ -55,9 +64,7 @@ object FeedPolicy {
 
     /** Der gemeinsame Ablauf, sobald der Titelknoten feststeht — egal, wie er gefunden wurde. */
     private fun fromTitle(root: UiNode, title: UiNode): FeedDecision {
-        val titleLabel = normalizeForMatch(title.text)
-            ?: normalizeForMatch(title.contentDescription)
-            ?: return FeedDecision.Idle
+        val titleLabel = labelOf(title) ?: return FeedDecision.Idle
 
         if (Rules.InstagramFeed.FOLLOWING_TITLES.any { titleLabel == it }) {
             val marker = visibleEndMarker(root)
@@ -76,6 +83,29 @@ object FeedPolicy {
         } else {
             FeedDecision.OpenSwitcher(title)
         }
+    }
+
+    /**
+     * Die Beschriftung eines Titelknotens — notfalls aus einem direkten Kind.
+     *
+     * Instagrams mittige Kopfzeile ist ein Container zwischen „+“ und Herz; der Text sitzt
+     * eine Ebene tiefer. Ohne diesen Blick nach unten trägt der gefundene Knoten keine
+     * Beschriftung und die Auswertung steigt aus.
+     *
+     * Bewusst nur **eine** Ebene: Wer tiefer sucht, findet irgendwann den ersten Beitrag und
+     * hält ihn für den Titel.
+     */
+    private fun labelOf(node: UiNode): String? {
+        normalizeForMatch(node.text)?.let { return it }
+        normalizeForMatch(node.contentDescription)?.let { return it }
+
+        for (index in 0 until node.childCount) {
+            val child = node.child(index) ?: continue
+            if (!child.isVisible) continue
+            normalizeForMatch(child.text)?.let { return it }
+            normalizeForMatch(child.contentDescription)?.let { return it }
+        }
+        return null
     }
 
     /**
