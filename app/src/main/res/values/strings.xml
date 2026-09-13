@@ -137,8 +137,9 @@
 
     <!-- Service toasts -->
     <string name="toast_explore_blocked">Explore is all suggestions</string>
+    <string name="feed_wall_line">This is the “For you” feed</string>
+    <string name="feed_wall_hint">Tap the title at the top and pick “Following”.</string>
     <string name="toast_feed_end">End of the Following feed</string>
-    <string name="toast_feed_switch_manual">Please switch to “Following” at the top left</string>
     <string name="overridden_by_tiktok_all">No effect while TikTok is blocked completely</string>
     <string name="fyp_during_tiktok_budget">Applies during the allowed TikTok minutes</string>
     <string name="seen_packages_title">Apps seen</string>

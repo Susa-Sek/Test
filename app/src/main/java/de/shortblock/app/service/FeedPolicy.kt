@@ -11,11 +11,23 @@ sealed interface FeedDecision {
     /** „Folge ich“ ist bereits aktiv, der Feed enthält nur gefolgte Accounts. */
     data object AlreadyFiltered : FeedDecision
 
-    /** Algorithmischer Feed aktiv: den Titel oben links antippen, um das Menü zu öffnen. */
-    data class OpenSwitcher(val node: UiNode) : FeedDecision
-
-    /** Das Menü ist offen: den Eintrag „Folge ich“ antippen. */
+    /**
+     * Das Menü bzw. die Tab-Leiste ist offen: den Eintrag „Folge ich“ antippen.
+     *
+     * Nur noch von [TikTokPolicy] benutzt. TikToks Tab-Leiste ist seit Jahren stabil, dort
+     * lohnt das Umschalten weiterhin; Instagram sperrt stattdessen (siehe [BlockFeed]).
+     */
     data class ChooseFollowing(val node: UiNode) : FeedDecision
+
+    /**
+     * Algorithmischer Feed aktiv: die Wand hochziehen, ab [headerBottomPx] abwärts.
+     *
+     * Bis v0.10.2 stand hier stattdessen „Titel antippen“ und „Menüeintrag antippen“. Dieser
+     * Weg hing an Instagrams Menüaufbau und ist dreimal gebrochen — jedes Mal war der Filter
+     * danach still wirkungslos. Gesperrt wird jetzt, statt umzuschalten: Das braucht nur den
+     * Titeltext, und der hat alle drei Umbauten überlebt.
+     */
+    data class BlockFeed(val headerBottomPx: Int) : FeedDecision
 
     /** Ende des „Folge ich“-Feeds erreicht, ab hier kommen wieder Fremd-Inhalte. */
     data class EndOfFeed(val marker: String) : FeedDecision
@@ -72,17 +84,27 @@ object FeedPolicy {
         }
 
         if (Rules.InstagramFeed.ALGORITHMIC_TITLES.none { titleLabel == it }) {
-            // Unbekannter Titel — vermutlich ein neues Layout. Lieber nichts tun als blind
-            // irgendwo hinzutippen.
+            // Unbekannter Titel — vermutlich ein neues Layout. Lieber nichts tun als eine
+            // Wand über einen Bildschirm zu legen, den niemand eingeordnet hat.
             return FeedDecision.Idle
         }
 
-        val menuEntry = findFollowingMenuEntry(root)
-        return if (menuEntry != null) {
-            FeedDecision.ChooseFollowing(menuEntry)
-        } else {
-            FeedDecision.OpenSwitcher(title)
-        }
+        return FeedDecision.BlockFeed(wallTopFor(root, title))
+    }
+
+    /**
+     * Wo die Wand anfängt: direkt unter der Kopfzeile.
+     *
+     * Die Kopfzeile muss frei bleiben, sonst käme niemand mehr an den Umschalter und säße
+     * fest. Fehlen die Bounds des Titelknotens, gilt [HEADER_FRACTION] — eine Wand ab 0 wäre
+     * der schlimmste Ausgang: Sie verdeckt genau den Ausweg, den sie verlangt.
+     */
+    private fun wallTopFor(root: UiNode, title: UiNode): Int {
+        title.bounds?.bottom?.takeIf { it > 0 }?.let { return it }
+
+        val windowTop = root.bounds?.top ?: 0
+        val height = (root.bounds?.bottom ?: 0) - windowTop
+        return windowTop + (height * HEADER_FRACTION).toInt()
     }
 
     /**
@@ -126,7 +148,7 @@ object FeedPolicy {
         }
         if (forYou == null || !forYou.isSelected) return FeedDecision.Idle
 
-        return following?.let { FeedDecision.ChooseFollowing(it) } ?: FeedDecision.Idle
+        return FeedDecision.BlockFeed(wallTopFor(root, forYou))
     }
 
     private fun findTab(root: UiNode, labels: List<String>): UiNode? =
@@ -178,6 +200,13 @@ object FeedPolicy {
         if (height <= 0) return null
         val limit = windowTop + (height * HEADER_FRACTION).toInt()
 
+        // Stehen beide Beschriftungen nebeneinander in der Kopfzeile, ist es eine Tab-Leiste,
+        // die ihren Auswahlzustand nicht meldet. Dann ist schlicht unbekannt, welcher Feed
+        // vorne ist — und der reine Text sagt es auch nicht. Seit die App sperrt statt zu
+        // tippen, wiegt ein Fehlgriff hier schwerer: Eine Wand über dem gefolgten Feed
+        // nähme etwas weg, das erlaubt sein soll. Also nichts tun.
+        if (headerHasBothLabels(root, limit)) return null
+
         return RuleMatcher.findNode(root) { node ->
             val top = node.bounds?.top ?: return@findNode false
             if (top > limit) return@findNode false
@@ -186,6 +215,26 @@ object FeedPolicy {
                 ?: return@findNode false
             label in HEADER_TITLES
         }
+    }
+
+    /** Trägt die Kopfzeile gleichzeitig „Für dich“ und „Gefolgt“? Dann ist nichts entschieden. */
+    private fun headerHasBothLabels(root: UiNode, limit: Int): Boolean {
+        var algorithmic = false
+        var following = false
+
+        RuleMatcher.traverse(root) { node ->
+            if (!node.isVisible) return@traverse false
+            val top = node.bounds?.top ?: return@traverse false
+            if (top > limit) return@traverse false
+            val label = normalizeForMatch(node.text)
+                ?: normalizeForMatch(node.contentDescription)
+                ?: return@traverse false
+
+            if (label in Rules.InstagramFeed.TAB_FOR_YOU_LABELS) algorithmic = true
+            if (label in Rules.InstagramFeed.FOLLOWING_TITLES) following = true
+            algorithmic && following
+        }
+        return algorithmic && following
     }
 
     private const val HEADER_FRACTION = 0.20f
@@ -205,37 +254,6 @@ object FeedPolicy {
             val viewId = normalizeForMatch(node.viewId) ?: return@findNode false
             Rules.InstagramFeed.TITLE_VIEW_IDS.any { viewId.contains(it) }
         }
-
-    /**
-     * Den Eintrag „Folge ich“ im offenen Umschaltmenü finden.
-     *
-     * Zwei Stufen, und die zweite ist der Grund für die ganze Unterscheidung: Eindeutige
-     * Beschriftungen werden sofort genommen. Mehrdeutige — allen voran „Gefolgt“, das auch
-     * am Folgen-Knopf eines Beitrags steht — erst, wenn ein zweiter Menüeintrag daneben
-     * sichtbar ist. Ohne diesen Nachweis könnte die App im „Für dich“-Feed auf den Knopf
-     * eines vorgeschlagenen Beitrags tippen und ein Abo kündigen.
-     */
-    private fun findFollowingMenuEntry(root: UiNode): UiNode? {
-        RuleMatcher.findNode(root) { node ->
-            val label = normalizeForMatch(node.text) ?: return@findNode false
-            Rules.InstagramFeed.MENU_FOLLOWING_ENTRIES.any { label == it }
-        }?.let { return it }
-
-        if (!hasOpenSwitcherMenu(root)) return null
-
-        return RuleMatcher.findNode(root) { node ->
-            val label = normalizeForMatch(node.text) ?: return@findNode false
-            Rules.InstagramFeed.MENU_AMBIGUOUS_FOLLOWING_ENTRIES.any { label == it }
-        }
-    }
-
-    /** Steht ein zweiter Menüeintrag daneben? Dann ist das Menü offen und kein Beitrag. */
-    private fun hasOpenSwitcherMenu(root: UiNode): Boolean = RuleMatcher.containsNode(root) { node ->
-        val label = normalizeForMatch(node.text)
-            ?: normalizeForMatch(node.contentDescription)
-            ?: return@containsNode false
-        Rules.InstagramFeed.MENU_COMPANION_ENTRIES.any { label == it }
-    }
 
     private fun visibleEndMarker(root: UiNode): String? {
         val node = RuleMatcher.findNode(root) { candidate ->

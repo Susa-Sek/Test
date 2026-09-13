@@ -45,21 +45,12 @@ class FeedPolicyTest {
                 igNode(id = "action_bar_title", text = "Instagram"),
             ),
         )
-        assertTrue(FeedPolicy.evaluate(onHome) is FeedDecision.OpenSwitcher)
+        assertTrue(FeedPolicy.evaluate(onHome) is FeedDecision.BlockFeed)
     }
 
     @Test
-    fun `algorithmic feed opens the switcher`() {
-        assertTrue(FeedPolicy.evaluate(feed("Instagram")) is FeedDecision.OpenSwitcher)
-    }
-
-    @Test
-    fun `open menu picks the following entry`() {
-        val withMenu = feed("Instagram", extra = listOf(igNode(id = "menu_item", text = "Folge ich")))
-        val decision = FeedPolicy.evaluate(withMenu)
-
-        assertTrue(decision is FeedDecision.ChooseFollowing)
-        assertEquals("Folge ich", (decision as FeedDecision.ChooseFollowing).node.text)
+    fun `algorithmic feed raises the wall`() {
+        assertTrue(FeedPolicy.evaluate(feed("Instagram")) is FeedDecision.BlockFeed)
     }
 
     @Test
@@ -128,7 +119,7 @@ class FeedPolicyTest {
             "Instagram",
             extra = listOf(igNode(id = "row_text", text = "Vorgeschlagene Beiträge")),
         )
-        assertTrue(FeedPolicy.evaluate(suggested) is FeedDecision.OpenSwitcher)
+        assertTrue(FeedPolicy.evaluate(suggested) is FeedDecision.BlockFeed)
     }
 
     @Test
@@ -152,10 +143,11 @@ class FeedPolicyTest {
     )
 
     @Test
-    fun `for you tab selected switches to following`() {
-        val decision = FeedPolicy.evaluate(tabs(forYouSelected = true, followingSelected = false))
-        assertTrue(decision is FeedDecision.ChooseFollowing)
-        assertEquals("Folge ich", (decision as FeedDecision.ChooseFollowing).node.text)
+    fun `for you tab selected raises the wall`() {
+        assertTrue(
+            FeedPolicy.evaluate(tabs(forYouSelected = true, followingSelected = false))
+                is FeedDecision.BlockFeed,
+        )
     }
 
     @Test
@@ -182,10 +174,13 @@ class FeedPolicyTest {
      * Instagram den Auswahl-Zustand nicht mehr meldete.
      */
     @Test
-    fun `an unreported selection still switches to following`() {
-        val decision = FeedPolicy.evaluate(tabs(forYouSelected = false, followingSelected = false))
-        assertTrue(decision is FeedDecision.ChooseFollowing)
-        assertEquals("Folge ich", (decision as FeedDecision.ChooseFollowing).node.text)
+    fun `an unreported selection is left alone`() {
+        // Ohne belegte Auswahl ist unklar, welcher Feed vorne ist. Eine Wand ins Blaue wäre
+        // der teure Fehler; bis v0.10.2 wurde hier noch getippt, was billiger daneben lag.
+        assertEquals(
+            FeedDecision.Idle,
+            FeedPolicy.evaluate(tabs(forYouSelected = false, followingSelected = false)),
+        )
     }
 
     @Test
@@ -226,19 +221,9 @@ class FeedPolicyTest {
     )
 
     @Test
-    fun `a centered header without any known view id opens the switcher`() {
+    fun `a centered header without any known view id raises the wall`() {
         val decision = FeedPolicy.evaluate(centeredHeader("Für dich"))
-        assertTrue(decision is FeedDecision.OpenSwitcher)
-        assertEquals("Für dich", (decision as FeedDecision.OpenSwitcher).node.text)
-    }
-
-    @Test
-    fun `with the menu open the centered header picks following`() {
-        val withMenu = centeredHeader(
-            "Für dich",
-            extra = listOf(igNode(id = "menu_item", text = "Folge ich")),
-        )
-        assertTrue(FeedPolicy.evaluate(withMenu) is FeedDecision.ChooseFollowing)
+        assertTrue(decision is FeedDecision.BlockFeed)
     }
 
     @Test
@@ -291,20 +276,6 @@ class FeedPolicyGefolgtTest {
     )
 
     @Test
-    fun `the open menu entry Gefolgt is tapped`() {
-        val root = feedRoot(
-            header("Für dich"),
-            igNode(text = "Gefolgt", bounds = NodeBounds(260, 420, 900, 520)),
-            igNode(text = "Favoriten", bounds = NodeBounds(260, 540, 900, 640)),
-        )
-
-        val decision = FeedPolicy.evaluate(root)
-
-        assertTrue("Erwartet: Menüeintrag antippen, war $decision", decision is FeedDecision.ChooseFollowing)
-        assertEquals("Gefolgt", (decision as FeedDecision.ChooseFollowing).node.text)
-    }
-
-    @Test
     fun `a Gefolgt button on a post is never tapped`() {
         // DER gefaehrliche Fall: "Gefolgt" ist auch der Zustand des Folgen-Knopfes an einem
         // Beitrag. Ohne Menue daneben darf die App das niemals antippen — sonst kuendigt sie
@@ -316,9 +287,11 @@ class FeedPolicyGefolgtTest {
 
         val decision = FeedPolicy.evaluate(root)
 
+        // Seit v0.11 wird ohnehin nichts mehr angetippt — der Fall bleibt geprueft, damit
+        // ein spaeterer Rueckbau auf Antippen nicht unbemerkt den alten Fehler mitbringt.
         assertTrue(
             "Ohne offenes Menü darf nichts angetippt werden, war $decision",
-            decision is FeedDecision.OpenSwitcher,
+            decision is FeedDecision.BlockFeed,
         )
     }
 
@@ -344,12 +317,12 @@ class FeedPolicyGefolgtTest {
     }
 
     @Test
-    fun `the old label still works`() {
-        // Aeltere Instagram-Fassungen tragen weiterhin "Folge ich" — und zwar ohne dass ein
-        // Begleiteintrag noetig waere.
+    fun `a stray Folge ich label does not stop the wall`() {
+        // Frueher war das der Menueeintrag zum Antippen. Jetzt ist es nur Text im Baum und
+        // darf die Sperre nicht aushebeln.
         val root = feedRoot(header("Für dich"), igNode(text = "Folge ich"))
 
-        assertTrue(FeedPolicy.evaluate(root) is FeedDecision.ChooseFollowing)
+        assertTrue(FeedPolicy.evaluate(root) is FeedDecision.BlockFeed)
     }
 }
 
@@ -385,7 +358,7 @@ class FeedPolicyFallbackTest {
 
         assertTrue(
             "Weg 1 fand einen Titelknoten ohne eigenen Text und kappte die Kette; war $decision",
-            decision is FeedDecision.ChooseFollowing,
+            decision is FeedDecision.BlockFeed,
         )
     }
 
@@ -401,7 +374,7 @@ class FeedPolicyFallbackTest {
 
         assertTrue(
             "Der Tab-Weg hätte greifen müssen; war $decision",
-            decision is FeedDecision.ChooseFollowing,
+            decision is FeedDecision.BlockFeed,
         )
     }
 
@@ -411,5 +384,56 @@ class FeedPolicyFallbackTest {
         val root = feedRoot(igNode(id = "action_bar_title", bounds = NodeBounds(0, 100, 1080, 260)))
 
         assertEquals(FeedDecision.Idle, FeedPolicy.evaluate(root))
+    }
+}
+
+/**
+ * Wo die Wand anfängt. Die Kopfzeile muss frei bleiben — eine Wand ab 0 verdeckt genau den
+ * Umschalter, den sie verlangt, und sperrt den Nutzer aus.
+ */
+class FeedWallTopTest {
+
+    private fun feedRoot(vararg children: FakeNode) = igNode(
+        id = "root",
+        children = listOf(igNode(id = "feed_recycler_view")) + children,
+    )
+
+    @Test
+    fun `the wall starts at the bottom edge of the header`() {
+        val root = feedRoot(
+            igNode(id = "action_bar_title", text = "Für dich", bounds = NodeBounds(0, 100, 1080, 264)),
+        )
+
+        val decision = FeedPolicy.evaluate(root)
+
+        assertTrue(decision is FeedDecision.BlockFeed)
+        assertEquals(264, (decision as FeedDecision.BlockFeed).headerBottomPx)
+    }
+
+    @Test
+    fun `without bounds it falls back below the header, never to zero`() {
+        // Der gefaehrlichste Ausgang: Eine Wand ab 0 deckt den Umschalter mit ab.
+        val root = igNode(
+            id = "root",
+            bounds = NodeBounds(0, 0, 1080, 2400),
+            children = listOf(
+                igNode(id = "feed_recycler_view"),
+                igNode(id = "action_bar_title", text = "Für dich", bounds = null),
+            ),
+        )
+
+        val decision = FeedPolicy.evaluate(root)
+
+        assertTrue(decision is FeedDecision.BlockFeed)
+        val top = (decision as FeedDecision.BlockFeed).headerBottomPx
+        assertTrue("Wand begann bei $top — das verdeckt den Umschalter", top >= 400)
+    }
+
+    @Test
+    fun `the followed feed raises no wall`() {
+        assertEquals(
+            FeedDecision.AlreadyFiltered,
+            FeedPolicy.evaluate(feedRoot(igNode(id = "action_bar_title", text = "Gefolgt"))),
+        )
     }
 }

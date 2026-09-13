@@ -50,12 +50,22 @@ nicht mehr benutzen; wer ein Reel zu viel sieht, ärgert sich kurz. Im Zweifel n
   Stand die neue Beschriftung nicht in `FOLLOWING_TITLES`, hielt die App den umgeschalteten
   Feed für einen unbekannten Titel und tat gar nichts mehr — auch das Feed-Ende feuerte nie.
   Fehlte sie in den Menüeinträgen, öffnete die App das Menü und fand nichts zum Antippen.
-- **„Gefolgt" ist auch der Folgen-Knopf an einem Beitrag.** Deshalb steht das Wort in
-  `MENU_AMBIGUOUS_FOLLOWING_ENTRIES` und wird nur angetippt, wenn ein zweiter Menüeintrag
-  aus `MENU_COMPANION_ENTRIES` („Favoriten") daneben sichtbar ist. Ohne diesen Nachweis
-  könnte die App im „Für dich"-Feed auf den Knopf eines vorgeschlagenen Beitrags tippen und
-  stillschweigend ein Abo kündigen. Wer die Liste „aufräumt" und das Wort nach
-  `MENU_FOLLOWING_ENTRIES` schiebt, baut genau diesen Fehler wieder ein.
+- **Instagram wird seit v0.11 gesperrt, nicht umgeschaltet.** Der alte Weg — Titel antippen,
+  Menü lesen, Eintrag antippen — hing an Instagrams Menüaufbau und ist dreimal gebrochen;
+  jedes Mal war der Filter danach still wirkungslos. `FeedDecision.BlockFeed` zieht
+  stattdessen die Wand hoch. Das braucht nur den Titeltext, und der hat alle drei Umbauten
+  überlebt. **TikTok schaltet weiterhin um** (`ChooseFollowing`): Dessen Tab-Leiste ist stabil,
+  und beide Policies teilen sich `FeedDecision`.
+- **Die Wand lässt die Kopfzeile frei.** `BlockFeed.headerBottomPx` kommt aus den Bounds des
+  Titelknotens, ersatzweise aus `HEADER_FRACTION`. Eine Wand ab 0 verdeckt genau den
+  Umschalter, den sie verlangt — dann sitzt der Nutzer fest.
+- **Kopfzeile mit beiden Beschriftungen heisst: nichts tun.** Stehen „Für dich" und „Gefolgt"
+  nebeneinander, ist es eine Tab-Leiste ohne gemeldeten Auswahlzustand. Welcher Feed vorne
+  ist, sagt der Text dann nicht. Seit die App sperrt statt zu tippen, wiegt der Fehlgriff
+  schwerer: Eine Wand über dem gefolgten Feed nähme etwas weg, das erlaubt sein soll.
+- **Die Wand braucht einen Wächter.** Bleibt die Bestätigung `WALL_STALE_MS` lang aus,
+  verschwindet sie von selbst. Ohne das stünde sie nach einem Ereignis-Aussetzer über einer
+  fremden App, und die einzige Rettung wäre ein Neustart.
 - **Explore hat keinen „Folge ich"-Schalter.** Deshalb wird dort nicht umgeschaltet wie im
   Startfeed, sondern verlassen. `ExplorePolicy` fällt bewusst **nicht** auf „Lupen-Tab ist
   ausgewählt" zurück, wenn keine Raster-Kennung passt: Dieser Rückfall würde auf einer

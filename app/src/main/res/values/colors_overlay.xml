@@ -6,4 +6,8 @@
     <color name="overlay_on_surface">#FFF6EBE6</color>
     <color name="overlay_on_surface_variant">#FFC9B3AB</color>
     <color name="overlay_accent">#FFFFB59A</color>
+    <!-- Die Wand über dem „Für dich“-Feed: deckend genug, dass nichts zum Wischen einlädt. -->
+    <color name="wall_scrim">#F2101316</color>
+    <color name="wall_text">#FBFAF7</color>
+    <color name="wall_text_muted">#B9C0C6</color>
 </resources>

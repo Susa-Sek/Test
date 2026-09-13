@@ -129,8 +129,9 @@
 
     <!-- Service-Toasts -->
     <string name="toast_explore_blocked">Auf Explore ist alles Vorschlag</string>
+    <string name="feed_wall_line">Das ist der „Für dich“-Feed</string>
+    <string name="feed_wall_hint">Tipp oben auf den Titel und wähle „Gefolgt“.</string>
     <string name="toast_feed_end">Ende des „Folge ich“-Feeds</string>
-    <string name="toast_feed_switch_manual">Bitte oben links auf „Folge ich“ umschalten</string>
     <string name="overridden_by_tiktok_all">Greift nicht, solange TikTok ganz gesperrt ist</string>
     <string name="fyp_during_tiktok_budget">Gilt während der erlaubten TikTok-Minuten</string>
     <string name="seen_packages_title">Gesehene Apps</string>

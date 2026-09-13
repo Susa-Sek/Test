@@ -16,7 +16,7 @@ Android-App, die Kurzvideo-Sog abschaltet, ohne Instagram, YouTube oder TikTok z
 |---|---|
 | **Instagram Reels** | Der Reels-Viewer wird sofort geschlossen — aus dem Tab, aus Explore, aus einer DM oder aus dem Browser. Stories bleiben unangetastet. |
 | **Instagram Explore** | Das Vorschlagsraster hinter der Lupe wird verlassen. Die Suche bleibt nutzbar — für den Griff zum Suchfeld bleiben ein paar Sekunden. |
-| **Instagram-Feed nur mit Gefolgten** | Erzwingt den chronologischen „Folge ich“-Feed und navigiert an dessen Ende heraus, bevor Instagram wieder Vorschläge nachschiebt. |
+| **Instagram-Feed nur mit Gefolgten** | Legt im „Für dich“-Feed eine Wand über die Beiträge — Weiterscrollen ist zu, der Umschalter oben bleibt frei. Am Ende des gefolgten Feeds navigiert die App heraus, bevor Instagram wieder Vorschläge nachschiebt. |
 | **YouTube Shorts** | Shorts-Player, Shorts-Tab und `youtube.com/shorts` im Browser. Normale Videos, Suche und Abos funktionieren weiter. |
 | **TikTok „Für dich“** | Erzwingt den „Folge ich“-Tab. DMs, Suche und Profile bleiben nutzbar. |
 | **TikTok ganz** | Jeder Öffnungsversuch führt zurück — App und `tiktok.com` im Browser. Standardmäßig **aus**. |
