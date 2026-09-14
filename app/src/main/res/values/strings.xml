@@ -141,6 +141,10 @@
     <string name="diagnostics_hint">When Instagram or YouTube change their layout, blocking silently stops working. Turn this on, open the screen that is no longer blocked, come back here and copy the matching IDs into Rules.kt.</string>
     <string name="diagnostics_empty">Nothing recorded yet. Turn recording on and open Instagram or YouTube.</string>
     <string name="diagnostics_clear">Clear</string>
+    <string name="recorded_ids_title">Recorded view IDs</string>
+    <string name="recorded_ids_count">%1$d entries</string>
+    <string name="diagnostics_copy">Copy</string>
+    <string name="diagnostics_copied">Copied</string>
 
     <!-- Service toasts -->
     <string name="toast_explore_blocked">Explore is all suggestions</string>

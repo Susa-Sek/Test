@@ -31,6 +31,24 @@ nicht mehr benutzen; wer ein Reel zu viel sieht, ärgert sich kurz. Im Zweifel n
   `reel_` ab, **nur gültig ab `minAreaFraction = 0.6f`**. Wer die Schranke entfernt, blockt
   das Shorts-Regal auf der Startseite mit und wirft den Nutzer beim Scrollen hinaus — genau
   der Fehlalarm, der die App unbenutzbar macht. Dieselbe Mechanik trägt `ig_clips_viewer`.
+- **Die Ausnahme „einmal ansehen" darf nie an einer Regel-ID hängen.** Bis v0.11.2 stand in
+  `allowsSingleClip` für YouTube `match.rule.id != "yt_shorts_tab_selected"`.
+  `findFirstMatch` liefert aber die **erste** Regel der Liste, und `yt_shorts_player` steht
+  vor der Tab-Regel — im Shorts-Tab war `match.rule.id` deshalb nie die Tab-Regel, jeder
+  Short galt als bewusst ausgewählt. Weil `allowSingleClip` per Vorgabe an ist, blockte für
+  Reels und Shorts **gar nichts mehr**, während Wand und TikTok weiterliefen. Genau diese
+  Aufteilung war der Hinweis: Betroffen waren exakt die zwei Features, die durch diese
+  Funktion laufen. Entschieden wird seither am Bildschirm, nicht an der Regel.
+- **Keine Ausnahme ohne funktionierende Reissleine.** Die Ausnahme verspricht „ein Video,
+  aber Wischen blockt"; das ist so viel wert wie `isFromPager`. Sind die Pager-Kennungen
+  umbenannt, wird nie ein Wisch gezählt, `mayWatch` bleibt bis `MAX_WATCH_MS` wahr — und weil
+  ein Scan ohne Treffer den Zustand zurücksetzt, beginnen die fünf Minuten danach von vorn.
+  Die Ausnahme stand damit praktisch dauerhaft offen. `SharedClip.canPolicySwipes` prüft
+  deshalb beim Erteilen, ob die Seitenliste im Baum überhaupt auffindbar ist. Fehlt sie, wird
+  geblockt. So kippt der nächste Umbau nach unten statt nach oben.
+- **`Rules.SharedClip` ist nach Paket getrennt, und das muss so bleiben.** Eine gemeinsame
+  Pager-Liste liess `reel_recycler` auch bei Instagram zählen — dort sind `reel_*` die
+  Stories. Ein Story-Wisch hätte ein bewusst angetipptes Reel mitten im Video beendet.
 - **Browser-Regeln brauchen `viewIdMustContain`** (UND-Gatter auf die Adressleiste). Sonst genügt
   „youtube.com/shorts" als Text in einem Suchergebnis und die App wirft aus der Google-Suche.
 - **`Rules.BROWSER_URL_BAR_IDS` muss vor `BLOCK_RULES` stehen.** Kotlin initialisiert

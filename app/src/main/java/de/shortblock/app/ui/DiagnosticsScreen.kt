@@ -1,9 +1,12 @@
 package de.shortblock.app.ui
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -15,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -92,6 +96,47 @@ fun DiagnosticsScreen(
             }
         }
 
+        // Der Grund, warum es diesen Bildschirm gibt — deshalb steht er direkt unter dem
+        // Schalter. Bis v0.11.2 standen die Kennungen ganz unten, unterhalb von „Leeren“ und
+        // ohne Überschrift: Das Einzige, wofür der Bildschirm da ist, war das am schlechtesten
+        // auffindbare Element darauf, und passte auf keinen Screenshot.
+        item {
+            InfoCard {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(R.string.recorded_ids_title),
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (entries.isNotEmpty()) {
+                        Text(
+                            text = stringResource(R.string.recorded_ids_count, entries.size),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                if (entries.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.diagnostics_empty),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 10.dp),
+                    )
+                } else {
+                    CopyButton(entries)
+                }
+            }
+        }
+
+        // Die Zeilen bewusst als eigene `items` statt in der Karte darüber: Der Puffer fasst
+        // 400 Einträge, und die alle in einem `item` zu komponieren hebt genau die Faulheit
+        // auf, für die es die LazyColumn gibt.
+        items(entries) { entry -> CodeLine(entry, modifier = Modifier.padding(horizontal = 4.dp)) }
+
         item {
             InfoCard {
                 Text(
@@ -119,20 +164,31 @@ fun DiagnosticsScreen(
             TextButton(onClick = onClear) { Text(stringResource(R.string.diagnostics_clear)) }
         }
 
-        if (entries.isEmpty()) {
-            item {
-                Text(
-                    text = stringResource(R.string.diagnostics_empty),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 4.dp),
-                )
-            }
-        } else {
-            items(entries) { entry -> CodeLine(entry, modifier = Modifier.padding(horizontal = 4.dp)) }
-        }
-
         item { Text("", modifier = Modifier.padding(bottom = 12.dp)) }
+    }
+}
+
+/**
+ * Legt die aufgezeichneten Kennungen als Text in die Zwischenablage.
+ *
+ * Der Grund ist sehr konkret: Ein Screenshot dieser Liste ist unten abgeschnitten und die
+ * Kennungen darauf sind nicht kopierbar. Als Text lassen sie sich weitergeben. Bleibt auf dem
+ * Gerät — die App hat keine Internet-Berechtigung und soll keine bekommen.
+ */
+@Composable
+private fun CopyButton(entries: List<String>) {
+    val context = LocalContext.current
+    TextButton(
+        onClick = {
+            val clipboard = context.getSystemService(ClipboardManager::class.java)
+            clipboard?.setPrimaryClip(
+                ClipData.newPlainText("ShortBlock", entries.joinToString("\n")),
+            )
+            Toast.makeText(context, R.string.diagnostics_copied, Toast.LENGTH_SHORT).show()
+        },
+        modifier = Modifier.padding(top = 4.dp),
+    ) {
+        Text(stringResource(R.string.diagnostics_copy))
     }
 }
 

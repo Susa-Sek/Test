@@ -480,36 +480,73 @@ object Rules {
      */
     /**
      * Muster für die Ausnahme „geteiltes Video einmal ansehen“.
+     *
+     * **Getrennt nach App, und das ist keine Ordnungsliebe.** Bei YouTube heisst Shorts intern
+     * `reel`; bei Instagram sind `reel_*` die **Stories**. Eine gemeinsame Liste hiesse, dass
+     * ein Story-Wisch bei Instagram als Reels-Wisch zählt — genau der Fehler, vor dem
+     * CLAUDE.md seit v0.1 warnt.
      */
     object SharedClip {
 
         /**
-         * Der Reels-Tab in der unteren Leiste. Ist er ausgewählt, wählt der Algorithmus das
-         * Video — dann greift die Ausnahme „ein Video, kein Feed“ nicht.
+         * Der Reels-Tab in Instagrams unterer Leiste. Ist er ausgewählt, wählt der Algorithmus
+         * das Video — dann greift die Ausnahme „ein Video, kein Feed“ nicht.
          */
-        val REELS_TAB_VIEW_IDS = listOf(
+        val INSTAGRAM_TAB_VIEW_IDS = listOf(
             "clips_tab",
             "reels_tab",
         )
 
         /** Dieselbe Sache über die Beschriftung, falls die ID wieder einmal wechselt. */
-        val REELS_TAB_LABELS = setOf(
+        val INSTAGRAM_TAB_LABELS = setOf(
             "reels",
             "reel",
         )
 
         /**
-         * Die senkrechte Seitenliste des Viewers.
+         * Die senkrechte Seitenliste des Instagram-Viewers.
          *
          * Nur Scroll-Ereignisse aus ihr zählen als Wisch zum nächsten Video. Der
          * Kommentar-Bereich scrollt ebenfalls und darf ausdrücklich nicht auslösen.
          */
-        val PAGER_VIEW_IDS = listOf(
+        val INSTAGRAM_PAGER_VIEW_IDS = listOf(
             "clips_viewer",
             "clips_view_pager",
+        )
+
+        /**
+         * Der Shorts-Tab bei YouTube — **nur** über die Beschriftung.
+         *
+         * Hier wird bewusst keine View-ID geraten. Beschriftung plus `isSelected` ist dasselbe
+         * UND-Gatter, das `yt_shorts_tab_selected` seit jeher trägt, und das hat sich als
+         * fehlalarmfest erwiesen.
+         */
+        val YOUTUBE_TAB_VIEW_IDS = emptyList<String>()
+
+        val YOUTUBE_TAB_LABELS = setOf(
+            "shorts",
+        )
+
+        /** Die Seitenliste des Shorts-Players. */
+        val YOUTUBE_PAGER_VIEW_IDS = listOf(
             "reel_recycler",
             "reel_player_page_container",
         )
+
+        fun tabViewIds(packageName: String): List<String> = when (packageName) {
+            Packages.YOUTUBE -> YOUTUBE_TAB_VIEW_IDS
+            else -> INSTAGRAM_TAB_VIEW_IDS
+        }
+
+        fun tabLabels(packageName: String): Set<String> = when (packageName) {
+            Packages.YOUTUBE -> YOUTUBE_TAB_LABELS
+            else -> INSTAGRAM_TAB_LABELS
+        }
+
+        fun pagerViewIds(packageName: String): List<String> = when (packageName) {
+            Packages.YOUTUBE -> YOUTUBE_PAGER_VIEW_IDS
+            else -> INSTAGRAM_PAGER_VIEW_IDS
+        }
     }
 
     object TikTokFeed {

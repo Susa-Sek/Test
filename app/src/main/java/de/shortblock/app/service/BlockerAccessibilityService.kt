@@ -247,7 +247,7 @@ class BlockerAccessibilityService : AccessibilityService() {
         // ebenfalls und ist deshalb durch das Muster-Gatter ausgeschlossen.
         if (event.eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED) {
             if (singleWatchActive) {
-                val fromPager = SharedClip.isFromPager(event.source?.viewIdResourceName)
+                val fromPager = SharedClip.isFromPager(event.source?.viewIdResourceName, packageName)
                 val index = event.fromIndex
                 val since = System.currentTimeMillis() - singleWatchStartedAt
                 if (SharedClip.countsAsSwipe(fromPager, index, singleWatchIndex, since)) {
@@ -283,7 +283,7 @@ class BlockerAccessibilityService : AccessibilityService() {
 
         val match = RuleMatcher.findFirstMatch(root, packageName, settings.enabled)
         if (match != null) {
-            val intervened = handleMatch(match, root)
+            val intervened = handleMatch(match, root, packageName)
             // Läuft „TikTok ganz blocken“ gerade auf Kontingent, ist TikTok bewusst offen — dann
             // muss der „Für dich“-Filter mit seinem eigenen Kontingent weiterlaufen. Nur für
             // diesen Fall wird weitergeschaut; sonst bleibt ein Treffer das Ende der Kette.
@@ -325,12 +325,19 @@ class BlockerAccessibilityService : AccessibilityService() {
      * Nur für Reels und Shorts — der TikTok-Ganzblock und der Feed-Filter bleiben unberührt.
      * Die eigentliche Regel steht in [SharedClip]; hier liegt nur der Zustand.
      *
-     * Der Tab-Strom ist ausgenommen, und die Unterscheidung sieht je App anders aus: Bei YouTube
-     * trennen die Regeln das längst (`yt_shorts_tab_selected` ist der Tab,
-     * `yt_shorts_player` das Video), bei Instagram gibt es nur eine Regel — dort muss
-     * [SharedClip.looksLikeAlgorithmicStream] den Bildschirm ansehen.
+     * Zwei **positive** Nachweise, sonst wird geblockt — die Ausnahme fällt nach unten zu.
+     *
+     * **Was bis v0.11.2 falsch war, und warum es alles durchliess:** Für YouTube stand hier
+     * `match.rule.id != "yt_shorts_tab_selected"`. [RuleMatcher.findFirstMatch] gibt aber die
+     * **erste** Regel der Liste zurück, und `yt_shorts_player` steht in [Rules] vor der
+     * Tab-Regel. Im Shorts-Tab greift also immer der Player zuerst, `match.rule.id` war nie die
+     * Tab-Regel, jeder Short galt als bewusst ausgewählt. Der Unterscheider war toter Code —
+     * und weil [BlockSettings.allowSingleClip] per Vorgabe an ist, blockte für Reels und Shorts
+     * gar nichts mehr. Wer die Entscheidung wieder an einer Regel-ID festmacht, holt das zurück.
+     *
+     * Gefragt wird deshalb der Bildschirm, nicht die Regel.
      */
-    private fun allowsSingleClip(match: RuleMatch, root: UiNode): Boolean {
+    private fun allowsSingleClip(match: RuleMatch, root: UiNode, packageName: String): Boolean {
         if (match.rule.feature != Feature.INSTAGRAM_REELS &&
             match.rule.feature != Feature.YOUTUBE_SHORTS
         ) {
@@ -338,11 +345,12 @@ class BlockerAccessibilityService : AccessibilityService() {
         }
         if (!settings.allowSingleClip) return noteSingleClipDenied("single_clip_off")
 
-        val chosen = when (match.rule.feature) {
-            Feature.YOUTUBE_SHORTS -> match.rule.id != "yt_shorts_tab_selected"
-            else -> !SharedClip.looksLikeAlgorithmicStream(root)
+        if (SharedClip.looksLikeAlgorithmicStream(root, packageName)) {
+            return noteSingleClipDenied("single_clip_tab")
         }
-        if (!chosen) return noteSingleClipDenied("single_clip_tab")
+        if (!SharedClip.canPolicySwipes(root, packageName)) {
+            return noteSingleClipDenied("single_clip_no_pager")
+        }
 
         val now = System.currentTimeMillis()
         if (!SharedClip.mayWatch(true, singleWatchSwipes, singleWatchStartedAt, now)) {
@@ -424,9 +432,9 @@ class BlockerAccessibilityService : AccessibilityService() {
     }
 
     /** @return `true`, wenn tatsächlich geblockt wurde; `false`, wenn noch etwas erlaubt ist. */
-    private fun handleMatch(match: RuleMatch, root: UiNode): Boolean {
+    private fun handleMatch(match: RuleMatch, root: UiNode, packageName: String): Boolean {
         val feature = match.rule.feature
-        if (allowsSingleClip(match, root)) return false
+        if (allowsSingleClip(match, root, packageName)) return false
         if (!shouldIntervene(feature)) return false
 
         val spent = settings.budgetMinutes(feature) > 0

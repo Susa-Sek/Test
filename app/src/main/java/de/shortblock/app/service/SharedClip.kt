@@ -41,16 +41,43 @@ object SharedClip {
      * Tab-Hülle, die Leiste steht also da — und damit galt **jedes** angetippte Reel als
      * Tab-Strom. Genau das war der gemeldete Fehler.
      */
-    fun looksLikeAlgorithmicStream(root: UiNode?): Boolean {
+    fun looksLikeAlgorithmicStream(root: UiNode?, packageName: String): Boolean {
         if (root == null) return false
+        val tabViewIds = Rules.SharedClip.tabViewIds(packageName)
+        val tabLabels = Rules.SharedClip.tabLabels(packageName)
         return RuleMatcher.containsNode(root) { node ->
             if (!node.isSelected) return@containsNode false
             val viewId = normalizeForMatch(node.viewId)
-            if (viewId != null && Rules.SharedClip.REELS_TAB_VIEW_IDS.any { viewId.contains(it) }) {
+            if (viewId != null && tabViewIds.any { viewId.contains(it) }) {
                 return@containsNode true
             }
             val label = normalizeForMatch(node.contentDescription) ?: normalizeForMatch(node.text)
-            label != null && label in Rules.SharedClip.REELS_TAB_LABELS
+            label != null && label in tabLabels
+        }
+    }
+
+    /**
+     * Lässt sich der Wisch auf diesem Bildschirm überhaupt überwachen?
+     *
+     * **Keine Ausnahme ohne funktionierende Reissleine.** Die Ausnahme verspricht „ein Video,
+     * aber Wischen blockt“, und dieses Versprechen ist genau so viel wert wie die
+     * Wisch-Erkennung dahinter. Die hängt an [isFromPager], also daran, dass die Seitenliste
+     * eine bekannte Kennung trägt.
+     *
+     * Bis v0.11.2 wurde das nie geprüft. Benannte YouTube die Kennungen um, wurde nie ein Wisch
+     * gezählt, [mayWatch] blieb bis [MAX_WATCH_MS] wahr — und weil ein Scan ohne Treffer den
+     * Zustand zurücksetzt, begannen die fünf Minuten danach von vorn. Die Ausnahme stand damit
+     * praktisch dauerhaft offen, ohne dass etwas auffiel.
+     *
+     * Findet sich keine Seitenliste, wird die Ausnahme deshalb **nicht** erteilt. Damit kippt
+     * der nächste Umbau in die sichere Richtung: vorher „dauerhaft offen“, jetzt „blockt“.
+     */
+    fun canPolicySwipes(root: UiNode?, packageName: String): Boolean {
+        if (root == null) return false
+        val pagerViewIds = Rules.SharedClip.pagerViewIds(packageName)
+        return RuleMatcher.containsNode(root) { node ->
+            val viewId = normalizeForMatch(node.viewId) ?: return@containsNode false
+            pagerViewIds.any { viewId.contains(it) }
         }
     }
 
@@ -85,9 +112,9 @@ object SharedClip {
      * scrollt man ebenfalls, und wer beim Lesen der Kommentare rausfliegt, hält die App für
      * kaputt.
      */
-    fun isFromPager(scrollSourceViewId: String?): Boolean {
+    fun isFromPager(scrollSourceViewId: String?, packageName: String): Boolean {
         val viewId = normalizeForMatch(scrollSourceViewId) ?: return false
-        return Rules.SharedClip.PAGER_VIEW_IDS.any { viewId.contains(it) }
+        return Rules.SharedClip.pagerViewIds(packageName).any { viewId.contains(it) }
     }
 
     /**

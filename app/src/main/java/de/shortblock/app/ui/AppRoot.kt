@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
@@ -90,6 +91,11 @@ fun AppRoot(openCheatOnStart: Boolean = false) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    // MainActivity zeichnet bis unter die Systemleisten (enableEdgeToEdge).
+                    // Ohne diesen Abstand landet der Titel IN der Statusleiste: „ShortBlock“
+                    // überlappte die Uhr, die Status-Pille das Akku-Symbol. Material3 legt den
+                    // Abstand nur in seiner TopAppBar an, nicht in einer eigenen Row.
+                    .statusBarsPadding()
                     .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
