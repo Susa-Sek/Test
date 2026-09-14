@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Briefumschlag, dessen unterer Teil weggeschnitten ist: gestutzter Posteingang. -->
+    <path
+        android:fillColor="#F2C94C"
+        android:pathData="M30,38 L78,38 L78,62 L30,62 Z" />
+    <path
+        android:fillColor="#12433B"
+        android:pathData="M30,38 L54,54 L78,38 L78,43 L54,59 L30,43 Z" />
+    <path
+        android:fillColor="#4CC38A"
+        android:pathData="M36,68 L72,68 L72,72 L36,72 Z" />
+    <path
+        android:fillColor="#4CC38A"
+        android:pathData="M44,76 L64,76 L64,80 L44,80 Z" />
+</vector>

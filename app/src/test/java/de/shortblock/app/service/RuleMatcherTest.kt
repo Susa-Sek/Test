@@ -1,0 +1,429 @@
+package de.shortblock.app.service
+
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class RuleMatcherTest {
+
+    private val allFeatures = Feature.entries.toSet()
+
+    // --- Instagram Reels ---------------------------------------------------------------
+
+    @Test
+    fun `fullscreen reels viewer is blocked`() {
+        val tree = igNode(
+            id = "layout_container_main",
+            children = listOf(igNode(id = "clips_viewer_view_pager")),
+        )
+        val match = RuleMatcher.findFirstMatch(tree, Packages.INSTAGRAM, allFeatures)
+
+        assertEquals(Feature.INSTAGRAM_REELS, match?.rule?.feature)
+        assertEquals("ig_clips_viewer", match?.rule?.id)
+        assertTrue(match!!.signature.contains("clips_viewer_view_pager"))
+    }
+
+    /**
+     * Regressionstest zu Fehler 2: Ein eingebetteter Clips-Container in einem Feed-Beitrag
+     * trägt dieselbe View-ID wie der Vollbild-Viewer, ist aber nur etwa halb so groß.
+     * Ohne die Größenschranke fliegt man beim Scrollen durch den Feed aus Instagram.
+     */
+    @Test
+    fun `inline clips preview inside the feed is not blocked`() {
+        val tree = igNode(
+            id = "feed_recycler_view",
+            children = listOf(igNode(id = "clips_viewer_media", bounds = FakeNode.FEED_MEDIA)),
+        )
+        assertNull(RuleMatcher.findFirstMatch(tree, Packages.INSTAGRAM, allFeatures))
+    }
+
+    /**
+     * Regressionstest zu Fehler 1: Der Baum enthält auch recycelte und ausgeblendete Knoten.
+     * Was man nicht sieht, darf nichts auslösen.
+     */
+    @Test
+    fun `invisible node never matches`() {
+        val tree = igNode(
+            id = "layout_container_main",
+            children = listOf(igNode(id = "clips_viewer_view_pager", visible = false)),
+        )
+        assertNull(RuleMatcher.findFirstMatch(tree, Packages.INSTAGRAM, allFeatures))
+    }
+
+    /** Ohne bekannte Größe wird nicht geblockt — ein Fehlalarm ist teurer als eine Lücke. */
+    @Test
+    fun `unknown bounds do not block`() {
+        val tree = igNode(
+            id = "layout_container_main",
+            children = listOf(igNode(id = "clips_viewer_view_pager", bounds = null)),
+        )
+        assertNull(RuleMatcher.findFirstMatch(tree, Packages.INSTAGRAM, allFeatures))
+    }
+
+    /**
+     * Die wichtigste Gegenprobe der ganzen Suite.
+     *
+     * Instagram nennt STORIES intern "reel". Wer die YouTube-Muster ("reel_") unbesehen auf
+     * Instagram anwendet, blockt Stories statt Reels — und das fällt beim Entwickeln kaum auf,
+     * weil beides Vollbild-Video ist.
+     */
+    @Test
+    fun `instagram stories are not blocked`() {
+        val tree = igNode(
+            id = "layout_container_main",
+            children = listOf(
+                igNode(id = "reel_viewer_texture_view"),
+                igNode(id = "reel_viewer_media_container"),
+                igNode(id = "reel_tray"),
+            ),
+        )
+        assertNull(RuleMatcher.findFirstMatch(tree, Packages.INSTAGRAM, allFeatures))
+    }
+
+    @Test
+    fun `ordinary feed post is not blocked`() {
+        val tree = igNode(
+            id = "feed_recycler_view",
+            children = listOf(
+                igNode(id = "row_feed_photo_profile_name", text = "some.account"),
+                igNode(id = "row_feed_button_like", description = "Gefällt mir"),
+            ),
+        )
+        assertNull(RuleMatcher.findFirstMatch(tree, Packages.INSTAGRAM, allFeatures))
+    }
+
+    /**
+     * Der Reels-Tab in der unteren Leiste ist bewusst KEINE eigene Regel mehr: Wer ihn
+     * antippt, landet im Viewer, und den fängt `ig_clips_viewer`. Eine zweite Regel auf die
+     * Tab-Leiste wäre nur eine weitere Fehlalarm-Quelle auf jedem Instagram-Bildschirm.
+     */
+    @Test
+    fun `reels tab alone is not a trigger`() {
+        val tree = igNode(
+            id = "tab_bar",
+            children = listOf(igNode(id = "clips_tab", selected = true, bounds = FakeNode.FEED_MEDIA)),
+        )
+        assertNull(RuleMatcher.findFirstMatch(tree, Packages.INSTAGRAM, allFeatures))
+    }
+
+    // --- YouTube Shorts ----------------------------------------------------------------
+
+    @Test
+    fun `shorts player is blocked`() {
+        val tree = ytNode(id = "content", children = listOf(ytNode(id = "reel_recycler")))
+        val match = RuleMatcher.findFirstMatch(tree, Packages.YOUTUBE, allFeatures)
+
+        assertEquals(Feature.YOUTUBE_SHORTS, match?.rule?.feature)
+        assertEquals("yt_shorts_player", match?.rule?.id)
+    }
+
+    @Test
+    fun `shorts tab matches by content description when selected`() {
+        val tree = ytNode(
+            id = "pivot_bar",
+            children = listOf(ytNode(description = "Shorts", selected = true)),
+        )
+        assertNotNull(RuleMatcher.findFirstMatch(tree, Packages.YOUTUBE, allFeatures))
+    }
+
+    @Test
+    fun `normal youtube video is not blocked`() {
+        val tree = ytNode(
+            id = "watch_player",
+            children = listOf(
+                ytNode(id = "player_video_title", text = "Ein ganz normales Video"),
+                ytNode(description = "Shorts", selected = false),
+            ),
+        )
+        assertNull(RuleMatcher.findFirstMatch(tree, Packages.YOUTUBE, allFeatures))
+    }
+
+    // --- Abgrenzung --------------------------------------------------------------------
+
+    @Test
+    fun `disabled feature does not block`() {
+        val tree = ytNode(id = "reel_recycler")
+        val enabled = setOf(Feature.INSTAGRAM_REELS, Feature.INSTAGRAM_FEED)
+        assertNull(RuleMatcher.findFirstMatch(tree, Packages.YOUTUBE, enabled))
+    }
+
+    @Test
+    fun `youtube rules do not apply to instagram trees`() {
+        // Falls Instagram jemals einen Knoten "reel_recycler" bekäme, darf die YouTube-Regel
+        // trotzdem nicht greifen — Regeln sind an ihr Paket gebunden.
+        val tree = igNode(id = "reel_recycler")
+        assertNull(RuleMatcher.findFirstMatch(tree, Packages.INSTAGRAM, allFeatures))
+    }
+
+    // --- Traversierung -----------------------------------------------------------------
+
+    @Test
+    fun `traversal respects the depth limit`() {
+        var deepest = igNode(id = "clips_viewer_view_pager")
+        repeat(40) { deepest = igNode(id = "wrapper", children = listOf(deepest)) }
+
+        assertNull(RuleMatcher.findFirstMatch(deepest, Packages.INSTAGRAM, allFeatures))
+    }
+
+    @Test
+    fun `traversal visits every node within the limits`() {
+        val tree = igNode(
+            id = "a",
+            children = listOf(igNode(id = "b"), igNode(id = "c", children = listOf(igNode(id = "d")))),
+        )
+        var visited = 0
+        val stopped = RuleMatcher.traverse(tree) { visited++; false }
+
+        assertFalse(stopped)
+        assertEquals(4, visited)
+    }
+
+    @Test
+    fun `signatures list visible identifiable nodes for diagnostics`() {
+        val tree = igNode(
+            id = "tab_bar",
+            children = listOf(
+                igNode(id = "clips_tab", description = "Reels", selected = true),
+                igNode(id = "hidden_row", description = "Unsichtbar", visible = false),
+                igNode(text = "kein view id, keine description"),
+            ),
+        )
+        val signatures = RuleMatcher.collectSignatures(tree)
+
+        assertTrue(signatures.any { it.contains("id=clips_tab") && it.contains("selected") })
+        assertTrue(signatures.none { it.contains("Unsichtbar") })
+        assertTrue(signatures.none { it.contains("kein view id") })
+    }
+
+    // --- TikTok --------------------------------------------------------------------------
+
+    /**
+     * „TikTok ganz blocken“ ist die einzige Regel ohne Muster: Sie greift auf jedem Fenster
+     * des Pakets und kann deshalb von keinem TikTok-Update gebrochen werden.
+     */
+    @Test
+    fun `tiktok all blocks any window under both package names`() {
+        val tree = FakeNode(children = listOf(FakeNode(text = "Posteingang")))
+
+        Packages.TIKTOK.forEach { tiktokPackage ->
+            val match = RuleMatcher.findFirstMatch(tree, tiktokPackage, allFeatures)
+            assertEquals("tiktok_all", match?.rule?.id)
+        }
+    }
+
+    /** Auch ohne Baum — direkt nach dem Start ist er oft noch leer. */
+    @Test
+    fun `tiktok all blocks even without a tree`() {
+        val match = RuleMatcher.findFirstMatch(null, Packages.TIKTOK_GLOBAL, allFeatures)
+        assertEquals("tiktok_all", match?.rule?.id)
+    }
+
+    @Test
+    fun `tiktok all does nothing while switched off`() {
+        val enabled = setOf(Feature.INSTAGRAM_REELS, Feature.TIKTOK_FYP)
+        assertNull(RuleMatcher.findFirstMatch(null, Packages.TIKTOK_GLOBAL, enabled))
+    }
+
+    /** Die Paketbindung muss halten — sonst sperrt der TikTok-Schalter halb Android. */
+    @Test
+    fun `tiktok rule never fires on instagram or youtube`() {
+        assertNull(RuleMatcher.findFirstMatch(igNode(id = "feed_recycler_view"), Packages.INSTAGRAM, allFeatures))
+        assertNull(RuleMatcher.findFirstMatch(ytNode(id = "watch_player"), Packages.YOUTUBE, allFeatures))
+    }
+
+    // --- Browser -------------------------------------------------------------------------
+
+    private fun chromeNode(
+        id: String? = null,
+        text: String? = null,
+        children: List<FakeNode> = emptyList(),
+    ) = FakeNode(
+        viewId = id?.let { "com.android.chrome:id/$it" },
+        text = text,
+        children = children,
+    )
+
+    @Test
+    fun `shorts url in the address bar is blocked`() {
+        val tree = chromeNode(
+            id = "content",
+            children = listOf(chromeNode(id = "url_bar", text = "youtube.com/shorts/abc123")),
+        )
+        val match = RuleMatcher.findFirstMatch(tree, "com.android.chrome", allFeatures)
+
+        assertEquals("browser_yt_shorts", match?.rule?.id)
+        assertEquals(Feature.YOUTUBE_SHORTS, match?.rule?.feature)
+    }
+
+    /**
+     * Der Grund, warum die Browser-Regeln ein UND-Gatter auf die Adressleisten-ID haben.
+     *
+     * „youtube.com/shorts“ steht in jedem zweiten Suchergebnis. Ohne das Gatter würde die App
+     * einen mitten aus der Google-Suche werfen — ein Fehlalarm, der die App unbenutzbar macht.
+     */
+    @Test
+    fun `shorts url as plain page text is not blocked`() {
+        val searchResults = chromeNode(
+            id = "content",
+            children = listOf(
+                chromeNode(id = "url_bar", text = "google.com/search?q=shorts"),
+                chromeNode(id = "search_result_row", text = "youtube.com/shorts/abc123"),
+            ),
+        )
+        assertNull(RuleMatcher.findFirstMatch(searchResults, "com.android.chrome", allFeatures))
+    }
+
+    @Test
+    fun `instagram reel url in the address bar is blocked`() {
+        val tree = chromeNode(
+            id = "content",
+            children = listOf(chromeNode(id = "url_bar", text = "instagram.com/reel/xyz")),
+        )
+        assertEquals("browser_ig_reels", RuleMatcher.findFirstMatch(tree, "com.android.chrome", allFeatures)?.rule?.id)
+    }
+
+    @Test
+    fun `an ordinary youtube video url stays untouched`() {
+        val tree = chromeNode(
+            id = "content",
+            children = listOf(chromeNode(id = "url_bar", text = "youtube.com/watch?v=abc")),
+        )
+        assertNull(RuleMatcher.findFirstMatch(tree, "com.android.chrome", allFeatures))
+    }
+
+    /** tiktok.com im Browser hängt am Schalter „TikTok ganz blocken“, nicht am Feed-Schalter. */
+    @Test
+    fun `tiktok url follows the block-everything switch`() {
+        val tree = chromeNode(
+            id = "content",
+            children = listOf(chromeNode(id = "url_bar", text = "tiktok.com/@jemand")),
+        )
+        assertEquals("browser_tiktok", RuleMatcher.findFirstMatch(tree, "com.android.chrome", allFeatures)?.rule?.id)
+
+        val onlyFyp = setOf(Feature.TIKTOK_FYP, Feature.INSTAGRAM_REELS, Feature.YOUTUBE_SHORTS)
+        assertNull(RuleMatcher.findFirstMatch(tree, "com.android.chrome", onlyFyp))
+    }
+}
+
+class YouTubeShortsFallbackTest {
+
+    private val allFeatures = Feature.entries.toSet()
+
+    /** Fast das ganze Fenster — so sieht der Shorts-Player aus. */
+    private val fullscreen = NodeBounds(0, 0, 1080, 2300)
+
+    /** Ein Regal: volle Breite, ein Drittel hoch. */
+    private val shelf = NodeBounds(0, 600, 1080, 1360)
+
+    /**
+     * Ein Regal-Container, der hoeher ist als der Bildschirm.
+     *
+     * Genau daran ist die Groessenschranke gescheitert: `getBoundsInScreen` liefert die
+     * **gelegten** Bounds, nicht den sichtbaren Ausschnitt. Ein scrollbarer Container reisst
+     * damit jede Flaechenschranke, waehrend nur ein Streifen zu sehen ist.
+     */
+    private val tallShelf = NodeBounds(0, 600, 1080, 3400)
+
+    /**
+     * Der Wachposten fuer die entfernte Regel `yt_shorts_fullscreen`.
+     *
+     * Sie matchte breit auf `reel_` ab 60 % Fensterflaeche. Das traf `reel_shelf_*` — das
+     * Shorts-Regal, das auf der Startseite UND in der Empfehlungsliste unter jedem normalen
+     * Video steht. Ergebnis: Man flog aus normalen Videos, und weil `blockAndGoBack` ohne
+     * Obergrenze weiterdrueckte, schloss sich YouTube ganz.
+     *
+     * Kommt je wieder ein Praefix-Muster fuer YouTube herein, faellt es hier auf.
+     */
+    @Test
+    fun `a shorts shelf is never blocked, at any size`() {
+        for (bounds in listOf(shelf, tallShelf, fullscreen)) {
+            val homeFeed = ytNode(
+                id = "results",
+                children = listOf(
+                    ytNode(id = "reel_shelf_container", bounds = bounds),
+                    ytNode(id = "video_row", bounds = NodeBounds(0, 1400, 1080, 1800)),
+                ),
+            )
+
+            assertNull(
+                "Das Shorts-Regal darf nie blocken — auch nicht im Vollbild",
+                RuleMatcher.findFirstMatch(homeFeed, Packages.YOUTUBE, allFeatures),
+            )
+        }
+    }
+
+    /** Eine unbekannte neue Kennung blockt bewusst NICHT mehr — lieber Luecke als Fehlalarm. */
+    @Test
+    fun `an unknown new id is not blocked by guesswork`() {
+        val tree = ytNode(
+            id = "content",
+            children = listOf(ytNode(id = "reel_watch_player_v2", bounds = fullscreen)),
+        )
+
+        assertNull(RuleMatcher.findFirstMatch(tree, Packages.YOUTUBE, allFeatures))
+    }
+
+    /** Die beiden verbliebenen Beine: genaue Kennung … */
+    @Test
+    fun `the known player ids still block`() {
+        val tree = ytNode(
+            id = "content",
+            children = listOf(ytNode(id = "reel_recycler", bounds = fullscreen)),
+        )
+
+        val match = RuleMatcher.findFirstMatch(tree, Packages.YOUTUBE, allFeatures)
+
+        assertEquals(Feature.YOUTUBE_SHORTS, match?.rule?.feature)
+        assertEquals("yt_shorts_player", match?.rule?.id)
+    }
+
+    /** … und der Tab, der auch ueber Text greift, aber nur ausgewaehlt. */
+    @Test
+    fun `the tab matches by text too, but only when selected`() {
+        val selected = ytNode(
+            id = "pivot_bar",
+            children = listOf(ytNode(text = "Shorts", selected = true)),
+        )
+        assertNotNull(RuleMatcher.findFirstMatch(selected, Packages.YOUTUBE, allFeatures))
+
+        // Nicht ausgewaehlt: Der Tab steht nur da, man ist woanders.
+        val notSelected = ytNode(
+            id = "pivot_bar",
+            children = listOf(ytNode(text = "Shorts", selected = false)),
+        )
+        assertNull(RuleMatcher.findFirstMatch(notSelected, Packages.YOUTUBE, allFeatures))
+    }
+
+    @Test
+    fun `a normal video page stays untouched`() {
+        val watch = ytNode(
+            id = "watch_player",
+            children = listOf(
+                ytNode(id = "player_view", bounds = fullscreen),
+                ytNode(id = "comments_entry_point", bounds = shelf),
+            ),
+        )
+
+        assertNull(RuleMatcher.findFirstMatch(watch, Packages.YOUTUBE, allFeatures))
+    }
+
+    /**
+     * Der gemeldete Fall, so nah am Geraet wie es ohne Geraet geht: normales Video, darunter
+     * die Empfehlungsliste mit einem Shorts-Regal.
+     */
+    @Test
+    fun `a normal video with a shorts shelf below it stays untouched`() {
+        val watch = ytNode(
+            id = "watch_player",
+            children = listOf(
+                ytNode(id = "player_view", bounds = NodeBounds(0, 0, 1080, 610)),
+                ytNode(id = "reel_shelf_container", bounds = tallShelf),
+            ),
+        )
+
+        assertNull(RuleMatcher.findFirstMatch(watch, Packages.YOUTUBE, allFeatures))
+    }
+}

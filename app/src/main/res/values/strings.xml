@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Produktname, wird nicht übersetzt. -->
+    <string name="app_name" translatable="false">ShortBlock</string>
+    <string name="accessibility_service_label" translatable="false">ShortBlock</string>
+    <string name="home_title" translatable="false">ShortBlock</string>
+
+    <string name="accessibility_service_summary">Blocks Reels, Shorts and TikTok — in the apps and in the browser</string>
+    <string name="accessibility_service_description">ShortBlock reads the screen content of Instagram, YouTube, TikTok and your browser only, in order to detect Reels, Shorts and algorithmic feeds and navigate away from them. Nothing is stored or sent anywhere — the app has no internet permission.</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_title">Setup</string>
+    <string name="onboarding_intro">ShortBlock works through an accessibility service. Three steps, in this order — step 2 stays greyed out until step 1 is done.</string>
+    <string name="step_restricted_title">1. Allow restricted settings</string>
+    <string name="step_restricted_body">Android 13 and newer block accessibility for sideloaded apps. In the app info screen tap the ⋮ menu at the top right and choose “Allow restricted settings”. If that entry is missing, this step is already done.</string>
+    <string name="step_restricted_button">Open app info</string>
+    <string name="step_accessibility_title">2. Enable the accessibility service</string>
+    <string name="step_accessibility_body">Under “Installed apps” / “Downloaded apps” pick ShortBlock and switch it on. Also switch on the shortcut (“Accessibility button”) — that floating button at the edge of the screen is what redeems the daily cheat. It no longer turns ShortBlock on and off; that is done here in the settings.</string>
+    <string name="step_accessibility_button">Open accessibility settings</string>
+    <string name="step_battery_title">3. Exclude from battery optimisation (optional)</string>
+    <string name="step_battery_body">Recommended on Xiaomi, Samsung and OnePlus devices — they stop background services aggressively. On Xiaomi/HyperOS also allow “Autostart” in the app info and lock the app in the recents view; otherwise the system switches the accessibility service off again after a reboot or overnight.</string>
+    <string name="step_battery_button">Open battery settings</string>
+    <string name="onboarding_continue">Continue</string>
+
+    <!-- Home -->
+    <string name="service_inactive">Service is off — nothing is being blocked</string>
+    <string name="service_inactive_hint">Open setup</string>
+    <string name="toggle_reels_title">Block Instagram Reels</string>
+    <string name="toggle_reels_desc">Closes the Reels viewer — from the tab, Explore, a DM or the browser. Stories stay untouched.</string>
+    <string name="toggle_feed_title">Instagram: block the For You feed</string>
+    <string name="toggle_explore_title">Instagram: Explore grid</string>
+    <string name="toggle_explore_desc">Leaves the suggestion grid behind the magnifier. Search stays usable — you get a few seconds to tap the search field.</string>
+    <string name="toggle_feed_desc">Forces the chronological “Following” feed and stops at the end of it, before the suggested posts start.</string>
+    <string name="toggle_shorts_title">Block YouTube Shorts</string>
+    <string name="toggle_shorts_desc">Closes the Shorts player, the Shorts tab and youtube.com/shorts in the browser. Normal videos, search and subscriptions keep working.</string>
+    <string name="group_general">General</string>
+    <string name="pill_running">running</string>
+    <string name="pill_asleep">asleep</string>
+    <string name="pill_off">off</string>
+    <string name="hero_unit">min</string>
+    <string name="hero_caption">not lost today</string>
+    <string name="budget_label">Daily allowance</string>
+    <string name="budget_remaining_short">%1$d of %2$d min</string>
+    <string name="step_not_checkable">cannot be checked</string>
+    <string name="blocked_today">Blocked today: %1$d</string>
+    <string name="budget_always">Always</string>
+    <string name="budget_minutes">%1$d min</string>
+    <string name="budget_spent">used up — blocking</string>
+    <string name="toast_budget_spent">Daily allowance used up</string>
+    <string name="health_broken_title">Service is asleep</string>
+    <string name="health_broken_body">Android reports the service as on, but it is not running in this process. Switch the accessibility service off and on again — and turn on the two options below so it stops happening.</string>
+    <string name="health_battery">Exclude from battery optimisation</string>
+    <string name="keep_alive_title_setting">Keep the service alive</string>
+    <string name="keep_alive_desc">Shows a permanent silent notification. Costs a notification, but stops the manufacturer from killing the service after a few hours.</string>
+    <string name="keep_alive_channel">Service running</string>
+    <string name="keep_alive_title">ShortBlock is active</string>
+    <string name="keep_alive_text">Keeping the blocker alive</string>
+    <string name="privacy_note">No internet permission, no analytics, nothing leaves the device.</string>
+    <string name="saved_nothing_yet">Nothing blocked today</string>
+    <string name="saved_blocks">%1$d interruptions avoided today</string>
+    <string name="saved_assumption">estimated, 25 s per blocked opening</string>
+    <string name="group_instagram" translatable="false">Instagram</string>
+    <string name="group_youtube" translatable="false">YouTube</string>
+    <string name="group_tiktok" translatable="false">TikTok</string>
+    <string name="toggle_tiktok_fyp_title">Block the For You feed</string>
+    <string name="toggle_tiktok_fyp_desc">Forces the Following tab. DMs, search and profiles keep working.</string>
+    <string name="toggle_tiktok_all_title">Block TikTok completely</string>
+    <string name="toggle_tiktok_all_desc">Every attempt to open TikTok navigates straight back — app and tiktok.com in the browser. With an allowance the chosen minutes a day stay open.</string>
+    <string name="toast_tiktok_switch_manual">Please switch to “Following” at the top</string>
+    <string name="nav_overview">Overview</string>
+    <string name="nav_setup">Setup</string>
+    <string name="nav_diagnostics">Diagnostics</string>
+    <string name="recent_block_chip">Last: %1$s, %2$s ago</string>
+    <string name="just_now">a moment</string>
+    <string name="minutes_short">%1$d min</string>
+    <string name="block_log_title">Last actions</string>
+    <string name="block_log_empty">No rule has fired yet.</string>
+    <string name="last_block_hint">If the app closed something it should not have: this is the rule that fired. Report the line and it can be narrowed down.</string>
+
+    <!-- Watchdog -->
+    <string name="watchdog_channel">Service switched off</string>
+    <string name="watchdog_title">ShortBlock has been switched off</string>
+    <string name="watchdog_text">Android has disabled the accessibility service — nothing is being blocked. Tap to switch it back on.</string>
+
+    <!-- Daily cheat and reminder popup -->
+    <string name="single_clip_title">Watch a video you picked</string>
+    <string name="single_clip_desc">A reel or short you deliberately tap — in a story, on a profile, in a DM, through a link — plays once, all the way. The swipe to the next one blocks. The Reels and Shorts tabs stay closed.</string>
+    <string name="overlay_dismiss">Okay</string>
+    <string name="overlay_cheat_hint">Today\'s 5 minutes are still free — the button at the edge of the screen.</string>
+    <string name="toast_blocked">Not now.</string>
+    <string name="cheat_running_title">Cheat is running</string>
+    <string name="cheat_running_body">%1$d min left. Then it closes again.</string>
+    <string name="cheat_waiting_title">Cheat requested</string>
+    <string name="cheat_waiting_body">Starts in %1$d seconds. Until then everything stays blocked.</string>
+    <string name="cheat_open_app_title">Open ShortBlock</string>
+    <string name="cheat_open_app_body">The cheat is requested inside the app.</string>
+    <string name="cheat_card_waiting_title">Cheat starts in %1$s</string>
+    <string name="cheat_card_waiting_body">Still blocking until then.</string>
+    <string name="cheat_dialog_title">%1$d minutes — but not for free</string>
+    <string name="cheat_dialog_cost">The minutes count against your daily allowance (nothing to pay where it is set to “Always”). After requesting, %1$d seconds pass before anything opens.</string>
+    <string name="cheat_dialog_field">Type the sentence</string>
+    <string name="cheat_dialog_request">Request</string>
+    <string name="cheat_dialog_cancel">Leave it</string>
+    <string-array name="cheat_phrases">
+        <item>I have decided that this is worth my time.</item>
+        <item>I know what I am giving up, and I am doing it anyway.</item>
+        <item>This is a decision, not a reflex.</item>
+    </string-array>
+    <string name="cheat_used_title">Already used today</string>
+    <string name="cheat_used_body">Free again tomorrow. Until then the answer is no.</string>
+    <string name="cheat_off_title">The cheat is switched off</string>
+    <string name="cheat_off_body">You can switch it back on in ShortBlock — if you really want to.</string>
+    <string name="cheat_card_free_title">Cheat free today · %1$d min</string>
+    <string name="cheat_card_free_body">Tap here, or press the accessibility button at the edge of the screen. Costs a sentence to type, a minute of waiting, and your daily allowance.</string>
+    <string name="cheat_card_running_title">Cheat running · %1$s left</string>
+    <string name="cheat_card_running_body">Nothing is being blocked right now.</string>
+    <string name="cheat_card_used_title">Cheat used today</string>
+    <string name="cheat_card_used_body">Free again tomorrow.</string>
+    <string name="cheat_toggle_title">Allow the daily cheat</string>
+    <string name="cheat_toggle_desc">Once a day, %1$d minutes of everything — after typing a sentence and waiting a minute, counted against your daily allowance.</string>
+    <string name="time_remaining">%1$d:%2$02d</string>
+    <string-array name="reminder_lines">
+        <item>Did you mean to do that — or was your hand faster?</item>
+        <item>You switched this off yourself. This morning that was a good idea.</item>
+        <item>You will not get the next twenty minutes back.</item>
+        <item>What were you about to do before you opened this?</item>
+        <item>Nothing is waiting. There is only the next clip.</item>
+        <item>Whatever you were looking for, it is not in here.</item>
+    </string-array>
+
+    <!-- Diagnostics -->
+    <string name="health_title">Service state</string>
+    <string name="health_last_event">Last event: %1$s</string>
+    <string name="health_last_repair">Last woken: %1$s</string>
+    <string name="health_never">never</string>
+    <string name="health_minutes_ago">%1$d min ago</string>
+    <string name="health_battery_ok">Battery exemption granted</string>
+    <string name="health_battery_missing">Battery exemption missing — the process can be killed overnight</string>
+    <string name="diagnostics_title">Diagnostics</string>
+    <string name="diagnostics_toggle">Record view IDs</string>
+    <string name="diagnostics_hint">When Instagram or YouTube change their layout, blocking silently stops working. Turn this on, open the screen that is no longer blocked, come back here and copy the matching IDs into Rules.kt.</string>
+    <string name="diagnostics_empty">Nothing recorded yet. Turn recording on and open Instagram or YouTube.</string>
+    <string name="diagnostics_clear">Clear</string>
+    <string name="toast_back_runaway">ShortBlock kept navigating back without effect and stopped. See Diagnostics.</string>
+    <string name="recorded_ids_title">Recorded view IDs</string>
+    <string name="recorded_ids_count">%1$d entries</string>
+    <string name="diagnostics_copy">Copy</string>
+    <string name="diagnostics_copied">Copied</string>
+
+    <!-- Service toasts -->
+    <string name="toast_explore_blocked">Explore is all suggestions</string>
+    <string name="feed_wall_line">This is the “For you” feed</string>
+    <string name="feed_wall_hint">Tap the title at the top and pick “Following”.</string>
+    <string name="toast_feed_end">End of the Following feed</string>
+    <string name="overridden_by_tiktok_all">No effect while TikTok is blocked completely</string>
+    <string name="fyp_during_tiktok_budget">Applies during the allowed TikTok minutes</string>
+    <string name="seen_packages_title">Apps seen</string>
+    <string name="seen_packages_hint">While recording is on, the service listens to every app — that is how you find out the real package name if a blocker never fires. It only ever blocks the apps it is configured for.</string>
+    <string name="seen_packages_empty">Nothing yet. Turn recording on and open the app in question.</string>
+</resources>

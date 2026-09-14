@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Anders als die beiden Geschwister-Apps hell: Hier werden Listen gelesen und
+         Häkchen gesetzt, nicht Vollbildinhalte gewischt. -->
+    <style name="Theme.TrimBox" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowBackground">@color/paper</item>
+    </style>
+</resources>

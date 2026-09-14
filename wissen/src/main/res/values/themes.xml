@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Fest dunkel: Der Feed ist Vollbild-Inhalt mit Bildern, auf hellem Grund flackert
+         jeder Kartenwechsel. Dieselbe Entscheidung treffen Reels und Shorts. -->
+    <style name="Theme.Wissenshappen" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowBackground">@color/ink</item>
+    </style>
+</resources>
