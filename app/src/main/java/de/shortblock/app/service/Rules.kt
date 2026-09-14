@@ -206,7 +206,34 @@ object Rules {
             feature = Feature.YOUTUBE_SHORTS,
             packageName = Packages.YOUTUBE,
             contentDescriptionEquals = listOf("shorts"),
+            // Manche Fassungen tragen die Beschriftung als Text statt als Beschreibung. Das
+            // UND-Gatter requireSelected bleibt und trägt weiterhin die ganze Sicherheit:
+            // Ein nicht ausgewählter Knoten mit „Shorts“ darin löst nichts aus.
+            textContains = listOf("shorts"),
             requireSelected = true,
+        ),
+
+        // Das dritte Bein — ohne Namen von View-IDs.
+        //
+        // Die beiden Regeln darüber hängen an genau drei Kennungen und am ausgewählten Tab.
+        // Benennt YouTube die Kennungen um, bleibt nur der Tab; und der greift gar nicht,
+        // wenn man einen Short aus dem Regal der Startseite oder über einen Link öffnet.
+        // Dann blockt nichts mehr, ohne dass etwas auffällt.
+        //
+        // „reel“ heisst bei YouTube dauerhaft Shorts; was dahinter steht, wechselt. Deshalb
+        // breit auf „reel_“ — und **nur** gültig ab [minAreaFraction]. Ohne diese Schranke
+        // wäre es genau das zu weite Muster, vor dem CLAUDE.md warnt: Das Shorts-Regal auf
+        // der Startseite trägt dieselben Kennungen, und wer darauf blockt, wirft den Nutzer
+        // beim Scrollen aus der Startseite. Ein Regal belegt rund ein Drittel des Fensters,
+        // der Vollbild-Player praktisch alles.
+        //
+        // Dieselbe Mechanik trägt seit v0.1 den Instagram-Reels-Viewer.
+        Rule(
+            id = "yt_shorts_fullscreen",
+            feature = Feature.YOUTUBE_SHORTS,
+            packageName = Packages.YOUTUBE,
+            viewIdContains = listOf("reel_"),
+            minAreaFraction = 0.6f,
         ),
 
         // --- TikTok komplett ---------------------------------------------------------------

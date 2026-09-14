@@ -24,6 +24,13 @@ nicht mehr benutzen; wer ein Reel zu viel sieht, ärgert sich kurz. Im Zweifel n
   umgekehrt: Shorts heißen intern `reel`. Muster nie zwischen den Apps kopieren.
 - **Nur sichtbare Knoten dürfen etwas auslösen** (`UiNode.isVisible`). Der Baum enthält recycelte
   und ausgeblendete Views. Ohne diese Prüfung warf v0.1 beim Öffnen sofort aus Instagram heraus.
+- **Shorts braucht ein Bein ohne View-ID-Namen.** `yt_shorts_player` hängt an drei
+  Kennungen, `yt_shorts_tab_selected` am ausgewählten Tab — und der greift nicht, wenn man
+  einen Short aus dem Regal der Startseite oder über einen Link öffnet. Benennt YouTube die
+  Kennungen um, blockt lautlos nichts mehr. `yt_shorts_fullscreen` fängt das breit über
+  `reel_` ab, **nur gültig ab `minAreaFraction = 0.6f`**. Wer die Schranke entfernt, blockt
+  das Shorts-Regal auf der Startseite mit und wirft den Nutzer beim Scrollen hinaus — genau
+  der Fehlalarm, der die App unbenutzbar macht. Dieselbe Mechanik trägt `ig_clips_viewer`.
 - **Browser-Regeln brauchen `viewIdMustContain`** (UND-Gatter auf die Adressleiste). Sonst genügt
   „youtube.com/shorts" als Text in einem Suchergebnis und die App wirft aus der Google-Suche.
 - **`Rules.BROWSER_URL_BAR_IDS` muss vor `BLOCK_RULES` stehen.** Kotlin initialisiert

@@ -307,3 +307,79 @@ class RuleMatcherTest {
         assertNull(RuleMatcher.findFirstMatch(tree, "com.android.chrome", onlyFyp))
     }
 }
+
+/**
+ * Das dritte Bein der Shorts-Erkennung: breit auf „reel_", aber nur im Vollbild.
+ *
+ * Grund: Die beiden genauen Regeln hängen an drei View-IDs und am ausgewählten Tab. Benennt
+ * YouTube die Kennungen um, greift nur noch der Tab — und der greift nicht, wenn man einen
+ * Short aus dem Regal der Startseite öffnet. Dann blockt nichts mehr, lautlos.
+ */
+class YouTubeShortsFallbackTest {
+
+    private val allFeatures = Feature.entries.toSet()
+
+    /** Fast das ganze Fenster — so sieht der Shorts-Player aus. */
+    private val fullscreen = NodeBounds(0, 0, 1080, 2300)
+
+    /** Ein Regal im Startseiten-Feed: volle Breite, aber nur ein Drittel hoch. */
+    private val shelf = NodeBounds(0, 600, 1080, 1360)
+
+    @Test
+    fun `an unknown new id in fullscreen is still blocked`() {
+        // Der Zweck der Uebung: Der naechste YouTube-Umbau darf die Sperre nicht kippen.
+        val tree = ytNode(
+            id = "content",
+            children = listOf(ytNode(id = "reel_watch_player_v2", bounds = fullscreen)),
+        )
+
+        val match = RuleMatcher.findFirstMatch(tree, Packages.YOUTUBE, allFeatures)
+
+        assertEquals(Feature.YOUTUBE_SHORTS, match?.rule?.feature)
+        assertEquals("yt_shorts_fullscreen", match?.rule?.id)
+    }
+
+    @Test
+    fun `the shorts shelf on the home page is never blocked`() {
+        // DER teuerste Fehlalarm hier: Wer beim Scrollen aus der Startseite fliegt, kann
+        // YouTube nicht mehr benutzen. Dieselbe Kennung, nur klein — muss durchgehen.
+        val homeFeed = ytNode(
+            id = "results",
+            children = listOf(
+                ytNode(id = "reel_shelf_container", bounds = shelf),
+                ytNode(id = "video_row", bounds = NodeBounds(0, 1400, 1080, 1800)),
+            ),
+        )
+
+        assertNull(RuleMatcher.findFirstMatch(homeFeed, Packages.YOUTUBE, allFeatures))
+    }
+
+    @Test
+    fun `the tab matches by text too, but only when selected`() {
+        val selected = ytNode(
+            id = "pivot_bar",
+            children = listOf(ytNode(text = "Shorts", selected = true)),
+        )
+        assertNotNull(RuleMatcher.findFirstMatch(selected, Packages.YOUTUBE, allFeatures))
+
+        // Nicht ausgewaehlt: Der Tab steht nur da, man ist woanders.
+        val notSelected = ytNode(
+            id = "pivot_bar",
+            children = listOf(ytNode(text = "Shorts", selected = false)),
+        )
+        assertNull(RuleMatcher.findFirstMatch(notSelected, Packages.YOUTUBE, allFeatures))
+    }
+
+    @Test
+    fun `a normal video page stays untouched`() {
+        val watch = ytNode(
+            id = "watch_player",
+            children = listOf(
+                ytNode(id = "player_view", bounds = fullscreen),
+                ytNode(id = "comments_entry_point", bounds = shelf),
+            ),
+        )
+
+        assertNull(RuleMatcher.findFirstMatch(watch, Packages.YOUTUBE, allFeatures))
+    }
+}
