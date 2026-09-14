@@ -20,6 +20,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import de.shortblock.app.R
+import de.shortblock.app.system.SystemSettings
+import de.shortblock.app.service.ServiceHealth
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
 import de.shortblock.app.service.BlockLog
 import de.shortblock.app.ui.components.InfoCard
 import de.shortblock.app.ui.components.SectionHeader
@@ -65,6 +71,11 @@ fun DiagnosticsScreen(
                 }
             }
         }
+
+        // Der Zustand steht direkt hinter dem Protokoll: Wer morgens nachsieht, warum nichts
+        // geblockt hat, findet hier die Antwort — war der Dienst eingeschlafen und wurde
+        // geweckt, oder fehlt die Akku-Ausnahme und der Prozess wurde nachts abgeräumt?
+        item { ServiceStateCard() }
 
         item {
             SectionHeader(
@@ -131,6 +142,44 @@ fun DiagnosticsScreen(
  * Waagerecht scrollbar statt abgeschnitten: Eine gekürzte Regel-ID ist als Fehlermeldung
  * wertlos — genau der lange Teil hinten sagt, an welchem Knoten die Regel gegriffen hat.
  */
+@Composable
+private fun ServiceStateCard() {
+    val context = LocalContext.current
+    val health by ServiceHealth.state.collectAsStateWithLifecycle()
+    val now = System.currentTimeMillis()
+    val batteryExempt = remember { SystemSettings.isIgnoringBatteryOptimizations(context) }
+
+    SectionHeader(
+        title = stringResource(R.string.health_title),
+        dot = MaterialTheme.colorScheme.secondary,
+    )
+    InfoCard {
+        CodeLine(stringResource(R.string.health_last_event, ago(now, health.lastEventAtMs)))
+        CodeLine(stringResource(R.string.health_last_repair, ago(now, health.lastRefreshAtMs)))
+        Text(
+            text = stringResource(
+                if (batteryExempt) R.string.health_battery_ok else R.string.health_battery_missing,
+            ),
+            style = MaterialTheme.typography.bodySmall,
+            color = if (batteryExempt) {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            } else {
+                MaterialTheme.colorScheme.error
+            },
+            modifier = Modifier.padding(top = 8.dp),
+        )
+    }
+}
+
+/** „vor 12 Min." oder „nie" — mehr Genauigkeit braucht hier niemand. */
+@Composable
+private fun ago(nowMs: Long, thenMs: Long): String =
+    if (thenMs <= 0L || nowMs < thenMs) {
+        stringResource(R.string.health_never)
+    } else {
+        stringResource(R.string.health_minutes_ago, (nowMs - thenMs) / 60_000)
+    }
+
 @Composable
 private fun CodeLine(text: String, modifier: Modifier = Modifier) {
     Text(

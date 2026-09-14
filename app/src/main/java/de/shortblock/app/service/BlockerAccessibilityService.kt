@@ -2,6 +2,10 @@ package de.shortblock.app.service
 
 import android.accessibilityservice.AccessibilityButtonController
 import android.accessibilityservice.AccessibilityService
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
 import android.widget.Toast
@@ -103,6 +107,22 @@ class BlockerAccessibilityService : AccessibilityService() {
     /** Wann die Wand zuletzt bestätigt wurde — Grundlage für [dropStaleFeedWall]. */
     private var feedWallSeenAt = 0L
 
+    /**
+     * Weckt die Bedienungshilfe beim Entsperren.
+     *
+     * Der Grund, warum die Sperre morgens manchmal nicht zog: Die einzige Reparatur hing am
+     * Herzschlag, einem `delay` in einer Koroutine — und genau solche Timer setzt Doze über
+     * Nacht aus. Hier kommt sie in dem Moment, in dem sie gebraucht wird: entsperren,
+     * reparieren, dann erst wird die erste App geöffnet.
+     */
+    private val wakeReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val silence = System.currentTimeMillis() - ServiceHealth.state.value.lastEventAtMs
+            refreshServiceInfo()
+            BlockLog.record("service_repair", "wake after ${silence / 1000}s")
+        }
+    }
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         ServiceHealth.onConnected()
@@ -135,6 +155,18 @@ class BlockerAccessibilityService : AccessibilityService() {
         scope.launch {
             statsRepository.secondsToday.collect { spentSeconds = it }
         }
+        // Zur Laufzeit registriert: Diese beiden Broadcasts nimmt Android seit Oreo nicht
+        // mehr aus dem Manifest entgegen, aus einem laufenden Dienst heraus schon.
+        runCatching {
+            registerReceiver(
+                wakeReceiver,
+                IntentFilter().apply {
+                    addAction(Intent.ACTION_USER_PRESENT)
+                    addAction(Intent.ACTION_SCREEN_ON)
+                },
+            )
+        }
+
         startHeartbeat()
     }
 
@@ -181,6 +213,17 @@ class BlockerAccessibilityService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         val packageName = event?.packageName?.toString() ?: return
+
+        // Vor der Auswertung: War es lange still, ist die Pipeline womöglich eingeschlafen
+        // und liefert einen veralteten Baum. Der Empfänger oben deckt das Entsperren ab —
+        // das hier den Fall, dass der Dienst erst danach neu verbunden wurde.
+        val nowMs = System.currentTimeMillis()
+        val health = ServiceHealth.state.value
+        if (WakeRepair.needsRepair(health.lastEventAtMs, health.lastRefreshAtMs, nowMs)) {
+            refreshServiceInfo()
+            BlockLog.record("service_repair", "gap ${(nowMs - health.lastEventAtMs) / 1000}s")
+        }
+
         ServiceHealth.onEvent()
 
         // Bewusst VOR der WATCHED-Prüfung: Genau die unbekannten Pakete sind die, die man sehen
@@ -641,7 +684,9 @@ class BlockerAccessibilityService : AccessibilityService() {
     }
 
     override fun onDestroy() {
+        runCatching { unregisterReceiver(wakeReceiver) }
         runCatching { accessibilityButtonController.unregisterAccessibilityButtonCallback(cheatButton) }
+        lowerFeedWall()
         overlay?.hide()
         overlay = null
         flushBudget(force = true, detached = true)

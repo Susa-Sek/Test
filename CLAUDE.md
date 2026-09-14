@@ -37,6 +37,13 @@ nicht mehr benutzen; wer ein Reel zu viel sieht, ärgert sich kurz. Im Zweifel n
   und Ende rechnet `CheatPass` daraus aus — kein Wecker, der bei abgeräumtem Dienst verloren
   ginge. Ein Beginn, der weiter als die Wartezeit in der Zukunft liegt, heißt zurückgestellte
   Systemuhr: dann gilt der Cheat als verbraucht, nie als endlos.
+- **Reparieren beim Aufwachen, nicht nach Uhr.** Bis v0.11 hing `refreshServiceInfo()` allein
+  am Herzschlag — einem `delay(5 min)` in einer Koroutine. Genau solche Timer setzt Doze über
+  Nacht aus, weshalb morgens manchmal nichts blockte: Die Ereignis-Pipeline war eingeschlafen
+  und die Reparatur kam frühestens fünf Minuten zu spät. Jetzt weckt ein zur Laufzeit
+  registrierter Empfänger auf `ACTION_USER_PRESENT`/`ACTION_SCREEN_ON`, und `WakeRepair`
+  entscheidet zusätzlich im Ereignispfad nach langer Stille. Der Herzschlag bleibt Rückfall.
+  Wer den Empfänger entfernt, holt den Morgen-Fehler zurück.
 - **Kein Erkennungsweg in `FeedPolicy.evaluate` darf die Rückfallkette kappen.** Bis v0.10.1
   gab Weg 1 (Titel über View-ID) sein `Idle` ungeprüft durch, sobald er irgendeinen Knoten
   mit Titel-Kennung fand — die Wege 2 und 3 kamen nie zum Zug. Bei Instagrams mittiger
@@ -151,7 +158,7 @@ Android-Abhängige bleibt eine dünne Hülle drumherum. Neue Erkennung genauso b
 |---|---|
 | `service/RuleMatcher.kt`, `service/Rules.kt` | `service/BlockerAccessibilityService.kt` |
 | `service/FeedPolicy.kt`, `service/TikTokPolicy.kt` | `service/AccessibilityUiNode.kt` |
-| `service/ExplorePolicy.kt` | — |
+| `service/ExplorePolicy.kt`, `service/WakeRepair.kt` | — |
 | `data/StatsHistory.kt`, `data/WatchBudget.kt` | `data/StatsRepository.kt` |
 | `data/CheatPass.kt`, `data/CheatPhrase.kt`, `service/Reminders.kt` | `service/ReminderOverlay.kt` |
 | `service/SharedClip.kt` | — |

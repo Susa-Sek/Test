@@ -121,6 +121,13 @@
     </string-array>
 
     <!-- Diagnose -->
+    <string name="health_title">Zustand des Dienstes</string>
+    <string name="health_last_event">Letztes Ereignis: %1$s</string>
+    <string name="health_last_repair">Zuletzt geweckt: %1$s</string>
+    <string name="health_never">nie</string>
+    <string name="health_minutes_ago">vor %1$d Min.</string>
+    <string name="health_battery_ok">Akku-Ausnahme erteilt</string>
+    <string name="health_battery_missing">Akku-Ausnahme fehlt — der Prozess kann nachts abgeräumt werden</string>
     <string name="diagnostics_title">Diagnose</string>
     <string name="diagnostics_toggle">View-IDs aufzeichnen</string>
     <string name="diagnostics_hint">Wenn Instagram oder YouTube ihr Layout ändern, blockt die App stillschweigend nicht mehr. Dann hier aufzeichnen einschalten, den nicht mehr geblockten Screen öffnen, zurückkommen und die passenden IDs in Rules.kt übernehmen.</string>

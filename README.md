@@ -60,7 +60,7 @@ außen gleich aussehen:
 | Zustand | Ursache | Was hilft |
 |---|---|---|
 | Prozess abgeräumt | Energieverwaltung des Herstellers | Akku-Ausnahme, „Dienst am Leben halten" |
-| Prozess lebt, keine Ereignisse mehr | eingeschlafene Android-Pipeline | wird automatisch alle 5 Min repariert |
+| Prozess lebt, keine Ereignisse mehr | eingeschlafene Android-Pipeline | wird beim Entsperren geweckt, dazu alle 5 Min |
 | **Schalter steht wieder auf aus** | Hersteller-ROM hat die Bedienungshilfe mit abgeschaltet | nur von Hand wieder einschalten — der Wächter meldet es |
 
 Was ShortBlock ab v0.4 dagegen tut:

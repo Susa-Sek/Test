@@ -129,6 +129,13 @@
     </string-array>
 
     <!-- Diagnostics -->
+    <string name="health_title">Service state</string>
+    <string name="health_last_event">Last event: %1$s</string>
+    <string name="health_last_repair">Last woken: %1$s</string>
+    <string name="health_never">never</string>
+    <string name="health_minutes_ago">%1$d min ago</string>
+    <string name="health_battery_ok">Battery exemption granted</string>
+    <string name="health_battery_missing">Battery exemption missing — the process can be killed overnight</string>
     <string name="diagnostics_title">Diagnostics</string>
     <string name="diagnostics_toggle">Record view IDs</string>
     <string name="diagnostics_hint">When Instagram or YouTube change their layout, blocking silently stops working. Turn this on, open the screen that is no longer blocked, come back here and copy the matching IDs into Rules.kt.</string>
