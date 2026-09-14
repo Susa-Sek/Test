@@ -133,6 +133,7 @@
     <string name="diagnostics_hint">Wenn Instagram oder YouTube ihr Layout ändern, blockt die App stillschweigend nicht mehr. Dann hier aufzeichnen einschalten, den nicht mehr geblockten Screen öffnen, zurückkommen und die passenden IDs in Rules.kt übernehmen.</string>
     <string name="diagnostics_empty">Noch nichts aufgezeichnet. Aufzeichnen einschalten und Instagram oder YouTube öffnen.</string>
     <string name="diagnostics_clear">Leeren</string>
+    <string name="toast_back_runaway">ShortBlock hat mehrfach ohne Wirkung zurückgesteuert und aufgehört. Siehe Diagnose.</string>
     <string name="recorded_ids_title">Aufgezeichnete View-IDs</string>
     <string name="recorded_ids_count">%1$d Einträge</string>
     <string name="diagnostics_copy">Kopieren</string>

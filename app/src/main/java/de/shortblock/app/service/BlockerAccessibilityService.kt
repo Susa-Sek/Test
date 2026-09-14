@@ -74,6 +74,16 @@ class BlockerAccessibilityService : AccessibilityService() {
     /** Zuletzt protokollierter Ablehnungsgrund — verhindert, dass das Protokoll überläuft. */
     private var singleWatchLastReason: String? = null
 
+    /**
+     * Zustand der Zurück-Obergrenze — die Regel dazu steht in [BackGuard].
+     *
+     * `interventionPausedUntil` liegt bewusst auf der Wanduhr, nicht auf `uptimeMillis`: Es
+     * wird mit [BackGuard.PAUSE_MS] verglichen, und beides muss dieselbe Zeitbasis haben.
+     */
+    private var backChainLength = 0
+    private var lastBackAtMs = 0L
+    private var interventionPausedUntil = 0L
+
     /** Für welche Features der „Kontingent aufgebraucht“-Hinweis heute schon kam. */
     private val exhaustedToastShown = mutableSetOf<Feature>()
 
@@ -406,6 +416,10 @@ class BlockerAccessibilityService : AccessibilityService() {
         // unten weiter, ihr Ergebnis wird nur nicht mehr zum Blocken benutzt. Damit kosten die
         // fünf Minuten Tageskontingent, statt geschenkt zu sein. (Bis v0.7 stand hier ein
         // vorgezogenes `return false` — die Umkehr ist gewollt, siehe CLAUDE.md.)
+        // Nach einer gerissenen Zurück-Kette wird eine Weile gar nicht eingegriffen. Sonst
+        // liefe dieselbe Fehlerkennung sofort weiter und die Kette begänne von vorn.
+        if (System.currentTimeMillis() < interventionPausedUntil) return false
+
         val cheating = CheatPass.stage(
             settings.cheatArmedAtMillis,
             settings.cheatUsedOnDay,
@@ -442,7 +456,7 @@ class BlockerAccessibilityService : AccessibilityService() {
             if (spent) match.rule.id + " (Kontingent aufgebraucht)" else match.rule.id,
             match.signature,
         )
-        blockAndGoBack(feature)
+        blockAndGoBack(feature, match.signature)
         return true
     }
 
@@ -569,7 +583,32 @@ class BlockerAccessibilityService : AccessibilityService() {
         }
     }
 
-    private fun blockAndGoBack(feature: Feature) {
+    /**
+     * Zurück drücken — aber nie öfter, als [BackGuard] erlaubt.
+     *
+     * Die Obergrenze ist keine Feinheit: Ohne sie drückt ein Fehlalarm Zurück im 800-ms-Takt,
+     * bis die fremde App geschlossen ist. Genau das ist mit der zu weiten `reel_`-Regel
+     * passiert. Ein korrekter Block verlässt den Bildschirm beim ersten Versuch und läuft nie
+     * in die Grenze; nur wo Zurück nichts löst, wächst die Kette.
+     *
+     * @param detail Knoten-Merkmal oder Grund, der ins Protokoll kommt, wenn die Kette reisst.
+     */
+    private fun blockAndGoBack(feature: Feature, detail: String = "") {
+        val now = System.currentTimeMillis()
+        backChainLength = if (BackGuard.continuesChain(lastBackAtMs, now)) backChainLength + 1 else 0
+
+        if (BackGuard.isRunaway(backChainLength)) {
+            // Der Fehlalarm wird hier zum ersten Mal sichtbar: Bis v0.11.3 stand im Protokoll
+            // nur der Regel-Name, als wäre der Block gewollt gewesen.
+            BlockLog.record("back_runaway", detail.ifEmpty { feature.name })
+            interventionPausedUntil = now + BackGuard.PAUSE_MS
+            backChainLength = 0
+            lastBackAtMs = 0L
+            toast(R.string.toast_back_runaway)
+            return
+        }
+
+        lastBackAtMs = now
         performGlobalAction(GLOBAL_ACTION_BACK)
         pausedUntil = SystemClock.uptimeMillis() + BACK_COOLDOWN_MS
         scope.launch { statsRepository.increment(feature) }

@@ -24,13 +24,28 @@ nicht mehr benutzen; wer ein Reel zu viel sieht, ärgert sich kurz. Im Zweifel n
   umgekehrt: Shorts heißen intern `reel`. Muster nie zwischen den Apps kopieren.
 - **Nur sichtbare Knoten dürfen etwas auslösen** (`UiNode.isVisible`). Der Baum enthält recycelte
   und ausgeblendete Views. Ohne diese Prüfung warf v0.1 beim Öffnen sofort aus Instagram heraus.
-- **Shorts braucht ein Bein ohne View-ID-Namen.** `yt_shorts_player` hängt an drei
-  Kennungen, `yt_shorts_tab_selected` am ausgewählten Tab — und der greift nicht, wenn man
-  einen Short aus dem Regal der Startseite oder über einen Link öffnet. Benennt YouTube die
-  Kennungen um, blockt lautlos nichts mehr. `yt_shorts_fullscreen` fängt das breit über
-  `reel_` ab, **nur gültig ab `minAreaFraction = 0.6f`**. Wer die Schranke entfernt, blockt
-  das Shorts-Regal auf der Startseite mit und wirft den Nutzer beim Scrollen hinaus — genau
-  der Fehlalarm, der die App unbenutzbar macht. Dieselbe Mechanik trägt `ig_clips_viewer`.
+- **Kein Präfix-Muster für YouTube — `yt_shorts_fullscreen` war genau das und ist raus.**
+  v0.11.2 ergänzte `viewIdContains = ["reel_"]` ab 60 % Fensterfläche als Netz gegen
+  umbenannte Kennungen. Sie blieb zunächst wirkungslos, weil `allowsSingleClip` damals jeden
+  Shorts-Treffer durchwinkte; als v0.11.3 dieses Loch schloss, blockte sie **normale Videos**.
+  `reel_` trifft als Präfix auch `reel_shelf_*`, und das Regal steht auf der Startseite UND in
+  der Empfehlungsliste unter jedem Video. Der Vergleich mit `ig_clips_viewer` trug nicht: Der
+  matcht auf einen **genauen Namen**, nicht auf ein Präfix. Ein drittes Bein darf wiederkommen
+  — mit Kennungen aus dem Diagnose-Schirm eines echten Geräts, nicht geraten.
+- **`minAreaFraction` misst die gelegten Bounds, nicht den sichtbaren Ausschnitt.**
+  `getBoundsInScreen` liefert die Bounds der Layout-Position; ein scrollbarer Container ist
+  höher als der Bildschirm und reisst damit jede Flächenschranke, während nur ein Streifen zu
+  sehen ist — `isVisibleToUser` bleibt wahr. Die Schranke ist deshalb kein Ersatz für ein
+  enges Muster. Richtig wäre, vor dem Vergleich auf das Fenster zu beschneiden; das betrifft
+  `Rule.matches`, `Actions.clickNearest` und `ExplorePolicy.hasGridSize` gemeinsam und steht
+  noch aus.
+- **Zurück hat eine Obergrenze, und die muss bleiben** (`BackGuard`). `blockAndGoBack` drückt
+  Zurück und wartet 800 ms; trifft die Regel danach wieder, drückt es erneut — ohne Ende. Bei
+  einem richtigen Block ist das harmlos, weil das erste Zurück den Bildschirm verlässt. Bei
+  einem Fehlalarm drückt es, bis die fremde App geschlossen ist; genau so hat sich YouTube
+  zugemacht. Drei Zurück in Folge mit weniger als `CHAIN_GAP_MS` Abstand heissen: Zurück löst
+  die Lage nicht. Dann `back_runaway` ins Protokoll — **so wird ein Fehlalarm überhaupt erst
+  sichtbar** — und `PAUSE_MS` lang nicht eingreifen.
 - **Die Ausnahme „einmal ansehen" darf nie an einer Regel-ID hängen.** Bis v0.11.2 stand in
   `allowsSingleClip` für YouTube `match.rule.id != "yt_shorts_tab_selected"`.
   `findFirstMatch` liefert aber die **erste** Regel der Liste, und `yt_shorts_player` steht

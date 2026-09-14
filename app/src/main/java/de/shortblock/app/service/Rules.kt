@@ -213,29 +213,25 @@ object Rules {
             requireSelected = true,
         ),
 
-        // Das dritte Bein — ohne Namen von View-IDs.
+        // HIER STAND `yt_shorts_fullscreen` — und es war ein Fehlalarm. Nicht wieder einbauen.
         //
-        // Die beiden Regeln darüber hängen an genau drei Kennungen und am ausgewählten Tab.
-        // Benennt YouTube die Kennungen um, bleibt nur der Tab; und der greift gar nicht,
-        // wenn man einen Short aus dem Regal der Startseite oder über einen Link öffnet.
-        // Dann blockt nichts mehr, ohne dass etwas auffällt.
+        // v0.11.2 ergänzte hier eine dritte Regel: `viewIdContains = ["reel_"]` ab 60 %
+        // Fensterfläche, als Netz gegen umbenannte Kennungen. Sie blieb zunächst wirkungslos,
+        // weil `allowsSingleClip` damals jeden Shorts-Treffer durchwinkte. Als v0.11.3 dieses
+        // Loch schloss, blockte sie zum ersten Mal wirklich — und zwar **normale Videos**.
         //
-        // „reel“ heisst bei YouTube dauerhaft Shorts; was dahinter steht, wechselt. Deshalb
-        // breit auf „reel_“ — und **nur** gültig ab [minAreaFraction]. Ohne diese Schranke
-        // wäre es genau das zu weite Muster, vor dem CLAUDE.md warnt: Das Shorts-Regal auf
-        // der Startseite trägt dieselben Kennungen, und wer darauf blockt, wirft den Nutzer
-        // beim Scrollen aus der Startseite. Ein Regal belegt rund ein Drittel des Fensters,
-        // der Vollbild-Player praktisch alles.
+        // Warum: `reel_` trifft als Präfix auch `reel_shelf_*`, das Shorts-Regal, und das steht
+        // auf der Startseite UND in der Empfehlungsliste unter jedem normalen Video. Die
+        // Grössenschranke rettet das nicht: `getBoundsInScreen` liefert die **gelegten** Bounds,
+        // nicht den sichtbaren Ausschnitt. Ein scrollbarer Regal-Container ist höher als der
+        // Bildschirm und reisst die 60 % damit, während nur ein Streifen zu sehen ist —
+        // `isVisibleToUser` bleibt dabei wahr.
         //
-        // Dieselbe Mechanik trägt seit v0.1 den Instagram-Reels-Viewer.
-        Rule(
-            id = "yt_shorts_fullscreen",
-            feature = Feature.YOUTUBE_SHORTS,
-            packageName = Packages.YOUTUBE,
-            viewIdContains = listOf("reel_"),
-            minAreaFraction = 0.6f,
-        ),
-
+        // Der Vergleich mit `ig_clips_viewer` war deshalb falsch: Der matcht auf einen
+        // **genauen Namen**, nicht auf ein Präfix. Gleiche Mechanik, andere Musterbreite.
+        //
+        // Ein drittes Bein darf wiederkommen — aber mit den Kennungen, die der Diagnose-Schirm
+        // auf einem echten Gerät zeigt, nicht mit geratenen Präfixen.
         // --- TikTok komplett ---------------------------------------------------------------
         //
         // Kein Muster: matchAnyWindow greift auf jedem Fenster des Pakets. Das ist die einzige

@@ -308,13 +308,6 @@ class RuleMatcherTest {
     }
 }
 
-/**
- * Das dritte Bein der Shorts-Erkennung: breit auf „reel_", aber nur im Vollbild.
- *
- * Grund: Die beiden genauen Regeln hängen an drei View-IDs und am ausgewählten Tab. Benennt
- * YouTube die Kennungen um, greift nur noch der Tab — und der greift nicht, wenn man einen
- * Short aus dem Regal der Startseite öffnet. Dann blockt nichts mehr, lautlos.
- */
 class YouTubeShortsFallbackTest {
 
     private val allFeatures = Feature.entries.toSet()
@@ -322,38 +315,72 @@ class YouTubeShortsFallbackTest {
     /** Fast das ganze Fenster — so sieht der Shorts-Player aus. */
     private val fullscreen = NodeBounds(0, 0, 1080, 2300)
 
-    /** Ein Regal im Startseiten-Feed: volle Breite, aber nur ein Drittel hoch. */
+    /** Ein Regal: volle Breite, ein Drittel hoch. */
     private val shelf = NodeBounds(0, 600, 1080, 1360)
 
+    /**
+     * Ein Regal-Container, der hoeher ist als der Bildschirm.
+     *
+     * Genau daran ist die Groessenschranke gescheitert: `getBoundsInScreen` liefert die
+     * **gelegten** Bounds, nicht den sichtbaren Ausschnitt. Ein scrollbarer Container reisst
+     * damit jede Flaechenschranke, waehrend nur ein Streifen zu sehen ist.
+     */
+    private val tallShelf = NodeBounds(0, 600, 1080, 3400)
+
+    /**
+     * Der Wachposten fuer die entfernte Regel `yt_shorts_fullscreen`.
+     *
+     * Sie matchte breit auf `reel_` ab 60 % Fensterflaeche. Das traf `reel_shelf_*` — das
+     * Shorts-Regal, das auf der Startseite UND in der Empfehlungsliste unter jedem normalen
+     * Video steht. Ergebnis: Man flog aus normalen Videos, und weil `blockAndGoBack` ohne
+     * Obergrenze weiterdrueckte, schloss sich YouTube ganz.
+     *
+     * Kommt je wieder ein Praefix-Muster fuer YouTube herein, faellt es hier auf.
+     */
     @Test
-    fun `an unknown new id in fullscreen is still blocked`() {
-        // Der Zweck der Uebung: Der naechste YouTube-Umbau darf die Sperre nicht kippen.
+    fun `a shorts shelf is never blocked, at any size`() {
+        for (bounds in listOf(shelf, tallShelf, fullscreen)) {
+            val homeFeed = ytNode(
+                id = "results",
+                children = listOf(
+                    ytNode(id = "reel_shelf_container", bounds = bounds),
+                    ytNode(id = "video_row", bounds = NodeBounds(0, 1400, 1080, 1800)),
+                ),
+            )
+
+            assertNull(
+                "Das Shorts-Regal darf nie blocken — auch nicht im Vollbild",
+                RuleMatcher.findFirstMatch(homeFeed, Packages.YOUTUBE, allFeatures),
+            )
+        }
+    }
+
+    /** Eine unbekannte neue Kennung blockt bewusst NICHT mehr — lieber Luecke als Fehlalarm. */
+    @Test
+    fun `an unknown new id is not blocked by guesswork`() {
         val tree = ytNode(
             id = "content",
             children = listOf(ytNode(id = "reel_watch_player_v2", bounds = fullscreen)),
         )
 
+        assertNull(RuleMatcher.findFirstMatch(tree, Packages.YOUTUBE, allFeatures))
+    }
+
+    /** Die beiden verbliebenen Beine: genaue Kennung … */
+    @Test
+    fun `the known player ids still block`() {
+        val tree = ytNode(
+            id = "content",
+            children = listOf(ytNode(id = "reel_recycler", bounds = fullscreen)),
+        )
+
         val match = RuleMatcher.findFirstMatch(tree, Packages.YOUTUBE, allFeatures)
 
         assertEquals(Feature.YOUTUBE_SHORTS, match?.rule?.feature)
-        assertEquals("yt_shorts_fullscreen", match?.rule?.id)
+        assertEquals("yt_shorts_player", match?.rule?.id)
     }
 
-    @Test
-    fun `the shorts shelf on the home page is never blocked`() {
-        // DER teuerste Fehlalarm hier: Wer beim Scrollen aus der Startseite fliegt, kann
-        // YouTube nicht mehr benutzen. Dieselbe Kennung, nur klein — muss durchgehen.
-        val homeFeed = ytNode(
-            id = "results",
-            children = listOf(
-                ytNode(id = "reel_shelf_container", bounds = shelf),
-                ytNode(id = "video_row", bounds = NodeBounds(0, 1400, 1080, 1800)),
-            ),
-        )
-
-        assertNull(RuleMatcher.findFirstMatch(homeFeed, Packages.YOUTUBE, allFeatures))
-    }
-
+    /** … und der Tab, der auch ueber Text greift, aber nur ausgewaehlt. */
     @Test
     fun `the tab matches by text too, but only when selected`() {
         val selected = ytNode(
@@ -377,6 +404,23 @@ class YouTubeShortsFallbackTest {
             children = listOf(
                 ytNode(id = "player_view", bounds = fullscreen),
                 ytNode(id = "comments_entry_point", bounds = shelf),
+            ),
+        )
+
+        assertNull(RuleMatcher.findFirstMatch(watch, Packages.YOUTUBE, allFeatures))
+    }
+
+    /**
+     * Der gemeldete Fall, so nah am Geraet wie es ohne Geraet geht: normales Video, darunter
+     * die Empfehlungsliste mit einem Shorts-Regal.
+     */
+    @Test
+    fun `a normal video with a shorts shelf below it stays untouched`() {
+        val watch = ytNode(
+            id = "watch_player",
+            children = listOf(
+                ytNode(id = "player_view", bounds = NodeBounds(0, 0, 1080, 610)),
+                ytNode(id = "reel_shelf_container", bounds = tallShelf),
             ),
         )
 
