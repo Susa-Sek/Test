@@ -34,6 +34,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.klarzeit.app.R
+import de.klarzeit.app.data.DayHistory
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.foundation.layout.fillMaxHeight
 import de.klarzeit.app.data.AppCatalog
 import de.klarzeit.app.data.GoalState
 import de.klarzeit.app.data.ScreenTimeRepository
@@ -59,6 +62,7 @@ import de.klarzeit.app.data.UsageSessions
 @Composable
 fun HomeScreen(
     today: ScreenTimeRepository.Today,
+    week: List<Pair<Long, DayHistory.DaySummary>>,
     catalog: AppCatalog,
     onToggleExcluded: (String) -> Unit,
     onOpenExclusions: () -> Unit,
@@ -99,6 +103,7 @@ fun HomeScreen(
         ) {
             item { Hero(today) }
             item { GoalBar(today, onEditGoal) }
+            item { WeekRow(week, today.goalMillis) }
 
             if (today.summary.apps.isEmpty()) {
                 item {
@@ -170,6 +175,82 @@ private fun Hero(today: ScreenTimeRepository.Today) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 10.dp),
                 )
+            }
+        }
+
+        // Die Häufigkeit steht bewusst direkt unter der Zahl: Vierzig Griffe zu je zwei
+        // Minuten fühlen sich anders an als zwei zu je vierzig, und das sieht man nur, wenn
+        // beide Zahlen nebeneinanderstehen.
+        Text(
+            text = pluralStringResource(R.plurals.home_grabs, today.opens, today.opens) +
+                " · " + pluralStringResource(R.plurals.home_unlocks, today.unlocks, today.unlocks),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/**
+ * Sieben Balken für sieben Tage, ältester links.
+ *
+ * Der Massstab ist das Tagesziel, nicht der höchste Tag: Sonst schrumpfen alle Balken, sobald
+ * ein einziger Ausreisser dabei ist, und die Reihe zeigt nur noch den Ausreisser. Wer kein
+ * Ziel gesetzt hat, bekommt den höchsten Tag als Massstab.
+ */
+@Composable
+private fun WeekRow(week: List<Pair<Long, DayHistory.DaySummary>>, goalMillis: Long) {
+    if (week.isEmpty()) return
+    val scale = if (goalMillis > 0L) {
+        maxOf(goalMillis, week.maxOf { it.second.countedMillis })
+    } else {
+        week.maxOf { it.second.countedMillis }.coerceAtLeast(1L)
+    }
+
+    Column(modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
+        Text(
+            text = stringResource(R.string.home_week).uppercase(),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            week.forEachIndexed { index, (_, summary) ->
+                val isToday = index == week.lastIndex
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        contentAlignment = Alignment.BottomCenter,
+                    ) {
+                        val fraction = (summary.countedMillis.toFloat() / scale).coerceIn(0f, 1f)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .fillMaxHeight(fraction.coerceAtLeast(0.03f))
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(
+                                    if (isToday) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.45f)
+                                    },
+                                ),
+                        )
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = TimeFormat.short(summary.countedMillis),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
     }
@@ -283,6 +364,13 @@ private fun AppRow(
                     MaterialTheme.colorScheme.onSurfaceVariant
                 },
             )
+            if (app.opens > 0) {
+                Text(
+                    text = pluralStringResource(R.plurals.home_grabs, app.opens, app.opens),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             Spacer(Modifier.height(5.dp))
             Bar(
                 fraction = (app.millis.toFloat() / longestMillis).coerceIn(0f, 1f),

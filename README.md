@@ -573,6 +573,8 @@ Zahl, um die es eigentlich geht — und die steht als Widget auf dem Startbildsc
 | **Ausschlüsse** | frei wählbar, mit einem Vorschlag zum Start |
 | **Widget** | bereinigte Zahl, Gesamtzeit, die drei grössten Zeitfresser |
 | **Tagesziel** | einstellbar, eine Meldung beim Überschreiten — mehr nicht |
+| **Griffe** | wie oft du eine App nach vorn holst und das Telefon entsperrst |
+| **Verlauf** | die letzten sieben Tage als Balkenreihe, 14 Tage werden aufbewahrt |
 
 ## Warum nicht Digital Wellbeing
 
@@ -665,8 +667,9 @@ erfragen.
 
 ## Grenzen
 
-- **Nur heute.** Kein Wochenverlauf, keine Historie. Android hebt die Ereignisse zwar ein paar
-  Tage auf, aber v1 wertet nur den laufenden Tag aus.
+- **Der Verlauf beginnt bei der Installation.** Klarzeit führt ihn selbst statt ihn aus Androids
+  Ereignissen abzuleiten — die hält das System nur wenige Tage vor, und eine Wochenansicht mit
+  Lücken wäre schlimmer als keine. Am ersten Tag steht deshalb nur ein Balken.
 - **Vordergrundzeit, nicht Aufmerksamkeit.** Ein Video, das mit dem Bildschirm an durchläuft,
   zählt als Nutzung. Umgekehrt zählt ein Podcast bei ausgeschaltetem Bildschirm nicht — was
   meistens richtig ist, aber eben eine Annahme.

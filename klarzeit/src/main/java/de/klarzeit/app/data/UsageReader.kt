@@ -50,11 +50,17 @@ class UsageReader(context: Context) {
         return mode == AppOpsManager.MODE_ALLOWED
     }
 
-    /** Vordergrundzeit je Paket seit Mitternacht. */
-    suspend fun today(now: Long = System.currentTimeMillis()): Map<String, Long> =
+    /** Vordergrundzeit, Griffe und Entsperrungen seit Mitternacht. */
+    suspend fun today(now: Long = System.currentTimeMillis()): UsageSessions.Usage =
         withContext(Dispatchers.IO) {
-            val start = startOfDay(now)
-            UsageSessions.foregroundMillis(readEvents(start, now), start, now)
+            val window = UsageWindow.forDay(startOfDay(now), now)
+            // Abgefragt wird mit Vorlauf, gerechnet ab Tagesbeginn: Sonst fehlt jede Sitzung,
+            // die vor Mitternacht begann und danach weiterlief.
+            UsageSessions.analyse(
+                events = readEvents(window.queryStart, window.end),
+                windowStart = window.start,
+                windowEnd = window.end,
+            )
         }
 
     private fun readEvents(from: Long, to: Long): List<UsageSessions.Event> {

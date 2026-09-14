@@ -151,3 +151,85 @@ class UsageSessionsTest {
         assertEquals(15 * minute, result["insta"])
     }
 }
+
+/**
+ * Griffe und Entsperrungen. Minuten allein sagen wenig — vierzig Griffe zu je zwei Minuten
+ * fühlen sich anders an als zwei zu je vierzig.
+ */
+class UsageGrabsTest {
+
+    private val midnight = 1_000_000_000L
+    private val minute = 60_000L
+    private fun at(minutes: Long) = midnight + minutes * minute
+
+    private fun fg(pkg: String, m: Long) = UsageSessions.Event(pkg, UsageSessions.Type.FOREGROUND, at(m))
+    private fun bg(pkg: String, m: Long) = UsageSessions.Event(pkg, UsageSessions.Type.BACKGROUND, at(m))
+    private fun off(m: Long) = UsageSessions.Event("android", UsageSessions.Type.SCREEN_OFF, at(m))
+    private fun unlock(m: Long) = UsageSessions.Event("android", UsageSessions.Type.UNLOCK, at(m))
+
+    private fun analyse(events: List<UsageSessions.Event>, endMinutes: Long = 120) =
+        UsageSessions.analyse(events, midnight, at(endMinutes))
+
+    @Test
+    fun `switching back and forth counts as two grabs`() {
+        val usage = analyse(listOf(fg("insta", 0), fg("maps", 10), fg("insta", 20), bg("insta", 30)))
+
+        assertEquals(2, usage.opens["insta"])
+        assertEquals(1, usage.opens["maps"])
+    }
+
+    @Test
+    fun `a rotation is not a second grab`() {
+        // Zwei RESUMED derselben App hintereinander — etwa beim Drehen des Bildschirms.
+        val usage = analyse(listOf(fg("insta", 0), fg("insta", 0), bg("insta", 10)))
+
+        assertEquals(1, usage.opens["insta"])
+    }
+
+    @Test
+    fun `picking the phone up again is a new grab`() {
+        val usage = analyse(listOf(fg("insta", 0), off(5), fg("insta", 60), bg("insta", 70)))
+
+        assertEquals(2, usage.opens["insta"])
+        // Und die Zeit dazwischen zaehlt nicht mit.
+        assertEquals(15 * minute, usage.foregroundMillis["insta"])
+    }
+
+    @Test
+    fun `unlocks are counted, screen-on alone is not`() {
+        val usage = analyse(listOf(unlock(10), unlock(60), fg("insta", 61), bg("insta", 65)))
+
+        assertEquals(2, usage.unlocks)
+    }
+
+    @Test
+    fun `events from the lookbehind count in time but not in grabs`() {
+        // Die Sitzung von gestern Abend zaehlt ab Mitternacht in die Zeit — aber der Griff
+        // passierte gestern und gehoert nicht in die heutige Haeufigkeit.
+        val usage = UsageSessions.analyse(
+            listOf(
+                UsageSessions.Event("insta", UsageSessions.Type.FOREGROUND, midnight - 30 * minute),
+                UsageSessions.Event("android", UsageSessions.Type.UNLOCK, midnight - 31 * minute),
+                bg("insta", 20),
+            ),
+            windowStart = midnight,
+            windowEnd = at(120),
+        )
+
+        assertEquals(20 * minute, usage.foregroundMillis["insta"])
+        assertEquals(null, usage.opens["insta"])
+        assertEquals(0, usage.unlocks)
+    }
+
+    @Test
+    fun `grabs reach the summary`() {
+        val usage = analyse(listOf(fg("insta", 0), fg("maps", 10), fg("insta", 20), bg("insta", 30)))
+        val summary = UsageSessions.summarize(
+            perPackage = usage.foregroundMillis,
+            excluded = emptySet(),
+            opens = usage.opens,
+        )
+
+        assertEquals(2, summary.apps.first { it.packageName == "insta" }.opens)
+    }
+}

@@ -14,8 +14,8 @@ android {
         applicationId = "de.klarzeit.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "0.2.0"
+        versionCode = 4
+        versionName = "0.3.0"
     }
 
     buildTypes {
@@ -57,4 +57,8 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)
+    // Androids org.json ist im JVM-Unit-Test nur ein Stub, der bei jedem Aufruf wirft.
+    // DayHistory speichert als JSON — ohne diese Zeile scheitern seine Tests mit einer
+    // Meldung, die nichts mit der Sache zu tun hat.
+    testImplementation(libs.org.json)
 }

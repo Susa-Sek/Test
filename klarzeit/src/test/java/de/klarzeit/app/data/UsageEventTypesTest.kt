@@ -27,11 +27,15 @@ class UsageEventTypesTest {
     }
 
     @Test
-    fun `screen on and keyguard hidden say nothing about usage`() {
-        // Bildschirm an heisst noch nicht, dass eine App im Vordergrund ist — das sagt
-        // erst das naechste RESUMED.
+    fun `screen on alone says nothing about usage`() {
+        // Der Bildschirm geht auch bei einer Benachrichtigung an, ohne dass jemand etwas
+        // benutzt. Erst das Entsperren ist ein Griff zum Telefon.
         assertNull(UsageEventTypes.of(UsageEventTypes.SCREEN_INTERACTIVE))
-        assertNull(UsageEventTypes.of(UsageEventTypes.KEYGUARD_HIDDEN))
+    }
+
+    @Test
+    fun `unlocking is a grab`() {
+        assertEquals(UsageSessions.Type.UNLOCK, UsageEventTypes.of(UsageEventTypes.KEYGUARD_HIDDEN))
     }
 
     @Test

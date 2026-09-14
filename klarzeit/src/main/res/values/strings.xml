@@ -15,6 +15,15 @@
     <string name="home_goal">Goal %1$s</string>
     <string name="home_goal_over">%1$s over your goal</string>
     <string name="home_goal_left">%1$s left today</string>
+    <string name="home_week">Last seven days</string>
+    <plurals name="home_grabs">
+        <item quantity="one">%1$d pickup</item>
+        <item quantity="other">%1$d pickups</item>
+    </plurals>
+    <plurals name="home_unlocks">
+        <item quantity="one">%1$d unlock</item>
+        <item quantity="other">%1$d unlocks</item>
+    </plurals>
     <string name="home_section_counted">Counts</string>
     <string name="home_section_excluded">Does not count</string>
     <string name="home_hint_tap">Tap an app to move it between the two.</string>

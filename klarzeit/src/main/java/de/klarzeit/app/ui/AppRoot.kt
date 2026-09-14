@@ -38,6 +38,7 @@ fun AppRoot() {
     val catalog = remember(context) { AppCatalog(context) }
 
     val today by repository.today.collectAsStateWithLifecycle()
+    val week by repository.week.collectAsStateWithLifecycle(emptyList())
     val excluded by settings.excluded.collectAsStateWithLifecycle(emptySet())
 
     var screen by rememberSaveable { mutableStateOf(Screen.HOME) }
@@ -72,6 +73,7 @@ fun AppRoot() {
 
             else -> HomeScreen(
                 today = current,
+                week = week,
                 catalog = catalog,
                 onToggleExcluded = { pkg -> scope.launch { settings.toggleExcluded(pkg) } },
                 onOpenExclusions = { screen = Screen.EXCLUSIONS },

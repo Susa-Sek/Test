@@ -127,6 +127,13 @@ Für Klarzeit zusätzlich:
   erteilt wird sie nur von Hand in den Einstellungen. Der Aufruf heisst dort ab Android 10
   `unsafeCheckOpNoThrow` und davor `checkOpNoThrow` — ohne die Weiche in `UsageReader`
   stürzt die App auf Android 8 und 9 beim ersten Start ab.
+- **Abfragefenster und Rechenfenster sind nicht dasselbe.** Bis v0.2.0 begannen beide um
+  Mitternacht — und damit fehlte jede Sitzung, die vor Mitternacht begann und danach
+  weiterlief: Ihr `ACTIVITY_RESUMED` lag vor dem Abfragefenster und wurde nie geliefert.
+  `UsageWindow` trennt beides: abgefragt wird mit `LOOKBEHIND_MS` Vorlauf, gerechnet ab
+  Tagesbeginn. Der bestehende Test zum Fall „Sitzung von gestern" war grün, weil er die reine
+  Funktion mit Daten fütterte, die das Gerät so nie liefert — **ein grüner Test ist kein
+  Beweis, wenn die Hülle die Eingabe gar nicht erzeugen kann.**
 - **Nicht `queryUsageStats`, sondern `queryEvents`.** Die fertige Summe ist gerundet, je nach
   Hersteller verschieden und am laufenden Tag unzuverlässig. `UsageSessions` rechnet aus den
   rohen Ereignissen; die vier Fälle, die dabei zählen (offene Sitzung, Sitzung von gestern,
@@ -168,6 +175,7 @@ Android-Abhängige bleibt eine dünne Hülle drumherum. Neue Erkennung genauso b
 | `trimbox/data/SenderTally.kt` | `trimbox/mail/Unsubscriber.kt`, `data/AccountStore.kt` |
 | `klarzeit/data/UsageSessions.kt`, `TimeFormat.kt` | `klarzeit/data/UsageReader.kt` |
 | `klarzeit/data/GoalState.kt`, `DefaultExclusions.kt` | `klarzeit/widget/KlarzeitWidget.kt` |
+| `klarzeit/data/UsageWindow.kt`, `DayHistory.kt` | `klarzeit/data/HistoryRepository.kt` |
 
 Möglich macht das `service/UiNode.kt`: Es kapselt `AccessibilityNodeInfo`, das auf der JVM nicht
 instanziierbar ist.

@@ -32,6 +32,9 @@ object UsageSessions {
 
         /** Bildschirm aus, Sperre an oder Gerät aus — nichts läuft mehr im Vordergrund. */
         SCREEN_OFF,
+
+        /** Entsperrt — ein Griff zum Telefon. Zählt nicht in die Zeit, nur in die Häufigkeit. */
+        UNLOCK,
     }
 
     data class Event(
@@ -45,14 +48,41 @@ object UsageSessions {
      * @param windowEnd Ende, üblicherweise jetzt. Alle Abschnitte werden hierauf beschnitten.
      * @return Vordergrund-Millisekunden je Paket; Pakete ohne Zeit fehlen.
      */
+    /**
+     * Was in einem Zeitraum passiert ist.
+     *
+     * Minuten allein sagen wenig: Vierzig Griffe zu je zwei Minuten fühlen sich völlig anders
+     * an als zwei zu je vierzig. Deshalb wird beides gezählt.
+     */
+    data class Usage(
+        val foregroundMillis: Map<String, Long>,
+        /** Wie oft eine App nach vorn geholt wurde. */
+        val opens: Map<String, Int>,
+        /** Wie oft das Telefon entsperrt wurde. */
+        val unlocks: Int,
+    )
+
+    /** Nur die Zeiten — der alte Weg, jetzt ein Aufruf auf [analyse]. */
     fun foregroundMillis(
         events: List<Event>,
         windowStart: Long,
         windowEnd: Long,
-    ): Map<String, Long> {
-        if (windowEnd <= windowStart) return emptyMap()
+    ): Map<String, Long> = analyse(events, windowStart, windowEnd).foregroundMillis
+
+    /**
+     * @param windowStart Beginn des Zeitraums, üblicherweise Mitternacht.
+     * @param windowEnd Ende, üblicherweise jetzt. Alle Abschnitte werden hierauf beschnitten.
+     */
+    fun analyse(
+        events: List<Event>,
+        windowStart: Long,
+        windowEnd: Long,
+    ): Usage {
+        if (windowEnd <= windowStart) return Usage(emptyMap(), emptyMap(), 0)
 
         val totals = HashMap<String, Long>()
+        val opens = HashMap<String, Int>()
+        var unlocks = 0
         var openPackage: String? = null
         var openSince = 0L
 
@@ -71,7 +101,13 @@ object UsageSessions {
 
             when (event.type) {
                 Type.FOREGROUND -> {
+                    // Vor dem Schliessen merken: close() setzt openPackage auf null, und ohne
+                    // diesen Zwischenschritt zählte jede Bildschirmdrehung als neuer Griff.
+                    val previous = openPackage
                     close(event.timestampMillis)
+                    if (previous != event.packageName && event.timestampMillis >= windowStart) {
+                        opens[event.packageName] = (opens[event.packageName] ?: 0) + 1
+                    }
                     openPackage = event.packageName
                     openSince = event.timestampMillis
                 }
@@ -83,13 +119,17 @@ object UsageSessions {
                 }
 
                 Type.SCREEN_OFF -> close(event.timestampMillis)
+
+                // Ereignisse aus dem Vorlauf vor Tagesbeginn zählen nicht in die Häufigkeit,
+                // wohl aber in die Zeit — deshalb steht die Prüfung hier und nicht oben.
+                Type.UNLOCK -> if (event.timestampMillis >= windowStart) unlocks++
             }
         }
 
         // Was am Ende noch offen ist, läuft bis zum Fensterende weiter.
         close(windowEnd)
 
-        return totals
+        return Usage(foregroundMillis = totals, opens = opens, unlocks = unlocks)
     }
 
     data class AppTime(
@@ -97,6 +137,8 @@ object UsageSessions {
         val millis: Long,
         /** Zählt diese App in die Netto-Summe? */
         val counted: Boolean,
+        /** Wie oft sie heute nach vorn geholt wurde. */
+        val opens: Int = 0,
     )
 
     data class Summary(
@@ -123,10 +165,13 @@ object UsageSessions {
         perPackage: Map<String, Long>,
         excluded: Set<String>,
         ignored: Set<String> = emptySet(),
+        opens: Map<String, Int> = emptyMap(),
     ): Summary {
         val apps = perPackage.asSequence()
             .filter { (pkg, millis) -> millis > 0 && pkg !in ignored }
-            .map { (pkg, millis) -> AppTime(pkg, millis, counted = pkg !in excluded) }
+            .map { (pkg, millis) ->
+                AppTime(pkg, millis, counted = pkg !in excluded, opens = opens[pkg] ?: 0)
+            }
             // Bei gleicher Zeit nach Paketnamen, damit die Reihenfolge nicht springt.
             .sortedWith(compareByDescending<AppTime> { it.millis }.thenBy { it.packageName })
             .toList()

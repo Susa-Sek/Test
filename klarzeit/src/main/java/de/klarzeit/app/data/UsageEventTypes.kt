@@ -36,6 +36,10 @@ object UsageEventTypes {
         ACTIVITY_RESUMED -> UsageSessions.Type.FOREGROUND
         ACTIVITY_PAUSED -> UsageSessions.Type.BACKGROUND
         SCREEN_NON_INTERACTIVE, KEYGUARD_SHOWN, DEVICE_SHUTDOWN -> UsageSessions.Type.SCREEN_OFF
+
+        // Entsperren ist der Griff zum Telefon. Bildschirm an allein ist es nicht — der geht
+        // auch bei einer Benachrichtigung an, ohne dass jemand etwas benutzt.
+        KEYGUARD_HIDDEN -> UsageSessions.Type.UNLOCK
         else -> null
     }
 }
