@@ -54,6 +54,21 @@ nicht mehr benutzen; wer ein Reel zu viel sieht, ärgert sich kurz. Im Zweifel n
   Reels und Shorts **gar nichts mehr**, während Wand und TikTok weiterliefen. Genau diese
   Aufteilung war der Hinweis: Betroffen waren exakt die zwei Features, die durch diese
   Funktion laufen. Entschieden wird seither am Bildschirm, nicht an der Regel.
+- **Die Ausnahme „einmal ansehen" gilt nur für Instagram, und das muss so bleiben.** Bei
+  YouTube liess sie beide Wege durch: den Short aus dem Regal (so gebaut) und den aus dem
+  Shorts-Tab (nicht so gebaut). Der Tab wird nur als Algorithmus-Strom erkannt, wenn ein
+  Knoten `isSelected` meldet — und YouTubes untere Leiste tut das nicht verlässlich; an
+  derselben Stelle scheitert auch `yt_shorts_tab_selected` mit seinem `requireSelected`.
+  Ohne diesen Beleg galt auch der Tab als bewusste Wahl, und auf YouTube blockte gar nichts.
+  Der geschützte Fall ist bei Instagram echt (ein Reel aus einer DM), bei YouTube gibt es ihn
+  praktisch nicht: Ein Short aus dem Regal führt in dieselbe Endlosschleife wie der Tab. Die
+  YouTube-Listen in `Rules.SharedClip` sind deshalb **leer** — das ist ein zweites Schloss,
+  nicht Aufräumen: `canPolicySwipes` findet ohne Seitenliste nichts und verweigert, selbst
+  wenn jemand das Feature-Gatter wieder aufmacht.
+- **`isSelected` ist bei YouTube kein verlässlicher Beleg.** Bei Instagrams und TikToks
+  Tab-Leisten trägt es; YouTube meldet es an der unteren Leiste oft nicht. Wer eine
+  YouTube-Erkennung darauf stützt, baut etwas, das auf dem einen Gerät greift und auf dem
+  nächsten still nichts tut.
 - **Keine Ausnahme ohne funktionierende Reissleine.** Die Ausnahme verspricht „ein Video,
   aber Wischen blockt"; das ist so viel wert wie `isFromPager`. Sind die Pager-Kennungen
   umbenannt, wird nie ein Wisch gezählt, `mayWatch` bleibt bis `MAX_WATCH_MS` wahr — und weil

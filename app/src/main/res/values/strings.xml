@@ -83,8 +83,8 @@
     <string name="watchdog_text">Android has disabled the accessibility service — nothing is being blocked. Tap to switch it back on.</string>
 
     <!-- Daily cheat and reminder popup -->
-    <string name="single_clip_title">Watch a video you picked</string>
-    <string name="single_clip_desc">A reel or short you deliberately tap — in a story, on a profile, in a DM, through a link — plays once, all the way. The swipe to the next one blocks. The Reels and Shorts tabs stay closed.</string>
+    <string name="single_clip_title">Watch a tapped reel (Instagram)</string>
+    <string name="single_clip_desc">Instagram only: a reel you deliberately tap — in a story, on a profile, in a DM — plays once, all the way, and the swipe to the next one blocks. YouTube Shorts are always blocked, because there a short from the shelf leads into the same endless feed as the tab.</string>
     <string name="overlay_dismiss">Okay</string>
     <string name="overlay_cheat_hint">Today\'s 5 minutes are still free — the button at the edge of the screen.</string>
     <string name="toast_blocked">Not now.</string>

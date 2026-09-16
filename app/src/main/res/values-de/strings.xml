@@ -75,8 +75,8 @@
     <string name="watchdog_text">Android hat die Bedienungshilfe deaktiviert — es wird gerade nichts geblockt. Zum Wiedereinschalten tippen.</string>
 
     <!-- Tages-Cheat und Erinnerungs-Popup -->
-    <string name="single_clip_title">Angetipptes Video ansehen</string>
-    <string name="single_clip_desc">Ein Reel oder Short, das du bewusst antippst — in einer Story, auf einem Profil, in einer DM, über einen Link — läuft einmal ganz. Der Wisch zum nächsten blockt. Der Reels- und der Shorts-Tab bleiben zu.</string>
+    <string name="single_clip_title">Angetipptes Reel ansehen (Instagram)</string>
+    <string name="single_clip_desc">Nur Instagram: Ein Reel, das du bewusst antippst — in einer Story, auf einem Profil, in einer DM — läuft einmal ganz, der Wisch zum nächsten blockt. YouTube-Shorts werden immer geblockt, weil dort auch ein Short aus dem Regal in dieselbe Endlosschleife führt wie der Tab.</string>
     <string name="overlay_dismiss">Okay</string>
     <string name="overlay_cheat_hint">Deine 5 Minuten für heute sind noch frei — der Knopf am Bildschirmrand.</string>
     <string name="toast_blocked">Jetzt nicht.</string>

@@ -511,23 +511,22 @@ object Rules {
         )
 
         /**
-         * Der Shorts-Tab bei YouTube — **nur** über die Beschriftung.
+         * Leer, seit die Ausnahme bei YouTube nicht mehr gilt (v0.11.5).
          *
-         * Hier wird bewusst keine View-ID geraten. Beschriftung plus `isSelected` ist dasselbe
-         * UND-Gatter, das `yt_shorts_tab_selected` seit jeher trägt, und das hat sich als
-         * fehlalarmfest erwiesen.
+         * Das ist nicht bloss aufgeräumt, sondern ein zweites Schloss: `canPolicySwipes` findet
+         * ohne Seitenliste nichts und verweigert die Ausnahme. Selbst wenn jemand das
+         * Feature-Gatter in `allowsSingleClip` wieder aufmacht, bleibt YouTube zu.
+         *
+         * Warum überhaupt: Der Shorts-Tab liess sich nur über `isSelected` vom bewusst
+         * geöffneten Short unterscheiden, und das meldet YouTubes untere Leiste nicht
+         * verlässlich. Ohne diesen Beleg galt auch der Tab als bewusste Wahl — und damit
+         * blockte auf YouTube gar nichts mehr.
          */
         val YOUTUBE_TAB_VIEW_IDS = emptyList<String>()
 
-        val YOUTUBE_TAB_LABELS = setOf(
-            "shorts",
-        )
+        val YOUTUBE_TAB_LABELS = emptySet<String>()
 
-        /** Die Seitenliste des Shorts-Players. */
-        val YOUTUBE_PAGER_VIEW_IDS = listOf(
-            "reel_recycler",
-            "reel_player_page_container",
-        )
+        val YOUTUBE_PAGER_VIEW_IDS = emptyList<String>()
 
         fun tabViewIds(packageName: String): List<String> = when (packageName) {
             Packages.YOUTUBE -> YOUTUBE_TAB_VIEW_IDS

@@ -87,8 +87,30 @@ class SharedClipTest {
 
     @Test
     fun `the video pager is recognised`() {
-        assertTrue(SharedClip.isFromPager("com.instagram.android:id/clips_viewer_view_pager", Packages.INSTAGRAM))
-        assertTrue(SharedClip.isFromPager("com.google.android.youtube:id/reel_recycler", Packages.YOUTUBE))
+        assertTrue(
+            SharedClip.isFromPager(
+                "com.instagram.android:id/clips_viewer_view_pager",
+                Packages.INSTAGRAM,
+            ),
+        )
+    }
+
+    /**
+     * Die Reissleine gilt weiterhin — nur eben für Instagram.
+     *
+     * Sind die Pager-Kennungen umbenannt, kann kein Wisch erkannt werden. Dann ist das
+     * Versprechen „ein Video, aber Wischen blockt“ nicht einlösbar und die Ausnahme darf nicht
+     * erteilt werden. Sonst stünde sie praktisch dauerhaft offen.
+     */
+    @Test
+    fun `an unknown instagram pager id refuses the exception`() {
+        val renamed = igNode(
+            id = "root",
+            children = listOf(igNode(id = "clips_surface_v2")),
+        )
+
+        assertFalse(SharedClip.looksLikeAlgorithmicStream(renamed, Packages.INSTAGRAM))
+        assertFalse(SharedClip.canPolicySwipes(renamed, Packages.INSTAGRAM))
     }
 
     /** Wer beim Lesen der Kommentare rausfliegt, hält die App für kaputt. */
@@ -171,62 +193,57 @@ class SharedClipTest {
     // ausgewählt, und damit blockte für Reels und Shorts gar nichts mehr. Entschieden wird
     // seither am Bildschirm.
 
-    /** Der wichtigste Test dieser Datei: der Shorts-Tab ist der Algorithmus, nicht deine Wahl. */
+    /**
+     * Die neue Zusage: YouTube bekommt die Ausnahme gar nicht erst.
+     *
+     * `canPolicySwipes` ist das zweite Schloss. Selbst mit `reel_recycler` im Baum — also
+     * genau dem Knoten, der den Shorts-Player ausmacht — findet es keine bekannte Seitenliste
+     * mehr und verweigert. Wer das Feature-Gatter in `allowsSingleClip` wieder aufmacht,
+     * bekommt YouTube damit trotzdem nicht auf.
+     */
     @Test
-    fun `a selected shorts tab is the algorithmic stream`() {
-        val tab = ytNode(
+    fun `youtube never gets the single clip exception`() {
+        val shortsPlayer = ytNode(
             id = "root",
             children = listOf(
                 ytNode(id = "reel_recycler"),
-                ytNode(id = "pivot_bar_item", description = "Shorts", selected = true),
+                ytNode(id = "reel_player_page_container"),
             ),
         )
-        assertTrue(SharedClip.looksLikeAlgorithmicStream(tab, Packages.YOUTUBE))
+
+        assertFalse(SharedClip.canPolicySwipes(shortsPlayer, Packages.YOUTUBE))
     }
 
+    /**
+     * Und die Begründung dahinter, als Test festgehalten.
+     *
+     * Der Shorts-Tab liess sich vom bewusst geöffneten Short nur über `isSelected`
+     * unterscheiden — und das meldet YouTubes untere Leiste nicht verlässlich. Beide Bäume
+     * sehen für die Erkennung gleich aus. Eine Unterscheidung, die nicht trägt, gehört nicht
+     * in eine Sperre; deshalb gilt die Ausnahme dort gar nicht mehr.
+     */
     @Test
-    fun `the shorts tab is also recognised by its text`() {
-        val tab = ytNode(
+    fun `the shorts tab and a chosen short are indistinguishable without isSelected`() {
+        val fromTab = ytNode(
             id = "root",
             children = listOf(
                 ytNode(id = "reel_recycler"),
-                ytNode(id = "unbekannt", text = "Shorts", selected = true),
+                ytNode(id = "pivot_bar_item", text = "Shorts", selected = false),
             ),
         )
-        assertTrue(SharedClip.looksLikeAlgorithmicStream(tab, Packages.YOUTUBE))
-    }
-
-    /** Aus dem Regal geöffnet: kein ausgewählter Tab — die Ausnahme darf greifen. */
-    @Test
-    fun `a short opened from the shelf is not the stream`() {
         val fromShelf = ytNode(
             id = "root",
             children = listOf(
                 ytNode(id = "reel_recycler"),
-                ytNode(id = "pivot_bar_item", description = "Startseite", selected = true),
+                ytNode(id = "pivot_bar_item", text = "Startseite", selected = false),
             ),
         )
+
+        // Keiner von beiden gilt als Strom — genau deshalb darf hier keine Ausnahme greifen.
+        assertFalse(SharedClip.looksLikeAlgorithmicStream(fromTab, Packages.YOUTUBE))
         assertFalse(SharedClip.looksLikeAlgorithmicStream(fromShelf, Packages.YOUTUBE))
-        assertTrue(SharedClip.canPolicySwipes(fromShelf, Packages.YOUTUBE))
-    }
-
-    // --- Keine Ausnahme ohne Reissleine -----------------------------------------------
-
-    /**
-     * Der Fall, der die Ausnahme bisher dauerhaft offen stehen liess.
-     *
-     * Kennt die App die Seitenliste nicht, kann sie keinen Wisch erkennen — dann ist das
-     * Versprechen „ein Video, aber Wischen blockt“ nicht einlösbar und die Ausnahme darf nicht
-     * erteilt werden. Vorher hiess derselbe Zustand: fünf Minuten frei, danach von vorn.
-     */
-    @Test
-    fun `an unknown pager id refuses the exception`() {
-        val renamed = ytNode(
-            id = "root",
-            children = listOf(ytNode(id = "reel_watch_player_v2")),
-        )
-        assertFalse(SharedClip.looksLikeAlgorithmicStream(renamed, Packages.YOUTUBE))
-        assertFalse(SharedClip.canPolicySwipes(renamed, Packages.YOUTUBE))
+        assertFalse(SharedClip.canPolicySwipes(fromTab, Packages.YOUTUBE))
+        assertFalse(SharedClip.canPolicySwipes(fromShelf, Packages.YOUTUBE))
     }
 
     @Test

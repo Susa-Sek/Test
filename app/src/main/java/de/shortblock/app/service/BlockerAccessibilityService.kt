@@ -346,13 +346,21 @@ class BlockerAccessibilityService : AccessibilityService() {
      * gar nichts mehr. Wer die Entscheidung wieder an einer Regel-ID festmacht, holt das zurück.
      *
      * Gefragt wird deshalb der Bildschirm, nicht die Regel.
+     *
+     * **Seit v0.11.5 gilt die Ausnahme nur noch für Instagram.** Bei YouTube liess sie beide
+     * Wege durch — den Short aus dem Regal (so gebaut) und den aus dem Shorts-Tab (nicht so
+     * gebaut). Der Tab wird nämlich nur als Algorithmus-Strom erkannt, wenn ein Knoten
+     * `isSelected` meldet, und das tut YouTubes untere Leiste nicht verlässlich; an derselben
+     * Stelle scheitert auch `yt_shorts_tab_selected` mit seinem `requireSelected`. Ohne diesen
+     * Beleg galt der Tab als bewusste Wahl, und auf YouTube blockte gar nichts mehr.
+     *
+     * Der Fall, den die Ausnahme schützt, ist bei Instagram echt: Ein Reel aus einer DM muss man
+     * ansehen können. Bei YouTube gibt es ihn praktisch nicht — Shorts öffnet man aus dem Regal
+     * oder über einen Link, und von dort läuft man in dieselbe Endlosschleife wie im Tab. Eine
+     * Unterscheidung, die nicht trägt, gehört nicht in eine Sperre.
      */
     private fun allowsSingleClip(match: RuleMatch, root: UiNode, packageName: String): Boolean {
-        if (match.rule.feature != Feature.INSTAGRAM_REELS &&
-            match.rule.feature != Feature.YOUTUBE_SHORTS
-        ) {
-            return false
-        }
+        if (match.rule.feature != Feature.INSTAGRAM_REELS) return false
         if (!settings.allowSingleClip) return noteSingleClipDenied("single_clip_off")
 
         if (SharedClip.looksLikeAlgorithmicStream(root, packageName)) {
