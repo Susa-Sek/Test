@@ -4,7 +4,7 @@ Vier Android-Apps in einem Gradle-Projekt. Ausführliches in der `README.md`.
 
 | Modul | App | Besonderheit |
 |---|---|---|
-| `app` | **ShortBlock** — blockt Reels, Shorts, TikTok-Algorithmus | Bedienungshilfe, **keine** `INTERNET`-Berechtigung |
+| `app` | **ShortBlock** — blockt Reels, Shorts, TikTok-Algorithmus | Bedienungshilfe, Geräteadmin, **keine** `INTERNET`-Berechtigung |
 | `wissen` | **Wissenshappen** — Wikipedia-Karten statt Kurzvideos | Internet, **keine** Bedienungshilfe |
 | `trimbox` | **TrimBox** — meldet von Newslettern ab und räumt sie weg | Internet + IMAP/SMTP, Zugangsdaten im Keystore |
 | `klarzeit` | **Klarzeit** — Bildschirmzeit ohne die Apps, die nicht zählen | Nutzungsdaten-Zugriff, Widget, **keine** `INTERNET`-Berechtigung |
@@ -79,6 +79,26 @@ nicht mehr benutzen; wer ein Reel zu viel sieht, ärgert sich kurz. Im Zweifel n
 - **`Rules.SharedClip` ist nach Paket getrennt, und das muss so bleiben.** Eine gemeinsame
   Pager-Liste liess `reel_recycler` auch bei Instagram zählen — dort sind `reel_*` die
   Stories. Ein Story-Wisch hätte ein bewusst angetipptes Reel mitten im Video beendet.
+- **Die Partnersperre darf niemanden aussperren.** `GuardianLock.verify` gibt bei leerem oder
+  beschädigtem gespeichertem Wert `false` zurück und wirft **nie** — sonst stürzt die App genau
+  in dem Moment ab, in dem jemand an die Einstellungen müsste. Aus demselben Grund schreibt
+  `setGuardian` Passwort und Wiederherstellungscode in **einem** Vorgang: Ein abgebrochener
+  Schreibvorgang dürfte keine Sperre ohne gültigen Notausgang hinterlassen. Der Code meidet
+  `0`, `O`, `1`, `I` und `L` — er wird von Papier abgetippt.
+- **`GuardianLock` benutzt `javax.crypto` und `java.util.Base64`, nicht `android.util.Base64`.**
+  Beides gibt es ab API 26, also genau ab unserem `minSdk`, und nur so lässt sich die Sperre
+  als gewöhnlicher JVM-Test prüfen. Bei einer Sperre, die aussperren kann, ist Testbarkeit
+  keine Stilfrage.
+- **Die Entsperrung gilt für die Sitzung, nicht dauerhaft.** In `AppRoot` liegt sie in einem
+  `remember` — bewusst kein `rememberSaveable` und kein DataStore — und `onPauseOrDispose`
+  setzt sie zurück. Wer daraus einen gespeicherten Wert macht, lässt die Sperre offen stehen,
+  sobald jemand die App nur in den Hintergrund schiebt.
+- **Der Geräteadmin verlangt keine einzige Richtlinie.** Der Deinstallationsschutz hängt allein
+  daran, *dass* ein Admin aktiv ist. `res/xml/device_admin.xml` hat deshalb ein leeres
+  `<uses-policies/>`. Wer dort etwas ergänzt, muss sagen können, wofür — eine App, die den
+  Bildschirm fremder Apps liest, soll nicht auch das Gerät löschen dürfen. Und der
+  Wiederherstellungscode entfernt den Admin **mit**: Sonst bliebe die App unentfernbar,
+  obwohl niemand mehr die Schlüssel hat.
 - **Browser-Regeln brauchen `viewIdMustContain`** (UND-Gatter auf die Adressleiste). Sonst genügt
   „youtube.com/shorts" als Text in einem Suchergebnis und die App wirft aus der Google-Suche.
 - **`Rules.BROWSER_URL_BAR_IDS` muss vor `BLOCK_RULES` stehen.** Kotlin initialisiert
@@ -223,6 +243,7 @@ Android-Abhängige bleibt eine dünne Hülle drumherum. Neue Erkennung genauso b
 | `service/ExplorePolicy.kt`, `service/WakeRepair.kt` | — |
 | `data/StatsHistory.kt`, `data/WatchBudget.kt` | `data/StatsRepository.kt` |
 | `data/CheatPass.kt`, `data/CheatPhrase.kt`, `service/Reminders.kt` | `service/ReminderOverlay.kt` |
+| `data/GuardianLock.kt` | `system/GuardianDeviceAdmin.kt`, `system/SystemSettings.kt` |
 | `service/SharedClip.kt` | — |
 | `wissen/data/WikipediaParser.kt` | `wissen/data/WikipediaSource.kt` |
 | `trimbox/data/UnsubscribeHeader.kt`, `SenderKey.kt` | `trimbox/mail/ImapScanner.kt` |

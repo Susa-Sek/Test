@@ -79,6 +79,16 @@ fun HomeScreen(
     onOpenSetup: () -> Unit,
     onOpenCheat: () -> Unit,
     onOpenDiagnostics: () -> Unit,
+    /**
+     * Ob die geschützten Schalter gerade bedienbar sind.
+     *
+     * Falsch heisst: Die Partnersperre steht und ist in dieser Sitzung nicht geöffnet. Die
+     * Zeilen bleiben dann sichtbar und werden nur grau — siehe [SettingRow].
+     */
+    settingsUnlocked: Boolean,
+    deviceAdminActive: Boolean,
+    onOpenGuardian: () -> Unit,
+    onLockNow: () -> Unit,
 ) {
     val todayTotal = counts.values.sum()
 
@@ -131,6 +141,7 @@ fun HomeScreen(
             secondsToday = secondsToday,
             onToggle = onToggle,
             onBudgetChange = onBudgetChange,
+            unlocked = settingsUnlocked,
         )
 
         AppGroup(
@@ -148,6 +159,7 @@ fun HomeScreen(
             secondsToday = secondsToday,
             onToggle = onToggle,
             onBudgetChange = onBudgetChange,
+            unlocked = settingsUnlocked,
         )
 
         AppGroup(
@@ -181,6 +193,7 @@ fun HomeScreen(
             secondsToday = secondsToday,
             onToggle = onToggle,
             onBudgetChange = onBudgetChange,
+            unlocked = settingsUnlocked,
         )
 
         SectionHeader(
@@ -200,6 +213,7 @@ fun HomeScreen(
                 description = stringResource(R.string.cheat_toggle_desc, CheatPass.DURATION_MINUTES),
                 checked = settings.cheatEnabled,
                 onCheckedChange = onToggleCheat,
+                enabled = settingsUnlocked,
             )
             RowDivider()
             SettingRow(
@@ -207,8 +221,17 @@ fun HomeScreen(
                 description = stringResource(R.string.keep_alive_desc),
                 checked = settings.keepAlive,
                 onCheckedChange = onToggleKeepAlive,
+                enabled = settingsUnlocked,
             )
         }
+
+        GuardianCard(
+            settings = settings,
+            unlocked = settingsUnlocked,
+            deviceAdminActive = deviceAdminActive,
+            onOpenGuardian = onOpenGuardian,
+            onLockNow = onLockNow,
+        )
 
         RecentBlockRow(lastBlock = lastBlock, onOpenDiagnostics = onOpenDiagnostics)
 
@@ -264,6 +287,7 @@ private fun AppGroup(
     secondsToday: Map<Feature, Int>,
     onToggle: (Feature, Boolean) -> Unit,
     onBudgetChange: (Feature, Int) -> Unit,
+    unlocked: Boolean,
 ) {
     Column {
         SectionHeader(title = title, dot = dot)
@@ -282,6 +306,7 @@ private fun AppGroup(
                     onBudgetChange = { onBudgetChange(row.feature, it) },
                     note = row.note,
                     dimmed = row.dimmed,
+                    unlocked = unlocked,
                 )
             }
         }
@@ -301,6 +326,7 @@ private fun FeatureRow(
     onBudgetChange: (Int) -> Unit,
     note: String? = null,
     dimmed: Boolean = false,
+    unlocked: Boolean = true,
 ) {
     Column(Modifier.alpha(if (dimmed) 0.45f else 1f)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -321,7 +347,7 @@ private fun FeatureRow(
                     )
                 }
             }
-            Switch(checked = checked, onCheckedChange = onCheckedChange)
+            Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = unlocked)
         }
 
         if (note != null) {
@@ -340,6 +366,7 @@ private fun FeatureRow(
                 budgetMinutes = budgetMinutes,
                 spentSeconds = spentSeconds,
                 onBudgetChange = onBudgetChange,
+                unlocked = unlocked,
             )
         }
     }
@@ -360,6 +387,7 @@ private fun BudgetSection(
     budgetMinutes: Int,
     spentSeconds: Int,
     onBudgetChange: (Int) -> Unit,
+    unlocked: Boolean = true,
 ) {
     var expanded by remember { mutableStateOf(false) }
     val hasBudget = WatchBudget.hasBudget(budgetMinutes)
@@ -408,6 +436,9 @@ private fun BudgetSection(
                     FilterChip(
                         selected = minutes == budgetMinutes,
                         onClick = { onBudgetChange(minutes) },
+                        // Die Zeiten gehören mit hinter die Sperre — sonst wäre das Kontingent
+                        // der eine Schalter, der sie umgeht. Aufklappen und ansehen geht weiter.
+                        enabled = unlocked,
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                             selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -423,6 +454,84 @@ private fun BudgetSection(
                         },
                     )
                 }
+            }
+        }
+    }
+}
+
+/**
+ * Die Partnersperre.
+ *
+ * Steht ganz unten und nicht oben: Wer die App öffnet, will wissen, was heute geblockt wurde —
+ * nicht zuerst an eine Sperre erinnert werden. Wer sie einrichten will, sucht sie gezielt.
+ */
+@Composable
+private fun GuardianCard(
+    settings: BlockSettings,
+    unlocked: Boolean,
+    deviceAdminActive: Boolean,
+    onOpenGuardian: () -> Unit,
+    onLockNow: () -> Unit,
+) {
+    SectionHeader(
+        title = stringResource(R.string.guardian_section),
+        dot = MaterialTheme.colorScheme.secondary,
+    )
+    InfoCard {
+        Text(
+            text = stringResource(
+                if (settings.locked) R.string.guardian_on_title else R.string.guardian_off_title,
+            ),
+            style = MaterialTheme.typography.titleSmall,
+        )
+        Text(
+            text = stringResource(
+                if (settings.locked) R.string.guardian_on_desc else R.string.guardian_off_desc,
+            ),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp),
+        )
+
+        // Der Deinstallationsschutz wird getrennt gemeldet. Er kann in den Systemeinstellungen
+        // abgeschaltet worden sein, während die Sperre in der App weitersteht — dann soll hier
+        // nicht „geschützt“ stehen, sondern was wirklich gilt.
+        if (settings.locked) {
+            Text(
+                text = stringResource(
+                    if (deviceAdminActive) {
+                        R.string.guardian_admin_on
+                    } else {
+                        R.string.guardian_admin_off
+                    },
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = if (deviceAdminActive) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.error
+                },
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
+
+        if (settings.locked && unlocked) {
+            Text(
+                text = stringResource(R.string.guardian_unlocked_note),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+            TextButton(onClick = onLockNow) {
+                Text(stringResource(R.string.guardian_lock_now))
+            }
+        } else {
+            TextButton(onClick = onOpenGuardian, modifier = Modifier.padding(top = 4.dp)) {
+                Text(
+                    stringResource(
+                        if (settings.locked) R.string.guardian_unlock else R.string.guardian_setup,
+                    ),
+                )
             }
         }
     }

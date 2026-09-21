@@ -63,6 +63,22 @@ fun AppRoot(openCheatOnStart: Boolean = false) {
     val healthSnapshot by ServiceHealth.state.collectAsStateWithLifecycle()
     val seenPackages by DiagnosticsBuffer.packages.collectAsStateWithLifecycle()
 
+    /**
+     * Ob die Partnersperre in **dieser Sitzung** geöffnet ist.
+     *
+     * Bewusst `remember` statt `rememberSaveable` und kein DataStore: Die Entsperrung darf
+     * nichts überleben. Der [LifecycleResumeEffect] unten setzt sie beim Verlassen der App
+     * zurück — eine Sperre, die offen bleibt, weil jemand die App nur in den Hintergrund
+     * geschoben hat, ist keine.
+     */
+    var settingsUnlocked by remember { mutableStateOf(false) }
+
+    // Vorher holen, nicht im Klick: `context.getString` in einer Composable-Lambda ist ein
+    // Lint-Fehler — der Text würde bei einem Sprachwechsel nicht neu gelesen.
+    val adminExplanation = stringResource(R.string.guardian_admin_explanation)
+    var guardianDialog by remember { mutableStateOf(false) }
+    var deviceAdminActive by remember { mutableStateOf(SystemSettings.isDeviceAdminActive(context)) }
+
     var serviceEnabled by remember { mutableStateOf(SystemSettings.isServiceEnabled(context)) }
     var batteryExempt by remember { mutableStateOf(SystemSettings.isIgnoringBatteryOptimizations(context)) }
     var onboardingSeen by rememberSaveable { mutableStateOf(false) }
@@ -74,7 +90,10 @@ fun AppRoot(openCheatOnStart: Boolean = false) {
     LifecycleResumeEffect(Unit) {
         serviceEnabled = SystemSettings.isServiceEnabled(context)
         batteryExempt = SystemSettings.isIgnoringBatteryOptimizations(context)
-        onPauseOrDispose { }
+        deviceAdminActive = SystemSettings.isDeviceAdminActive(context)
+        // Beim Verlassen der App fällt die Sperre wieder zu. Das ist die einzige Stelle, an
+        // der die Entsperrung endet — und sie darf nicht vergessen werden.
+        onPauseOrDispose { settingsUnlocked = false }
     }
 
     val health = classifyHealth(serviceEnabled, healthSnapshot, System.currentTimeMillis())
@@ -164,10 +183,15 @@ fun AppRoot(openCheatOnStart: Boolean = false) {
                     },
                     onOpenCheat = { cheatDialog = true },
                     onOpenDiagnostics = { screen = Screen.DIAGNOSTICS },
+                    settingsUnlocked = !settings.locked || settingsUnlocked,
+                    deviceAdminActive = deviceAdminActive,
+                    onOpenGuardian = { guardianDialog = true },
+                    onLockNow = { settingsUnlocked = false },
                 )
 
                 Screen.DIAGNOSTICS -> DiagnosticsScreen(
                     recording = settings.diagnostics,
+                    canChangeRecording = !settings.locked || settingsUnlocked,
                     entries = diagnostics,
                     blockLog = blockLog.asReversed(),
                     seenPackages = seenPackages,
@@ -179,6 +203,46 @@ fun AppRoot(openCheatOnStart: Boolean = false) {
                         BlockLog.clear()
                     },
                 )
+            }
+
+            if (guardianDialog) {
+                if (settings.locked) {
+                    GuardianUnlockDialog(
+                        settings = settings,
+                        onUnlocked = {
+                            settingsUnlocked = true
+                            guardianDialog = false
+                            scope.launch { settingsRepository.clearGuardianFailures() }
+                        },
+                        // Der Code ist der Notausgang, kein zweites Passwort: Er hebt die
+                        // Sperre ganz auf — samt Deinstallationsschutz, sonst bliebe die App
+                        // unentfernbar, obwohl niemand mehr die Schlüssel hat.
+                        onRecovered = {
+                            settingsUnlocked = true
+                            guardianDialog = false
+                            SystemSettings.removeDeviceAdmin(context)
+                            deviceAdminActive = false
+                            scope.launch { settingsRepository.clearGuardian() }
+                        },
+                        onFailure = {
+                            scope.launch {
+                                settingsRepository.noteGuardianFailure(System.currentTimeMillis())
+                            }
+                        },
+                        onDismiss = { guardianDialog = false },
+                    )
+                } else {
+                    GuardianSetupDialog(
+                        onConfirm = { passwordHash, recoveryHash, _ ->
+                            scope.launch {
+                                settingsRepository.setGuardian(passwordHash, recoveryHash)
+                            }
+                            settingsUnlocked = false
+                            SystemSettings.requestDeviceAdmin(context, adminExplanation)
+                        },
+                        onDismiss = { guardianDialog = false },
+                    )
+                }
             }
 
             if (cheatDialog) {

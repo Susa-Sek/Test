@@ -157,4 +157,47 @@
     <string name="seen_packages_title">Apps seen</string>
     <string name="seen_packages_hint">While recording is on, the service listens to every app — that is how you find out the real package name if a blocker never fires. It only ever blocks the apps it is configured for.</string>
     <string name="seen_packages_empty">Nothing yet. Turn recording on and open the app in question.</string>
+
+    <!-- Guardian lock -->
+    <string name="guardian_admin_label">ShortBlock lock</string>
+    <string name="guardian_admin_description">Stops ShortBlock from being uninstalled while the guardian lock is set. This permission may do nothing more.</string>
+    <string name="guardian_admin_disable_warning">After this ShortBlock can be uninstalled again. The lock inside the app stays.</string>
+    <string name="guardian_admin_explanation">So ShortBlock cannot be uninstalled on impulse. The permission asks for no further rights — it only prevents uninstalling.</string>
+
+    <string name="guardian_section">Guardian lock</string>
+    <string name="guardian_off_title">No lock set</string>
+    <string name="guardian_off_desc">Someone you trust can set a password. After that only they change the blockers and times — you still see them, you just cannot move them.</string>
+    <string name="guardian_on_title">Lock is set</string>
+    <string name="guardian_on_desc">Blockers, times, the cheat and diagnostics need the password.</string>
+    <string name="guardian_admin_on">Uninstall protection active</string>
+    <string name="guardian_admin_off">Uninstall protection off — ShortBlock can be removed normally</string>
+    <string name="guardian_setup">Set up lock</string>
+    <string name="guardian_unlock">Unlock</string>
+    <string name="guardian_unlocked_note">Unlocked until you leave the app.</string>
+    <string name="guardian_lock_now">Lock again</string>
+
+    <string name="guardian_setup_title">Set up lock</string>
+    <string name="guardian_setup_intro">Hand the phone to the person who should set the password. They type it here — you are not meant to see it.</string>
+    <string name="guardian_password">Password</string>
+    <string name="guardian_password_repeat">Repeat password</string>
+    <string name="guardian_mismatch">The two entries do not match.</string>
+    <string name="guardian_too_short">At least %1$d characters.</string>
+    <string name="guardian_honest_title">What the lock can and cannot do</string>
+    <string name="guardian_honest_body">Android refuses to uninstall while the protection is active. To remove the app you must first switch off the device admin under Settings → Security.\n\nIn safe mode, over a USB cable and on a factory reset the app always comes off. This is a hurdle against the 11pm impulse, not a vault.</string>
+
+    <string name="guardian_code_title">Recovery code</string>
+    <string name="guardian_code_intro">Shown once only. Write it on paper and give it to the person with the password — not into this phone. It lifts the lock if the password is lost.</string>
+    <string name="guardian_code_copy">Copy</string>
+    <string name="guardian_code_copied">Copied</string>
+    <string name="guardian_code_confirm">I have written it down</string>
+
+    <string name="guardian_unlock_title">Unlock</string>
+    <string name="guardian_unlock_intro">Enter the password. Or the recovery code — that lifts the lock entirely.</string>
+    <string name="guardian_wrong">Does not match. Attempts: %1$d</string>
+    <string name="guardian_wait">Wait %1$d more seconds.</string>
+    <string name="guardian_remove">Lift lock</string>
+    <string name="guardian_removed">Lock lifted</string>
+    <string name="guardian_locked_hint">Locked — changeable only with the password</string>
+    <string name="guardian_cancel">Cancel</string>
+    <string name="guardian_save">Lock</string>
 </resources>

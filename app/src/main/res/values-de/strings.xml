@@ -149,4 +149,47 @@
     <string name="seen_packages_title">Gesehene Apps</string>
     <string name="seen_packages_hint">Solange die Aufzeichnung läuft, hört der Dienst auf alle Apps — so findest du den echten Paketnamen, wenn ein Blocker nie auslöst. Geblockt wird weiterhin nur, wofür er eingerichtet ist.</string>
     <string name="seen_packages_empty">Noch nichts. Aufzeichnen einschalten und die fragliche App öffnen.</string>
+
+    <!-- Partnersperre -->
+    <string name="guardian_admin_label">ShortBlock-Sperre</string>
+    <string name="guardian_admin_description">Verhindert, dass ShortBlock deinstalliert wird, solange die Partnersperre steht. Mehr darf diese Berechtigung nicht.</string>
+    <string name="guardian_admin_disable_warning">Danach lässt sich ShortBlock wieder deinstallieren. Die Sperre in der App bleibt bestehen.</string>
+    <string name="guardian_admin_explanation">Damit ShortBlock nicht im Impuls deinstalliert werden kann. Die Berechtigung verlangt keine weiteren Rechte — sie verhindert nur die Deinstallation.</string>
+
+    <string name="guardian_section">Partnersperre</string>
+    <string name="guardian_off_title">Keine Sperre gesetzt</string>
+    <string name="guardian_off_desc">Eine Vertrauensperson kann ein Passwort setzen. Danach ändert nur sie die Blocker und Zeiten — du siehst sie weiterhin, kannst sie aber nicht mehr verstellen.</string>
+    <string name="guardian_on_title">Sperre steht</string>
+    <string name="guardian_on_desc">Blocker, Zeiten, Cheat und Diagnose brauchen das Passwort.</string>
+    <string name="guardian_admin_on">Deinstallationsschutz aktiv</string>
+    <string name="guardian_admin_off">Deinstallationsschutz aus — ShortBlock lässt sich normal entfernen</string>
+    <string name="guardian_setup">Sperre einrichten</string>
+    <string name="guardian_unlock">Entsperren</string>
+    <string name="guardian_unlocked_note">Entsperrt, bis du die App verlässt.</string>
+    <string name="guardian_lock_now">Wieder sperren</string>
+
+    <string name="guardian_setup_title">Sperre einrichten</string>
+    <string name="guardian_setup_intro">Gib das Handy jetzt der Person, die das Passwort setzen soll. Sie tippt es hier ein — du sollst es nicht sehen.</string>
+    <string name="guardian_password">Passwort</string>
+    <string name="guardian_password_repeat">Passwort wiederholen</string>
+    <string name="guardian_mismatch">Die beiden Eingaben sind nicht gleich.</string>
+    <string name="guardian_too_short">Mindestens %1$d Zeichen.</string>
+    <string name="guardian_honest_title">Was die Sperre kann und was nicht</string>
+    <string name="guardian_honest_body">Android verweigert die Deinstallation, solange der Schutz aktiv ist. Wer die App loswerden will, muss erst in Einstellungen → Sicherheit den Geräteadmin abschalten.\n\nIm abgesicherten Modus, über ein USB-Kabel und beim Zurücksetzen geht die App immer weg. Das ist eine Hürde gegen den Impuls um 23 Uhr, kein Tresor.</string>
+
+    <string name="guardian_code_title">Wiederherstellungscode</string>
+    <string name="guardian_code_intro">Nur einmal zu sehen. Schreib ihn auf Papier und gib ihn der Person mit dem Passwort — nicht in dieses Handy. Damit lässt sich die Sperre aufheben, wenn das Passwort verloren geht.</string>
+    <string name="guardian_code_copy">Kopieren</string>
+    <string name="guardian_code_copied">Kopiert</string>
+    <string name="guardian_code_confirm">Ich habe ihn notiert</string>
+
+    <string name="guardian_unlock_title">Entsperren</string>
+    <string name="guardian_unlock_intro">Passwort eingeben. Oder den Wiederherstellungscode — der hebt die Sperre ganz auf.</string>
+    <string name="guardian_wrong">Passt nicht. Versuche: %1$d</string>
+    <string name="guardian_wait">Noch %1$d Sekunden warten.</string>
+    <string name="guardian_remove">Sperre aufheben</string>
+    <string name="guardian_removed">Sperre aufgehoben</string>
+    <string name="guardian_locked_hint">Gesperrt — nur mit Passwort änderbar</string>
+    <string name="guardian_cancel">Abbrechen</string>
+    <string name="guardian_save">Sperren</string>
 </resources>

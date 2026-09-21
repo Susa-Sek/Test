@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import de.shortblock.app.service.Feature
 import kotlinx.coroutines.flow.Flow
@@ -34,7 +35,29 @@ data class BlockSettings(
      * [CheatPass] daraus aus. So überlebt eine laufende Wartezeit jedes Abräumen des Dienstes.
      */
     val cheatArmedAtMillis: Long = 0L,
+
+    /**
+     * Die Partnersperre — leer heisst: keine Sperre.
+     *
+     * Gespeichert wird nur der PBKDF2-Wert aus [GuardianLock], nie das Passwort. `allowBackup`
+     * steht im Manifest auf `false`, die Werte verlassen das Gerät also auch nicht über eine
+     * Sicherung.
+     */
+    val guardianHash: String = "",
+    val guardianRecoveryHash: String = "",
+
+    /**
+     * Fehlversuche und wann der letzte war — **persistent**, nicht im Arbeitsspeicher.
+     *
+     * Läge das nur im Speicher, setzte ein Neustart der App die Wartezeit zurück und die Bremse
+     * gegen Raten wäre wertlos. Der Ratende ist hier der Gerätebesitzer selbst.
+     */
+    val guardianFailures: Int = 0,
+    val guardianLastFailureMillis: Long = 0L,
 ) {
+    /** Steht eine Sperre? */
+    val locked: Boolean get() = guardianHash.isNotEmpty()
+
     fun budgetMinutes(feature: Feature): Int = budgets[feature] ?: 0
 
     /**
@@ -130,6 +153,10 @@ class SettingsRepository(context: Context) {
             allowSingleClip = prefs[ALLOW_SINGLE_CLIP] ?: true,
             cheatUsedOnDay = prefs[CHEAT_USED_ON_DAY] ?: 0,
             cheatArmedAtMillis = prefs[CHEAT_ARMED_AT] ?: 0L,
+            guardianHash = prefs[GUARDIAN_HASH] ?: "",
+            guardianRecoveryHash = prefs[GUARDIAN_RECOVERY] ?: "",
+            guardianFailures = prefs[GUARDIAN_FAILURES] ?: 0,
+            guardianLastFailureMillis = prefs[GUARDIAN_LAST_FAILURE] ?: 0L,
         )
     }
 
@@ -170,6 +197,46 @@ class SettingsRepository(context: Context) {
         dataStore.edit { it[DIAGNOSTICS] = enabled }
     }
 
+    /**
+     * Sperre setzen — Passwort und Wiederherstellungscode in **einem** Schreibvorgang.
+     *
+     * Zusammen aus demselben Grund wie beim Cheat: Ein abgebrochener Schreibvorgang dürfte
+     * niemals eine Sperre ohne gültigen Notausgang hinterlassen. Das wäre genau der Zustand,
+     * aus dem niemand mehr herauskommt.
+     */
+    suspend fun setGuardian(passwordHash: String, recoveryHash: String) {
+        dataStore.edit {
+            it[GUARDIAN_HASH] = passwordHash
+            it[GUARDIAN_RECOVERY] = recoveryHash
+            it[GUARDIAN_FAILURES] = 0
+            it[GUARDIAN_LAST_FAILURE] = 0L
+        }
+    }
+
+    /** Sperre ganz aufheben. Die Fehlversuche gehen mit — sonst bremst die nächste Sperre sofort. */
+    suspend fun clearGuardian() {
+        dataStore.edit {
+            it.remove(GUARDIAN_HASH)
+            it.remove(GUARDIAN_RECOVERY)
+            it[GUARDIAN_FAILURES] = 0
+            it[GUARDIAN_LAST_FAILURE] = 0L
+        }
+    }
+
+    suspend fun noteGuardianFailure(nowMillis: Long) {
+        dataStore.edit {
+            it[GUARDIAN_FAILURES] = (it[GUARDIAN_FAILURES] ?: 0) + 1
+            it[GUARDIAN_LAST_FAILURE] = nowMillis
+        }
+    }
+
+    suspend fun clearGuardianFailures() {
+        dataStore.edit {
+            it[GUARDIAN_FAILURES] = 0
+            it[GUARDIAN_LAST_FAILURE] = 0L
+        }
+    }
+
     private companion object {
         val DIAGNOSTICS = booleanPreferencesKey("diagnostics")
         val KEEP_ALIVE = booleanPreferencesKey("keep_alive")
@@ -181,6 +248,10 @@ class SettingsRepository(context: Context) {
         // Bewusst ein neuer Schlüssel: Der alte hielt das Ende, dieser den Beginn. Ein beim
         // Update laufender Cheat geht verloren — fünf Minuten, einmalig, keine Migration wert.
         val CHEAT_ARMED_AT = longPreferencesKey("cheat_armed_at")
+        val GUARDIAN_HASH = stringPreferencesKey("guardian_hash")
+        val GUARDIAN_RECOVERY = stringPreferencesKey("guardian_recovery")
+        val GUARDIAN_FAILURES = intPreferencesKey("guardian_failures")
+        val GUARDIAN_LAST_FAILURE = longPreferencesKey("guardian_last_failure")
         fun budgetKey(feature: Feature) = intPreferencesKey("budget_${feature.name}")
         fun key(feature: Feature) = booleanPreferencesKey("feature_${feature.name}")
     }

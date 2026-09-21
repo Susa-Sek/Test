@@ -46,6 +46,26 @@
                 android:value="Keeps the accessibility blocker alive against aggressive OEM process killing" />
         </service>
 
+        <!--
+          Die Partnersperre. Ein aktiver Geräteadministrator lässt sich nicht deinstallieren —
+          mehr will dieser Receiver nicht, und er verlangt deshalb auch keine einzige Richtlinie
+          (siehe res/xml/device_admin.xml). Er wird erst aktiv, wenn jemand die Sperre
+          einrichtet, und beim Aufheben wieder entfernt.
+        -->
+        <receiver
+            android:name=".system.GuardianDeviceAdmin"
+            android:exported="true"
+            android:description="@string/guardian_admin_description"
+            android:label="@string/guardian_admin_label"
+            android:permission="android.permission.BIND_DEVICE_ADMIN">
+            <meta-data
+                android:name="android.app.device_admin"
+                android:resource="@xml/device_admin" />
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+            </intent-filter>
+        </receiver>
+
         <service
             android:name=".service.BlockerAccessibilityService"
             android:exported="true"

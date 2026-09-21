@@ -1,6 +1,7 @@
 package de.shortblock.app.system
 
 import android.accessibilityservice.AccessibilityServiceInfo
+import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -56,6 +57,42 @@ object SystemSettings {
         if (!start(context, direct)) {
             start(context, Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
         }
+    }
+
+    // --- Partnersperre: Geräteadministrator ---------------------------------------------
+    //
+    // Der Deinstallationsschutz. Android verweigert die Deinstallation, solange ein Admin aktiv
+    // ist — deshalb reicht [GuardianDeviceAdmin] ohne jede Richtlinie.
+
+    private fun adminComponent(context: Context) =
+        ComponentName(context.packageName, GuardianDeviceAdmin::class.java.name)
+
+    fun isDeviceAdminActive(context: Context): Boolean {
+        val policy = context.getSystemService(DevicePolicyManager::class.java) ?: return false
+        return runCatching { policy.isAdminActive(adminComponent(context)) }.getOrDefault(false)
+    }
+
+    /**
+     * Fragt den Admin an. Bestätigen muss ihn der Nutzer im Systemdialog — das kann keine App
+     * für ihn tun, und das ist auch richtig so.
+     */
+    fun requestDeviceAdmin(context: Context, explanation: String): Boolean = start(
+        context,
+        Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
+            .putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponent(context))
+            .putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, explanation),
+    )
+
+    /**
+     * Gibt den Admin wieder frei — nur beim Aufheben der Sperre aufzurufen.
+     *
+     * Das darf die App selbst, ohne Systemdialog. Solange eine Sperre steht, bietet die
+     * Oberfläche es deshalb gar nicht erst an: Sonst wäre der Deinstallationsschutz mit einem
+     * Tipp in derselben App wieder weg, die ihn verspricht.
+     */
+    fun removeDeviceAdmin(context: Context) {
+        val policy = context.getSystemService(DevicePolicyManager::class.java) ?: return
+        runCatching { policy.removeActiveAdmin(adminComponent(context)) }
     }
 
     /** Gibt zurück, ob die Seite geöffnet werden konnte — Hersteller-ROMs lassen einzelne weg. */

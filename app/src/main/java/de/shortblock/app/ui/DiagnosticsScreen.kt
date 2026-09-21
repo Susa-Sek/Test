@@ -38,6 +38,8 @@ import de.shortblock.app.ui.components.SettingRow
 @Composable
 fun DiagnosticsScreen(
     recording: Boolean,
+    /** Steht die Partnersperre, bleibt der Aufzeichnen-Schalter sichtbar, aber grau. */
+    canChangeRecording: Boolean,
     entries: List<String>,
     blockLog: List<BlockLog.Entry>,
     seenPackages: List<String>,
@@ -92,6 +94,7 @@ fun DiagnosticsScreen(
                     description = stringResource(R.string.diagnostics_hint),
                     checked = recording,
                     onCheckedChange = onToggleRecording,
+                    enabled = canChangeRecording,
                 )
             }
         }

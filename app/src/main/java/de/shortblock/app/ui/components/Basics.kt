@@ -98,13 +98,29 @@ fun SettingRow(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * Steht die Partnersperre, ist die Zeile **sichtbar, aber nicht bedienbar**.
+     *
+     * Bewusst nicht ausgeblendet: Man soll sehen, was eingestellt ist — ändern eben nicht. Eine
+     * Sperre, die Einstellungen versteckt, wirkt wie ein Fehler; eine, die sie grau zeigt,
+     * erklärt sich selbst. Der Vorgabewert hält alle bestehenden Aufrufstellen unverändert.
+     */
+    enabled: Boolean = true,
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f).padding(end = 12.dp)) {
-            Text(text = title, style = MaterialTheme.typography.titleSmall)
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                color = if (enabled) {
+                    MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+            )
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodySmall,
@@ -112,6 +128,6 @@ fun SettingRow(
                 modifier = Modifier.padding(top = 3.dp),
             )
         }
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
+        Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
     }
 }
