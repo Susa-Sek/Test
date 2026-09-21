@@ -27,10 +27,10 @@
     <string name="service_inactive_hint">Open setup</string>
     <string name="toggle_reels_title">Block Instagram Reels</string>
     <string name="toggle_reels_desc">Closes the Reels viewer — from the tab, Explore, a DM or the browser. Stories stay untouched.</string>
-    <string name="toggle_feed_title">Instagram: block the For You feed</string>
+    <string name="toggle_feed_title">Instagram: remind me to use “Following”</string>
     <string name="toggle_explore_title">Instagram: Explore grid</string>
     <string name="toggle_explore_desc">Leaves the suggestion grid behind the magnifier. Search stays usable — you get a few seconds to tap the search field.</string>
-    <string name="toggle_feed_desc">Forces the chronological “Following” feed and stops at the end of it, before the suggested posts start.</string>
+    <string name="toggle_feed_desc">Gives a short reminder when the “For you” feed is in front — switching is up to you. At the end of the “Following” feed, before the suggestions start, the app closes Instagram.</string>
     <string name="toggle_shorts_title">Block YouTube Shorts</string>
     <string name="toggle_shorts_desc">Closes the Shorts player, the Shorts tab and youtube.com/shorts in the browser. Normal videos, search and subscriptions keep working.</string>
     <string name="group_general">General</string>
@@ -149,8 +149,7 @@
 
     <!-- Service toasts -->
     <string name="toast_explore_blocked">Explore is all suggestions</string>
-    <string name="feed_wall_line">This is the “For you” feed</string>
-    <string name="feed_wall_hint">Tap the title at the top and pick “Following”.</string>
+    <string name="feed_reminder">This is the “For you” feed — tap the title at the top and pick “Following”.</string>
     <string name="toast_feed_end">End of the Following feed</string>
     <string name="overridden_by_tiktok_all">No effect while TikTok is blocked completely</string>
     <string name="fyp_during_tiktok_budget">Applies during the allowed TikTok minutes</string>

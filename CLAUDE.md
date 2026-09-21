@@ -132,22 +132,26 @@ nicht mehr benutzen; wer ein Reel zu viel sieht, ärgert sich kurz. Im Zweifel n
   Stand die neue Beschriftung nicht in `FOLLOWING_TITLES`, hielt die App den umgeschalteten
   Feed für einen unbekannten Titel und tat gar nichts mehr — auch das Feed-Ende feuerte nie.
   Fehlte sie in den Menüeinträgen, öffnete die App das Menü und fand nichts zum Antippen.
-- **Instagram wird seit v0.11 gesperrt, nicht umgeschaltet.** Der alte Weg — Titel antippen,
-  Menü lesen, Eintrag antippen — hing an Instagrams Menüaufbau und ist dreimal gebrochen;
-  jedes Mal war der Filter danach still wirkungslos. `FeedDecision.BlockFeed` zieht
-  stattdessen die Wand hoch. Das braucht nur den Titeltext, und der hat alle drei Umbauten
-  überlebt. **TikTok schaltet weiterhin um** (`ChooseFollowing`): Dessen Tab-Leiste ist stabil,
-  und beide Policies teilen sich `FeedDecision`.
-- **Die Wand lässt die Kopfzeile frei.** `BlockFeed.headerBottomPx` kommt aus den Bounds des
-  Titelknotens, ersatzweise aus `HEADER_FRACTION`. Eine Wand ab 0 verdeckt genau den
-  Umschalter, den sie verlangt — dann sitzt der Nutzer fest.
-- **Kopfzeile mit beiden Beschriftungen heisst: nichts tun.** Stehen „Für dich" und „Gefolgt"
-  nebeneinander, ist es eine Tab-Leiste ohne gemeldeten Auswahlzustand. Welcher Feed vorne
-  ist, sagt der Text dann nicht. Seit die App sperrt statt zu tippen, wiegt der Fehlgriff
-  schwerer: Eine Wand über dem gefolgten Feed nähme etwas weg, das erlaubt sein soll.
-- **Die Wand braucht einen Wächter.** Bleibt die Bestätigung `WALL_STALE_MS` lang aus,
-  verschwindet sie von selbst. Ohne das stünde sie nach einem Ereignis-Aussetzer über einer
-  fremden App, und die einzige Rettung wäre ein Neustart.
+- **Kein Fenster, das Berührungen schluckt — die Wand ist raus und darf nicht wiederkommen.**
+  v0.11 legte über den „Für dich"-Feed ein Overlay ohne `FLAG_NOT_TOUCHABLE`. Es blieb nach
+  dem Verlassen von Instagram über fremden Apps stehen und machte das Gerät unbenutzbar. Das
+  ist schlimmer als jeder Fehlalarm: Ein falscher Block wirft dich aus einer App, ein hängendes
+  Fenster nimmt dir das Gerät. Seit v0.13 wird bei Instagram nur noch **erinnert**
+  (`FeedDecision.RemindToSwitch`), und die Erinnerung räumt sich über `postDelayed(::hide)`
+  immer selbst ab. **TikTok schaltet weiterhin um** (`ChooseFollowing`) — dessen Tab-Leiste ist
+  stabil, und beide Policies teilen sich `FeedDecision`.
+- **Eine Zusicherung, die an einem Ereignis hängt, gilt nur so weit wie der Ereignisempfang.**
+  Das ist die Lehre aus der hängenden Wand, und sie ist allgemein. `resetFeedState()` räumte
+  die Wand beim Paketwechsel ab und trug den Kommentar „Wer Instagram verlässt, soll die Wand
+  nicht über der nächsten App wiederfinden". Nur läuft das in `onAccessibilityEvent`, und der
+  Dienst ist über `packageNames` auf die überwachten Apps beschränkt — **beim Wechsel auf den
+  Startbildschirm oder irgendeine andere App kommt gar kein Ereignis**. Der Kommentar behauptete
+  eine Absicherung, die es nie gab. Wer etwas baut, das aufgeräumt werden muss, sobald der
+  Nutzer eine überwachte App verlässt, darf sich dafür nicht auf ein Ereignis verlassen.
+- **Ein Wächter im Herzschlag ist kein Wächter.** `WALL_STALE_MS` versprach 30 Sekunden, aber
+  `dropStaleFeedWall()` lief nur aus `startHeartbeat()` — `delay(5 min)` in einer Koroutine,
+  also genau der Timer, den Doze aussetzt. Die versprochene Zeit und die tatsächliche
+  Prüffrequenz müssen zusammenpassen, sonst ist die Zusage Dekoration.
 - **Explore hat keinen „Folge ich"-Schalter.** Deshalb wird dort nicht umgeschaltet wie im
   Startfeed, sondern verlassen. `ExplorePolicy` fällt bewusst **nicht** auf „Lupen-Tab ist
   ausgewählt" zurück, wenn keine Raster-Kennung passt: Dieser Rückfall würde auf einer

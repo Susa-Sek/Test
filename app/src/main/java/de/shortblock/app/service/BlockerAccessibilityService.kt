@@ -112,10 +112,8 @@ class BlockerAccessibilityService : AccessibilityService() {
     /** Seit wann das Explore-Raster vorne steht; 0 heisst: steht es nicht. */
     private var exploreSince = 0L
 
-    private val feedWall by lazy { FeedWall(this) }
-
-    /** Wann die Wand zuletzt bestätigt wurde — Grundlage für [dropStaleFeedWall]. */
-    private var feedWallSeenAt = 0L
+    /** Steht der „Für dich“-Feed gerade vorne? Nur zum Zählen, nicht zum Eingreifen. */
+    private var forYouActive = false
 
     /**
      * Weckt die Bedienungshilfe beim Entsperren.
@@ -195,9 +193,6 @@ class BlockerAccessibilityService : AccessibilityService() {
             delay(HEARTBEAT_INTERVAL_MS)
             refreshServiceInfo()
             flushBudget(force = true)
-            // Muss hier laufen und nicht im Ereignispfad: Eine hängende Wand ist genau der
-            // Fall, in dem keine Ereignisse mehr kommen.
-            dropStaleFeedWall()
         }
     }
 
@@ -509,62 +504,44 @@ class BlockerAccessibilityService : AccessibilityService() {
         }
     }
 
+    /**
+     * Der „Für dich“-Feed — seit v0.13 wird nur noch erinnert.
+     *
+     * Bis v0.12 zog hier eine Wand über den Feed. Die blieb nach dem Verlassen von Instagram
+     * über fremden Apps stehen und machte das Gerät unbenutzbar: Abgeräumt wurde sie nur im
+     * Ereignispfad, und aus einer nicht überwachten App kommt **kein** Ereignis. Es gibt in
+     * dieser App deshalb kein Fenster mehr, das Berührungen schluckt.
+     *
+     * [showReminder] ist über `REMINDER_COOLDOWN_MS` gedrosselt — ohne das käme die Erinnerung
+     * im Scan-Takt von 150 ms.
+     */
     private fun handleInstagramFeed(root: UiNode) {
         when (val decision = FeedPolicy.evaluate(root)) {
             FeedDecision.Idle,
             FeedDecision.AlreadyFiltered,
-            -> lowerFeedWall()
+            -> forYouActive = false
 
-            is FeedDecision.BlockFeed -> raiseFeedWall(decision.headerBottomPx)
+            FeedDecision.RemindToSwitch -> {
+                // Einmal je Eintritt in den Feed zählen, nicht bei jedem Baum-Scan. Ohne diese
+                // Unterscheidung stünde nach einer Minute im Feed eine dreistellige Zahl in der
+                // Statistik, und die Zahl wäre wertlos. (Vorher leistete das `wasDown`.)
+                if (!forYouActive) {
+                    forYouActive = true
+                    BlockLog.record("ig_feed_for_you", "erinnert")
+                    scope.launch { statsRepository.increment(Feature.INSTAGRAM_FEED) }
+                }
+                showReminder(getString(R.string.feed_reminder))
+            }
 
             // Liefert FeedPolicy für Instagram nicht mehr; der Zweig gehört TikTok.
             is FeedDecision.ChooseFollowing -> Unit
 
             is FeedDecision.EndOfFeed -> {
-                lowerFeedWall()
                 BlockLog.record("ig_feed_end", decision.marker)
                 toast(R.string.toast_feed_end)
                 blockAndGoBack(Feature.INSTAGRAM_FEED)
             }
         }
-    }
-
-    /**
-     * Wand hoch — und gezählt wird nur beim Hochziehen, nicht bei jedem Baum-Scan.
-     *
-     * Ohne diese Unterscheidung stünde nach einer Minute im Feed eine dreistellige Blockzahl
-     * in der Statistik, und die Zahl wäre wertlos.
-     */
-    private fun raiseFeedWall(topPx: Int) {
-        val wasDown = !feedWall.isShowing
-        if (!feedWall.show(topPx)) return
-
-        feedWallSeenAt = SystemClock.uptimeMillis()
-        if (wasDown) {
-            BlockLog.record("ig_feed_wall", "top=$topPx")
-            scope.launch { statsRepository.increment(Feature.INSTAGRAM_FEED) }
-        }
-    }
-
-    private fun lowerFeedWall() {
-        if (!feedWall.isShowing) return
-        feedWall.hide()
-        feedWallSeenAt = 0L
-    }
-
-    /**
-     * Wächter gegen eine hängende Wand.
-     *
-     * Der teuerste denkbare Fehler dieser Sperre ist eine Wand, die stehenbleibt, obwohl
-     * Instagram längst weg ist — etwa weil der Dienst keine Ereignisse mehr bekommt. Bleibt
-     * die Bestätigung [WALL_STALE_MS] lang aus, verschwindet sie von selbst; beim nächsten
-     * „Für dich“ kommt sie zurück. Ein Fehlalarm ist teurer als eine Lücke.
-     */
-    private fun dropStaleFeedWall() {
-        if (!feedWall.isShowing) return
-        if (SystemClock.uptimeMillis() - feedWallSeenAt < WALL_STALE_MS) return
-        BlockLog.record("ig_feed_wall_stale", "")
-        lowerFeedWall()
     }
 
     /**
@@ -630,20 +607,23 @@ class BlockerAccessibilityService : AccessibilityService() {
      * Ein Popup in diesem Takt wäre unerträglich — und wer eine Meldung wegwischt, ohne sie zu
      * lesen, liest auch die nächste nicht. Dazwischen wird still geblockt wie bisher.
      */
-    private fun showReminder() {
+    private fun showReminder(explicitLine: String? = null) {
         val now = SystemClock.uptimeMillis()
         if (now - lastReminderAt < REMINDER_COOLDOWN_MS) return
         lastReminderAt = now
 
-        val lines = resources.getStringArray(R.array.reminder_lines)
-        val index = Reminders.next(lines.size, lastReminderIndex)
-        if (index !in lines.indices) return
-        lastReminderIndex = index
+        val line = explicitLine ?: run {
+            val lines = resources.getStringArray(R.array.reminder_lines)
+            val index = Reminders.next(lines.size, lastReminderIndex)
+            if (index !in lines.indices) return
+            lastReminderIndex = index
+            lines[index]
+        }
 
         // Der Cheat-Hinweis nur, solange er auch einzulösen ist. Ein Angebot, das nicht gilt,
         // macht aus der Erinnerung eine Verhöhnung.
         val detail = if (cheatIsFree()) getString(R.string.overlay_cheat_hint) else null
-        if (overlay?.show(lines[index], detail) != true) toast(R.string.toast_blocked)
+        if (overlay?.show(line, detail) != true) toast(R.string.toast_blocked)
     }
 
     /**
@@ -722,9 +702,7 @@ class BlockerAccessibilityService : AccessibilityService() {
         // mehr an, sperrt stattdessen.
         feedSwitchAttempts = 0
         manualSwitchHintShown = false
-        // Auch beim Paketwechsel gerufen: Wer Instagram verlässt, soll die Wand nicht
-        // über der nächsten App wiederfinden.
-        lowerFeedWall()
+        forYouActive = false
     }
 
     private fun toast(messageRes: Int) {
@@ -741,7 +719,6 @@ class BlockerAccessibilityService : AccessibilityService() {
     override fun onDestroy() {
         runCatching { unregisterReceiver(wakeReceiver) }
         runCatching { accessibilityButtonController.unregisterAccessibilityButtonCallback(cheatButton) }
-        lowerFeedWall()
         overlay?.hide()
         overlay = null
         flushBudget(force = true, detached = true)
@@ -767,7 +744,6 @@ class BlockerAccessibilityService : AccessibilityService() {
          * jemand liest. Aber lang genug ist sie nie, dass eine vergessene Wand über einer
          * anderen App zum Problem wird — beim nächsten Blick ist sie weg.
          */
-        const val WALL_STALE_MS = 30_000L
         const val HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000L
         const val REMINDER_COOLDOWN_MS = 20_000L
     }

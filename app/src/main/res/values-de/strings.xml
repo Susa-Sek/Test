@@ -22,10 +22,10 @@
     <string name="service_inactive_hint">Einrichtung öffnen</string>
     <string name="toggle_reels_title">Instagram Reels blocken</string>
     <string name="toggle_reels_desc">Schließt den Reels-Viewer — aus dem Tab, aus Explore, aus einer DM oder aus dem Browser. Stories bleiben unangetastet.</string>
-    <string name="toggle_feed_title">Instagram: „Für dich“-Feed blocken</string>
+    <string name="toggle_feed_title">Instagram: an „Gefolgt“ erinnern</string>
     <string name="toggle_explore_title">Instagram: Explore-Raster</string>
     <string name="toggle_explore_desc">Verlässt das Vorschlagsraster hinter der Lupe. Die Suche bleibt nutzbar — für den Griff zum Suchfeld bleiben ein paar Sekunden.</string>
-    <string name="toggle_feed_desc">Erzwingt den chronologischen „Folge ich“-Feed und stoppt an dessen Ende, bevor die Vorschläge anfangen.</string>
+    <string name="toggle_feed_desc">Erinnert kurz, wenn der „Für dich“-Feed vorne steht — umschalten musst du selbst. Am Ende des „Gefolgt“-Feeds, bevor die Vorschläge anfangen, schliesst die App Instagram.</string>
     <string name="toggle_shorts_title">YouTube Shorts blocken</string>
     <string name="toggle_shorts_desc">Schließt den Shorts-Player, den Shorts-Tab und youtube.com/shorts im Browser. Normale Videos, Suche und Abos funktionieren weiter.</string>
     <string name="group_general">Allgemein</string>
@@ -141,8 +141,7 @@
 
     <!-- Service-Toasts -->
     <string name="toast_explore_blocked">Auf Explore ist alles Vorschlag</string>
-    <string name="feed_wall_line">Das ist der „Für dich“-Feed</string>
-    <string name="feed_wall_hint">Tipp oben auf den Titel und wähle „Gefolgt“.</string>
+    <string name="feed_reminder">Das ist der „Für dich“-Feed — tipp oben auf den Titel und wähle „Gefolgt“.</string>
     <string name="toast_feed_end">Ende des „Folge ich“-Feeds</string>
     <string name="overridden_by_tiktok_all">Greift nicht, solange TikTok ganz gesperrt ist</string>
     <string name="fyp_during_tiktok_budget">Gilt während der erlaubten TikTok-Minuten</string>

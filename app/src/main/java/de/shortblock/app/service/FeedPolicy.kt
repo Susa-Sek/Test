@@ -15,19 +15,24 @@ sealed interface FeedDecision {
      * Das Menü bzw. die Tab-Leiste ist offen: den Eintrag „Folge ich“ antippen.
      *
      * Nur noch von [TikTokPolicy] benutzt. TikToks Tab-Leiste ist seit Jahren stabil, dort
-     * lohnt das Umschalten weiterhin; Instagram sperrt stattdessen (siehe [BlockFeed]).
+     * lohnt das Umschalten weiterhin; bei Instagram wird nur erinnert (siehe [RemindToSwitch]).
      */
     data class ChooseFollowing(val node: UiNode) : FeedDecision
 
     /**
-     * Algorithmischer Feed aktiv: die Wand hochziehen, ab [headerBottomPx] abwärts.
+     * Algorithmischer Feed aktiv — **erinnern, nicht festhalten**.
      *
-     * Bis v0.10.2 stand hier stattdessen „Titel antippen“ und „Menüeintrag antippen“. Dieser
-     * Weg hing an Instagrams Menüaufbau und ist dreimal gebrochen — jedes Mal war der Filter
-     * danach still wirkungslos. Gesperrt wird jetzt, statt umzuschalten: Das braucht nur den
-     * Titeltext, und der hat alle drei Umbauten überlebt.
+     * Die Geschichte dieser Zeile ist eine Kette von Fehlschlägen, und das Ergebnis ist
+     * bewusst bescheiden. Bis v0.10.2 stand hier „Titel antippen, Menüeintrag antippen“; das
+     * hing an Instagrams Menüaufbau und ist dreimal gebrochen, jedes Mal war der Filter danach
+     * still wirkungslos. v0.11 zog stattdessen eine Wand über den Feed — und die blieb nach
+     * dem Verlassen von Instagram über fremden Apps stehen und machte das Gerät unbenutzbar.
+     *
+     * Deshalb jetzt nur noch eine kurze Erinnerung, die sich selbst abräumt. Sie hält niemanden
+     * fest und kann nichts blockieren. **Wer hier wieder etwas einbaut, das Berührungen
+     * schluckt, wiederholt den teuersten Fehler dieser App.**
      */
-    data class BlockFeed(val headerBottomPx: Int) : FeedDecision
+    data object RemindToSwitch : FeedDecision
 
     /** Ende des „Folge ich“-Feeds erreicht, ab hier kommen wieder Fremd-Inhalte. */
     data class EndOfFeed(val marker: String) : FeedDecision
@@ -84,27 +89,12 @@ object FeedPolicy {
         }
 
         if (Rules.InstagramFeed.ALGORITHMIC_TITLES.none { titleLabel == it }) {
-            // Unbekannter Titel — vermutlich ein neues Layout. Lieber nichts tun als eine
-            // Wand über einen Bildschirm zu legen, den niemand eingeordnet hat.
+            // Unbekannter Titel — vermutlich ein neues Layout. Lieber nichts tun als auf einem
+            // Bildschirm zu reagieren, den niemand eingeordnet hat.
             return FeedDecision.Idle
         }
 
-        return FeedDecision.BlockFeed(wallTopFor(root, title))
-    }
-
-    /**
-     * Wo die Wand anfängt: direkt unter der Kopfzeile.
-     *
-     * Die Kopfzeile muss frei bleiben, sonst käme niemand mehr an den Umschalter und säße
-     * fest. Fehlen die Bounds des Titelknotens, gilt [HEADER_FRACTION] — eine Wand ab 0 wäre
-     * der schlimmste Ausgang: Sie verdeckt genau den Ausweg, den sie verlangt.
-     */
-    private fun wallTopFor(root: UiNode, title: UiNode): Int {
-        title.bounds?.bottom?.takeIf { it > 0 }?.let { return it }
-
-        val windowTop = root.bounds?.top ?: 0
-        val height = (root.bounds?.bottom ?: 0) - windowTop
-        return windowTop + (height * HEADER_FRACTION).toInt()
+        return FeedDecision.RemindToSwitch
     }
 
     /**
@@ -148,7 +138,7 @@ object FeedPolicy {
         }
         if (forYou == null || !forYou.isSelected) return FeedDecision.Idle
 
-        return FeedDecision.BlockFeed(wallTopFor(root, forYou))
+        return FeedDecision.RemindToSwitch
     }
 
     private fun findTab(root: UiNode, labels: List<String>): UiNode? =

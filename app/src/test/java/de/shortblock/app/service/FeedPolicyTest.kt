@@ -45,12 +45,12 @@ class FeedPolicyTest {
                 igNode(id = "action_bar_title", text = "Instagram"),
             ),
         )
-        assertTrue(FeedPolicy.evaluate(onHome) is FeedDecision.BlockFeed)
+        assertTrue(FeedPolicy.evaluate(onHome) == FeedDecision.RemindToSwitch)
     }
 
     @Test
     fun `algorithmic feed raises the wall`() {
-        assertTrue(FeedPolicy.evaluate(feed("Instagram")) is FeedDecision.BlockFeed)
+        assertTrue(FeedPolicy.evaluate(feed("Instagram")) == FeedDecision.RemindToSwitch)
     }
 
     @Test
@@ -119,7 +119,7 @@ class FeedPolicyTest {
             "Instagram",
             extra = listOf(igNode(id = "row_text", text = "Vorgeschlagene Beiträge")),
         )
-        assertTrue(FeedPolicy.evaluate(suggested) is FeedDecision.BlockFeed)
+        assertTrue(FeedPolicy.evaluate(suggested) == FeedDecision.RemindToSwitch)
     }
 
     @Test
@@ -143,10 +143,10 @@ class FeedPolicyTest {
     )
 
     @Test
-    fun `for you tab selected raises the wall`() {
-        assertTrue(
-            FeedPolicy.evaluate(tabs(forYouSelected = true, followingSelected = false))
-                is FeedDecision.BlockFeed,
+    fun `for you tab selected asks to switch`() {
+        assertEquals(
+            FeedDecision.RemindToSwitch,
+            FeedPolicy.evaluate(tabs(forYouSelected = true, followingSelected = false)),
         )
     }
 
@@ -223,7 +223,7 @@ class FeedPolicyTest {
     @Test
     fun `a centered header without any known view id raises the wall`() {
         val decision = FeedPolicy.evaluate(centeredHeader("Für dich"))
-        assertTrue(decision is FeedDecision.BlockFeed)
+        assertTrue(decision == FeedDecision.RemindToSwitch)
     }
 
     @Test
@@ -291,7 +291,7 @@ class FeedPolicyGefolgtTest {
         // ein spaeterer Rueckbau auf Antippen nicht unbemerkt den alten Fehler mitbringt.
         assertTrue(
             "Ohne offenes Menü darf nichts angetippt werden, war $decision",
-            decision is FeedDecision.BlockFeed,
+            decision == FeedDecision.RemindToSwitch,
         )
     }
 
@@ -322,7 +322,7 @@ class FeedPolicyGefolgtTest {
         // darf die Sperre nicht aushebeln.
         val root = feedRoot(header("Für dich"), igNode(text = "Folge ich"))
 
-        assertTrue(FeedPolicy.evaluate(root) is FeedDecision.BlockFeed)
+        assertTrue(FeedPolicy.evaluate(root) == FeedDecision.RemindToSwitch)
     }
 }
 
@@ -358,7 +358,7 @@ class FeedPolicyFallbackTest {
 
         assertTrue(
             "Weg 1 fand einen Titelknoten ohne eigenen Text und kappte die Kette; war $decision",
-            decision is FeedDecision.BlockFeed,
+            decision == FeedDecision.RemindToSwitch,
         )
     }
 
@@ -374,7 +374,7 @@ class FeedPolicyFallbackTest {
 
         assertTrue(
             "Der Tab-Weg hätte greifen müssen; war $decision",
-            decision is FeedDecision.BlockFeed,
+            decision == FeedDecision.RemindToSwitch,
         )
     }
 
@@ -388,10 +388,14 @@ class FeedPolicyFallbackTest {
 }
 
 /**
- * Wo die Wand anfängt. Die Kopfzeile muss frei bleiben — eine Wand ab 0 verdeckt genau den
- * Umschalter, den sie verlangt, und sperrt den Nutzer aus.
+ * Der Feed-Filter erinnert, er sperrt nicht.
+ *
+ * Diese Klasse hiess bis v0.12 `FeedWallTopTest` und prüfte, wo die Wand anfängt. Die Wand ist
+ * raus: Sie blieb nach dem Verlassen von Instagram über fremden Apps stehen und machte das
+ * Gerät unbenutzbar. Geblieben ist die Erkennung — und die Zusicherung, dass aus ihr nichts
+ * mehr folgt, was den Bildschirm festhält.
  */
-class FeedWallTopTest {
+class FeedReminderTest {
 
     private fun feedRoot(vararg children: FakeNode) = igNode(
         id = "root",
@@ -399,20 +403,20 @@ class FeedWallTopTest {
     )
 
     @Test
-    fun `the wall starts at the bottom edge of the header`() {
+    fun `the for you feed only asks to switch`() {
         val root = feedRoot(
             igNode(id = "action_bar_title", text = "Für dich", bounds = NodeBounds(0, 100, 1080, 264)),
         )
 
-        val decision = FeedPolicy.evaluate(root)
-
-        assertTrue(decision is FeedDecision.BlockFeed)
-        assertEquals(264, (decision as FeedDecision.BlockFeed).headerBottomPx)
+        assertEquals(FeedDecision.RemindToSwitch, FeedPolicy.evaluate(root))
     }
 
+    /**
+     * Fehlende Bounds waren früher der gefährlichste Ausgang — eine Wand ab 0 deckte den
+     * Umschalter mit ab. Ohne Wand ist die Entscheidung dieselbe wie mit Bounds.
+     */
     @Test
-    fun `without bounds it falls back below the header, never to zero`() {
-        // Der gefaehrlichste Ausgang: Eine Wand ab 0 deckt den Umschalter mit ab.
+    fun `missing bounds change nothing any more`() {
         val root = igNode(
             id = "root",
             bounds = NodeBounds(0, 0, 1080, 2400),
@@ -422,15 +426,11 @@ class FeedWallTopTest {
             ),
         )
 
-        val decision = FeedPolicy.evaluate(root)
-
-        assertTrue(decision is FeedDecision.BlockFeed)
-        val top = (decision as FeedDecision.BlockFeed).headerBottomPx
-        assertTrue("Wand begann bei $top — das verdeckt den Umschalter", top >= 400)
+        assertEquals(FeedDecision.RemindToSwitch, FeedPolicy.evaluate(root))
     }
 
     @Test
-    fun `the followed feed raises no wall`() {
+    fun `the followed feed is left alone`() {
         assertEquals(
             FeedDecision.AlreadyFiltered,
             FeedPolicy.evaluate(feedRoot(igNode(id = "action_bar_title", text = "Gefolgt"))),
