@@ -142,6 +142,7 @@
     <!-- Service-Toasts -->
     <string name="toast_explore_blocked">Auf Explore ist alles Vorschlag</string>
     <string name="feed_reminder">Das ist der „Für dich“-Feed — tipp oben auf den Titel und wähle „Gefolgt“.</string>
+    <string name="toast_feed_left">Der „Für dich“-Feed lässt dich nicht los — Instagram ist jetzt zu.</string>
     <string name="toast_feed_end">Ende des „Folge ich“-Feeds</string>
     <string name="overridden_by_tiktok_all">Greift nicht, solange TikTok ganz gesperrt ist</string>
     <string name="fyp_during_tiktok_budget">Gilt während der erlaubten TikTok-Minuten</string>

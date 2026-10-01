@@ -1,6 +1,8 @@
 package de.shortblock.app.service
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -435,5 +437,95 @@ class FeedReminderTest {
             FeedDecision.AlreadyFiltered,
             FeedPolicy.evaluate(feedRoot(igNode(id = "action_bar_title", text = "Gefolgt"))),
         )
+    }
+}
+
+/**
+ * Das Ziel für den Tipp auf „Gefolgt“.
+ *
+ * Hier sitzt der teuerste Fehlgriff der ganzen App: „Gefolgt“ steht bei Instagram auch als
+ * Knopf unter jedem fremden Profil. Ein Tipp darauf **entfolgt jemanden**, und das merkt man
+ * erst Wochen später — es gibt keine Rückmeldung und kein Rückgängig.
+ */
+class FollowingTabToTapTest {
+
+    private val window = NodeBounds(0, 0, 1080, 2400)
+
+    /** Oberste 20 % des Fensters — dort und nur dort darf getippt werden. */
+    private val inHeader = NodeBounds(40, 120, 400, 300)
+    private val belowHeader = NodeBounds(40, 900, 400, 1000)
+
+    private fun screen(vararg children: FakeNode) =
+        igNode(id = "root", bounds = window, children = children.toList())
+
+    @Test
+    fun `the tab in the header is a valid target`() {
+        val root = screen(igNode(text = "Gefolgt", bounds = inHeader))
+
+        assertNotNull(FeedPolicy.followingTabToTap(root))
+    }
+
+    @Test
+    fun `the unambiguous label works too`() {
+        val root = screen(igNode(text = "Folge ich", bounds = inHeader))
+
+        assertNotNull(FeedPolicy.followingTabToTap(root))
+    }
+
+    /**
+     * Der Test, um den es hier geht.
+     *
+     * Auf einer Profilseite steht „Gefolgt“ als Knopf mitten auf dem Schirm. Er darf nie als
+     * Ziel geliefert werden — sonst entfolgt die App beim Umschalten des Feeds einen Account.
+     */
+    @Test
+    fun `a follow button in the middle of the screen is never a target`() {
+        val root = screen(igNode(text = "Gefolgt", bounds = belowHeader))
+
+        assertNull(
+            "Ein „Gefolgt“-Knopf ausserhalb der Kopfzeile darf nie angetippt werden",
+            FeedPolicy.followingTabToTap(root),
+        )
+    }
+
+    /** Und auch dann nicht, wenn zusätzlich ein echter Tab oben steht — geliefert wird der obere. */
+    @Test
+    fun `with both present the header node wins`() {
+        val root = screen(
+            igNode(text = "Gefolgt", bounds = belowHeader),
+            igNode(text = "Gefolgt", bounds = inHeader),
+        )
+
+        val target = FeedPolicy.followingTabToTap(root)
+
+        assertNotNull(target)
+        assertEquals(inHeader, target?.bounds)
+    }
+
+    /** Ohne Fenstermasse lässt sich die Kopfzeile nicht bestimmen — dann gar nichts tun. */
+    @Test
+    fun `without window bounds nothing is offered`() {
+        val root = igNode(
+            id = "root",
+            bounds = null,
+            children = listOf(igNode(text = "Gefolgt", bounds = inHeader)),
+        )
+
+        assertNull(FeedPolicy.followingTabToTap(root))
+    }
+
+    /** Ein Knoten ohne eigene Bounds ist nicht einzuordnen und scheidet aus. */
+    @Test
+    fun `a node without bounds is not a target`() {
+        val root = screen(igNode(text = "Gefolgt", bounds = null))
+
+        assertNull(FeedPolicy.followingTabToTap(root))
+    }
+
+    @Test
+    fun `an unrelated header label is not a target`() {
+        val root = screen(igNode(text = "Für dich", bounds = inHeader))
+
+        assertNull(FeedPolicy.followingTabToTap(root))
     }
 }

@@ -150,6 +150,7 @@
     <!-- Service toasts -->
     <string name="toast_explore_blocked">Explore is all suggestions</string>
     <string name="feed_reminder">This is the “For you” feed — tap the title at the top and pick “Following”.</string>
+    <string name="toast_feed_left">The “For you” feed will not let go — Instagram is closed now.</string>
     <string name="toast_feed_end">End of the Following feed</string>
     <string name="overridden_by_tiktok_all">No effect while TikTok is blocked completely</string>
     <string name="fyp_during_tiktok_budget">Applies during the allowed TikTok minutes</string>

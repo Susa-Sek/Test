@@ -141,6 +141,45 @@ object FeedPolicy {
         return FeedDecision.RemindToSwitch
     }
 
+    /**
+     * Der antippbare „Gefolgt“-Knoten in der **Kopfzeile** — oder null.
+     *
+     * **Nie über eine blosse Textsuche.** „Gefolgt“ steht bei Instagram auch als Knopf unter
+     * jedem fremden Profil; ein Tipp darauf entfolgt jemanden, und das merkt man erst Wochen
+     * später. Deshalb liegt die Beschriftung in [Rules.InstagramFeed.MENU_AMBIGUOUS_FOLLOWING_ENTRIES]
+     * und nicht bei den eindeutigen.
+     *
+     * Drei Gatter, alle nötig:
+     *
+     * 1. Der Aufrufer ruft das hier nur nach [FeedDecision.RemindToSwitch] — dann ist der
+     *    „Für dich“-Tab nachweislich **ausgewählt**, wir sind also sicher im Startfeed.
+     * 2. Der Knoten liegt in der obersten [HEADER_FRACTION] des Fensters. Ein Profil-Knopf
+     *    liegt nie in der Kopfzeile.
+     * 3. [Actions.clickNearest] deckelt die Fläche zusätzlich auf 30 %.
+     *
+     * Ohne bekannte Fensterhöhe wird **nichts** geliefert: Ohne Bounds lässt sich Gatter 2
+     * nicht prüfen, und dann ist Nichtstun die einzig vertretbare Antwort.
+     */
+    fun followingTabToTap(root: UiNode): UiNode? {
+        val windowTop = root.bounds?.top ?: return null
+        val windowBottom = root.bounds?.bottom ?: return null
+        val height = windowBottom - windowTop
+        if (height <= 0) return null
+        val headerBottom = windowTop + (height * HEADER_FRACTION).toInt()
+
+        val labels = Rules.InstagramFeed.MENU_FOLLOWING_ENTRIES +
+            Rules.InstagramFeed.MENU_AMBIGUOUS_FOLLOWING_ENTRIES
+
+        return RuleMatcher.findNode(root) { node ->
+            val bottom = node.bounds?.bottom ?: return@findNode false
+            if (bottom > headerBottom) return@findNode false
+            val label = normalizeForMatch(node.text)
+                ?: normalizeForMatch(node.contentDescription)
+                ?: return@findNode false
+            labels.any { label == it }
+        }
+    }
+
     private fun findTab(root: UiNode, labels: List<String>): UiNode? =
         RuleMatcher.findNode(root) { node ->
             val label = normalizeForMatch(node.text)

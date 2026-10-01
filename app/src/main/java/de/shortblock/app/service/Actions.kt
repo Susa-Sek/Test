@@ -37,6 +37,32 @@ object Actions {
         return false
     }
 
+    /**
+     * Scrollt den Knoten — oder seinen nächsten scrollbaren Vorfahren — ein Stück zurück.
+     *
+     * Die Bremse gegen den „Für dich“-Feed. Sie hinterlässt bewusst nichts: keine Sicht, kein
+     * Fenster, kein Zustand in einer fremden App. Stirbt der Dienst mitten im Scrollen, bleibt
+     * genau nichts stehen — anders als bei der Wand, die v0.11 über fremden Apps hängen liess.
+     *
+     * Der Aufstieg zum Vorfahren aus demselben Grund wie in [clickNearest]: Das Ereignis meldet
+     * oft einen inneren Knoten, scrollbar ist der Container darüber.
+     */
+    fun scrollBack(uiNode: UiNode?): Boolean {
+        var current: AccessibilityNodeInfo? = (uiNode as? AccessibilityUiNode)?.node ?: return false
+        var hops = 0
+        while (current != null && hops <= MAX_PARENT_HOPS) {
+            val node = current
+            if (node.isScrollable &&
+                node.performAction(AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD)
+            ) {
+                return true
+            }
+            current = runCatching { node.parent }.getOrNull()
+            hops++
+        }
+        return false
+    }
+
     private fun isSmallEnough(node: AccessibilityNodeInfo, windowArea: Long): Boolean {
         if (windowArea <= 0L) return false
         val rect = Rect()

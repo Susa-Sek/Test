@@ -112,8 +112,19 @@ class BlockerAccessibilityService : AccessibilityService() {
     /** Seit wann das Explore-Raster vorne steht; 0 heisst: steht es nicht. */
     private var exploreSince = 0L
 
-    /** Steht der „Für dich“-Feed gerade vorne? Nur zum Zählen, nicht zum Eingreifen. */
+    /** Steht der „Für dich“-Feed gerade vorne? */
     private var forYouActive = false
+
+    /**
+     * Zustand der Feed-Eskalation — die Regeln dazu stehen in [FeedGuard].
+     *
+     * `lastBrakeAtMs` liegt auf der Wanduhr, weil [FeedGuard.isEcho] damit rechnet. Alle drei
+     * werden in [resetFeedState] zurückgesetzt: beim Paketwechsel und bei jedem Scan, der
+     * nicht mehr den algorithmischen Feed meldet.
+     */
+    private var feedTapsTried = 0
+    private var feedBrakesUsed = 0
+    private var lastBrakeAtMs = 0L
 
     /**
      * Weckt die Bedienungshilfe beim Entsperren.
@@ -251,6 +262,7 @@ class BlockerAccessibilityService : AccessibilityService() {
         // Ein Wisch in der Seitenliste beendet die Ausnahme. Der Kommentar-Bereich scrollt
         // ebenfalls und ist deshalb durch das Muster-Gatter ausgeschlossen.
         if (event.eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED) {
+            brakeForYouFeed(event, packageName)
             if (singleWatchActive) {
                 val fromPager = SharedClip.isFromPager(event.source?.viewIdResourceName, packageName)
                 val index = event.fromIndex
@@ -519,7 +531,7 @@ class BlockerAccessibilityService : AccessibilityService() {
         when (val decision = FeedPolicy.evaluate(root)) {
             FeedDecision.Idle,
             FeedDecision.AlreadyFiltered,
-            -> forYouActive = false
+            -> resetFeedState()
 
             FeedDecision.RemindToSwitch -> {
                 // Einmal je Eintritt in den Feed zählen, nicht bei jedem Baum-Scan. Ohne diese
@@ -530,7 +542,36 @@ class BlockerAccessibilityService : AccessibilityService() {
                     BlockLog.record("ig_feed_for_you", "erinnert")
                     scope.launch { statsRepository.increment(Feature.INSTAGRAM_FEED) }
                 }
-                showReminder(getString(R.string.feed_reminder))
+                when (
+                    FeedGuard.next(
+                        tapTargetFound = FeedPolicy.followingTabToTap(root) != null,
+                        tapsTried = feedTapsTried,
+                        brakesUsed = feedBrakesUsed,
+                    )
+                ) {
+                    // Die sanfteste Stufe: einmal auf „Gefolgt“ tippen und das Problem lösen.
+                    // Das Ziel kommt ausschliesslich aus followingTabToTap — nie aus einer
+                    // Textsuche, sonst entfolgt ein Fehlgriff jemanden.
+                    FeedGuard.Step.TAP_FOLLOWING -> {
+                        feedTapsTried++
+                        val target = FeedPolicy.followingTabToTap(root)
+                        if (target != null &&
+                            Actions.clickNearest(target, RuleMatcher.windowArea(root))
+                        ) {
+                            BlockLog.record("ig_feed_tap", "auf Gefolgt getippt")
+                            pausedUntil = SystemClock.uptimeMillis() + CLICK_COOLDOWN_MS
+                        }
+                    }
+
+                    // Die Bremse selbst sitzt im Scroll-Zweig; hier bleibt nur der Hinweis.
+                    FeedGuard.Step.BRAKE -> showReminder(getString(R.string.feed_reminder))
+
+                    FeedGuard.Step.LEAVE -> {
+                        BlockLog.record("ig_feed_leave", "Bremse hat nicht gereicht")
+                        toast(R.string.toast_feed_left)
+                        blockAndGoBack(Feature.INSTAGRAM_FEED, "ig_feed_leave")
+                    }
+                }
             }
 
             // Liefert FeedPolicy für Instagram nicht mehr; der Zweig gehört TikTok.
@@ -697,12 +738,47 @@ class BlockerAccessibilityService : AccessibilityService() {
 
     private fun today(): Int = LocalDate.now().toEpochDay().toInt()
 
+    /**
+     * Die Bremse: im „Für dich“-Feed wird jedes Scrollen zurückgenommen.
+     *
+     * Das ist der Ersatz für die Wand aus v0.11 — und der Unterschied ist der Punkt: Ein
+     * Zurück-Scroll **hinterlässt nichts**. Stirbt der Dienst mitten darin, bleibt kein Fenster
+     * über einer fremden App stehen. Der erste Beitrag bleibt lesbar, das Endlose ist
+     * unerreichbar.
+     *
+     * [FeedGuard.isEcho] ist dabei die Abbruchbedingung, kein Feinschliff: Der Zurück-Scroll
+     * erzeugt selbst ein Scroll-Ereignis. Ohne das Gatter bremst die App gegen ihr eigenes
+     * Bremsen und Instagram wäre unbedienbar.
+     */
+    private fun brakeForYouFeed(event: AccessibilityEvent, packageName: String) {
+        if (packageName != Packages.INSTAGRAM) return
+        if (!forYouActive) return
+        if (Feature.INSTAGRAM_FEED !in settings.enabled) return
+
+        val now = System.currentTimeMillis()
+        if (FeedGuard.isEcho(lastBrakeAtMs, now)) return
+
+        val source = event.source ?: return
+        val viewId = normalizeForMatch(source.viewIdResourceName) ?: return
+        if (Rules.InstagramFeed.FEED_ROOT_VIEW_IDS.none { viewId.contains(it) }) return
+
+        // Scheitert der Zurück-Scroll, wird NICHTS gezählt: Eine Bremse, die nicht greift, darf
+        // nicht zur harten Stufe hochzählen.
+        if (!Actions.scrollBack(AccessibilityUiNode(source))) return
+
+        lastBrakeAtMs = now
+        feedBrakesUsed++
+    }
+
     private fun resetFeedState() {
         // Die Zähler gehören zu TikToks Tab-Umschaltung — Instagram tippt seit v0.11 nichts
         // mehr an, sperrt stattdessen.
         feedSwitchAttempts = 0
         manualSwitchHintShown = false
         forYouActive = false
+        feedTapsTried = 0
+        feedBrakesUsed = 0
+        lastBrakeAtMs = 0L
     }
 
     private fun toast(messageRes: Int) {

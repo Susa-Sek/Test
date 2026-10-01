@@ -140,6 +140,22 @@ nicht mehr benutzen; wer ein Reel zu viel sieht, ärgert sich kurz. Im Zweifel n
   (`FeedDecision.RemindToSwitch`), und die Erinnerung räumt sich über `postDelayed(::hide)`
   immer selbst ab. **TikTok schaltet weiterhin um** (`ChooseFollowing`) — dessen Tab-Leiste ist
   stabil, und beide Policies teilen sich `FeedDecision`.
+- **Die Bremse braucht ein Echo-Gatter** (`FeedGuard.isEcho`). Ein Zurück-Scroll erzeugt selbst
+  ein Scroll-Ereignis. Ohne das Gatter bremst die App gegen ihr eigenes Bremsen und Instagram
+  ist unbedienbar — dieselbe Sorte Schleife wie die Zurück-Kette, die v0.11.4 eine ganze App
+  zugedrückt hat. Was `BackGuard` fürs Zurück leistet, leistet `isEcho` fürs Scrollen. Eine
+  zurückgestellte Uhr gilt hier bewusst **nicht** als Echo: Eine Bremse, die sich für ihr
+  eigenes Echo hält, bremst nie wieder.
+- **Der Tipp auf „Gefolgt" darf nie über eine Textsuche laufen.** „Gefolgt" steht bei Instagram
+  auch als Knopf unter jedem fremden Profil — ein Fehlgriff **entfolgt jemanden**, ohne
+  Rückmeldung und ohne Rückgängig. Deshalb liegt die Beschriftung in
+  `MENU_AMBIGUOUS_FOLLOWING_ENTRIES` und nicht bei den eindeutigen, und `followingTabToTap`
+  liefert nur Knoten aus der obersten `HEADER_FRACTION` des Fensters; ohne bekannte
+  Fenstermasse liefert es gar nichts. Dazu kommt der Flächendeckel in `Actions.clickNearest`.
+  Drei Gatter, alle nötig. Der Test `a follow button in the middle of the screen is never a
+  target` hält sie fest.
+- **Scheitert die Bremse, wird nichts gezählt.** Sonst zählte ein wirkungsloser Zurück-Scroll
+  zur harten Stufe hoch, und Instagram würde geschlossen, obwohl nie etwas gebremst hat.
 - **Eine Zusicherung, die an einem Ereignis hängt, gilt nur so weit wie der Ereignisempfang.**
   Das ist die Lehre aus der hängenden Wand, und sie ist allgemein. `resetFeedState()` räumte
   die Wand beim Paketwechsel ab und trug den Kommentar „Wer Instagram verlässt, soll die Wand
@@ -245,6 +261,7 @@ Android-Abhängige bleibt eine dünne Hülle drumherum. Neue Erkennung genauso b
 | `service/RuleMatcher.kt`, `service/Rules.kt` | `service/BlockerAccessibilityService.kt` |
 | `service/FeedPolicy.kt`, `service/TikTokPolicy.kt` | `service/AccessibilityUiNode.kt` |
 | `service/ExplorePolicy.kt`, `service/WakeRepair.kt` | — |
+| `service/FeedGuard.kt`, `service/BackGuard.kt` | `service/Actions.kt` |
 | `data/StatsHistory.kt`, `data/WatchBudget.kt` | `data/StatsRepository.kt` |
 | `data/CheatPass.kt`, `data/CheatPhrase.kt`, `service/Reminders.kt` | `service/ReminderOverlay.kt` |
 | `data/GuardianLock.kt` | `system/GuardianDeviceAdmin.kt`, `system/SystemSettings.kt` |
