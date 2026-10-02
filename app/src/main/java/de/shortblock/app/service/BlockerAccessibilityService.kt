@@ -125,6 +125,8 @@ class BlockerAccessibilityService : AccessibilityService() {
     private var feedTapsTried = 0
     private var feedBrakesUsed = 0
     private var lastBrakeAtMs = 0L
+    /** Zuletzt protokollierter Grund, warum die Bremse nicht griff. */
+    private var lastBrakeReason: String? = null
 
     /**
      * Weckt die Bedienungshilfe beim Entsperren.
@@ -262,7 +264,6 @@ class BlockerAccessibilityService : AccessibilityService() {
         // Ein Wisch in der Seitenliste beendet die Ausnahme. Der Kommentar-Bereich scrollt
         // ebenfalls und ist deshalb durch das Muster-Gatter ausgeschlossen.
         if (event.eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED) {
-            brakeForYouFeed(event, packageName)
             if (singleWatchActive) {
                 val fromPager = SharedClip.isFromPager(event.source?.viewIdResourceName, packageName)
                 val index = event.fromIndex
@@ -529,9 +530,14 @@ class BlockerAccessibilityService : AccessibilityService() {
      */
     private fun handleInstagramFeed(root: UiNode) {
         when (val decision = FeedPolicy.evaluate(root)) {
-            FeedDecision.Idle,
-            FeedDecision.AlreadyFiltered,
-            -> resetFeedState()
+            // „Unklar“ darf nichts zurücksetzen. Beim Scrollen wandert die Kopfzeile aus
+            // dem Bild und die Auswertung liefert Idle — wer hier zurücksetzt, schaltet die
+            // Bremse genau dann ab, wenn gescrollt wird. Dieselbe Regel wie in
+            // FeedPolicy.evaluate: Idle gibt nichts weiter.
+            FeedDecision.Idle -> Unit
+
+            // Nur das ist ein positiver Beleg, dass umgeschaltet wurde.
+            FeedDecision.AlreadyFiltered -> resetFeedState()
 
             FeedDecision.RemindToSwitch -> {
                 // Einmal je Eintritt in den Feed zählen, nicht bei jedem Baum-Scan. Ohne diese
@@ -563,8 +569,10 @@ class BlockerAccessibilityService : AccessibilityService() {
                         }
                     }
 
-                    // Die Bremse selbst sitzt im Scroll-Zweig; hier bleibt nur der Hinweis.
-                    FeedGuard.Step.BRAKE -> showReminder(getString(R.string.feed_reminder))
+                    FeedGuard.Step.BRAKE -> {
+                        showReminder(getString(R.string.feed_reminder))
+                        brakeFeed(root)
+                    }
 
                     FeedGuard.Step.LEAVE -> {
                         BlockLog.record("ig_feed_leave", "Bremse hat nicht gereicht")
@@ -739,35 +747,64 @@ class BlockerAccessibilityService : AccessibilityService() {
     private fun today(): Int = LocalDate.now().toEpochDay().toInt()
 
     /**
-     * Die Bremse: im „Für dich“-Feed wird jedes Scrollen zurückgenommen.
+     * Die Bremse: den „Für dich“-Feed oben halten.
      *
-     * Das ist der Ersatz für die Wand aus v0.11 — und der Unterschied ist der Punkt: Ein
-     * Zurück-Scroll **hinterlässt nichts**. Stirbt der Dienst mitten darin, bleibt kein Fenster
-     * über einer fremden App stehen. Der erste Beitrag bleibt lesbar, das Endlose ist
-     * unerreichbar.
+     * **Warum im Scan und nicht am Scroll-Ereignis.** v0.14.0 hing am `TYPE_VIEW_SCROLLED`-
+     * Zweig und verlangte, dass das Ereignis selbst eine der Feed-Kennungen trägt. Scroll-
+     * Ereignisse tragen aber oft gar keine View-ID. Dazu kam, dass die Bremse `forYouActive`
+     * prüfte — und das wurde bei `FeedDecision.Idle` gelöscht, also ständig, sobald die
+     * Kopfzeile beim Scrollen aus dem Bild wanderte. Die Bremse war damit genau dann aus, wenn
+     * gescrollt wurde.
      *
-     * [FeedGuard.isEcho] ist dabei die Abbruchbedingung, kein Feinschliff: Der Zurück-Scroll
-     * erzeugt selbst ein Scroll-Ereignis. Ohne das Gatter bremst die App gegen ihr eigenes
-     * Bremsen und Instagram wäre unbedienbar.
+     * Hier kommt die Entscheidung frisch aus dem Baum: Gerufen wird nur nach
+     * [FeedDecision.RemindToSwitch], und die Liste wird über dieselben Kennungen gesucht, mit
+     * denen [FeedPolicy] den Startfeed erkennt. Auf einer Profilseite gibt es kein
+     * `RemindToSwitch`, also wird dort nie gebremst.
+     *
+     * **Begrenzt sich selbst:** Steht die Liste schon oben, liefert `ACTION_SCROLL_BACKWARD`
+     * `false`. Dann passiert nichts und es wird nichts gezählt — [feedBrakesUsed] wächst nur,
+     * solange wirklich nach unten gescrollt wird. Genau das ist das Signal für die harte Stufe.
+     *
+     * Hinterlässt nichts: kein Fenster, kein Zustand in einer fremden App. Stirbt der Dienst
+     * mitten darin, bleibt nichts stehen.
      */
-    private fun brakeForYouFeed(event: AccessibilityEvent, packageName: String) {
-        if (packageName != Packages.INSTAGRAM) return
-        if (!forYouActive) return
-        if (Feature.INSTAGRAM_FEED !in settings.enabled) return
-
+    private fun brakeFeed(root: UiNode) {
         val now = System.currentTimeMillis()
+        // Der Zurück-Scroll erzeugt selbst ein Ereignis, und der Scan läuft im 150-ms-Takt
+        // weiter. Ohne dieses Gatter zöge die App gegen ihr eigenes Bremsen.
         if (FeedGuard.isEcho(lastBrakeAtMs, now)) return
 
-        val source = event.source ?: return
-        val viewId = normalizeForMatch(source.viewIdResourceName) ?: return
-        if (Rules.InstagramFeed.FEED_ROOT_VIEW_IDS.none { viewId.contains(it) }) return
+        val list = RuleMatcher.findNode(root) { node ->
+            val viewId = normalizeForMatch(node.viewId) ?: return@findNode false
+            Rules.InstagramFeed.FEED_ROOT_VIEW_IDS.any { viewId.contains(it) }
+        }
+        if (list == null) return noteBrakeSkipped("brake_no_list")
 
-        // Scheitert der Zurück-Scroll, wird NICHTS gezählt: Eine Bremse, die nicht greift, darf
-        // nicht zur harten Stufe hochzählen.
-        if (!Actions.scrollBack(AccessibilityUiNode(source))) return
+        if (!Actions.scrollBack(list)) {
+            // Zwei Fälle, die gleich aussehen und es nicht sind: Die Liste ist schon oben
+            // (gutartig), oder sie nimmt die Aktion gar nicht an (dann greift die Bremse nie).
+            return noteBrakeSkipped(
+                if (list.isScrollable) "brake_at_top" else "brake_not_scrollable",
+            )
+        }
 
         lastBrakeAtMs = now
         feedBrakesUsed++
+        lastBrakeReason = null
+    }
+
+    /**
+     * Schreibt **einmal je Grund** ins Protokoll, warum die Bremse nicht griff.
+     *
+     * Dasselbe Versäumnis wie früher bei der Ausnahme „ein Video“: v0.14.0 hatte acht
+     * Abbruchstellen und protokollierte keine einzige. Zu melden blieb nur „scrollt weiter“,
+     * und es blieb nur zu raten. Nur beim Wechsel des Grundes, sonst liefe das Protokoll im
+     * Scan-Takt über.
+     */
+    private fun noteBrakeSkipped(reason: String) {
+        if (lastBrakeReason == reason) return
+        lastBrakeReason = reason
+        BlockLog.record(reason, "Bremse hat nicht gegriffen")
     }
 
     private fun resetFeedState() {
@@ -779,6 +816,7 @@ class BlockerAccessibilityService : AccessibilityService() {
         feedTapsTried = 0
         feedBrakesUsed = 0
         lastBrakeAtMs = 0L
+        lastBrakeReason = null
     }
 
     private fun toast(messageRes: Int) {

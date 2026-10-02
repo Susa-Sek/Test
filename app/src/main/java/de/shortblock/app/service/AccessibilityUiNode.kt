@@ -17,6 +17,7 @@ class AccessibilityUiNode(val node: AccessibilityNodeInfo) : UiNode {
     override val contentDescription: String? get() = node.contentDescription?.toString()
     override val isSelected: Boolean get() = node.isSelected
     override val isVisible: Boolean get() = node.isVisibleToUser
+    override val isScrollable: Boolean get() = node.isScrollable
     override val childCount: Int get() = node.childCount
 
     override val bounds: NodeBounds?

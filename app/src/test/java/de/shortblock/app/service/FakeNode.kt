@@ -10,6 +10,7 @@ class FakeNode(
     override val contentDescription: String? = null,
     override val isSelected: Boolean = false,
     override val isVisible: Boolean = true,
+    override val isScrollable: Boolean = false,
     override val bounds: NodeBounds? = FULLSCREEN,
     private val children: List<FakeNode> = emptyList(),
 ) : UiNode {

@@ -24,6 +24,15 @@ interface UiNode {
      */
     val isVisible: Boolean
 
+    /**
+     * Ob der Knoten selbst scrollbar ist.
+     *
+     * Gebraucht für die Feed-Bremse: Nimmt die Liste `ACTION_SCROLL_BACKWARD` nicht an, sieht
+     * das genauso aus, als stünde sie schon oben. Die beiden Fälle auseinanderzuhalten ist der
+     * Unterschied zwischen „alles in Ordnung“ und „die Bremse greift hier nie“.
+     */
+    val isScrollable: Boolean
+
     /** Position auf dem Bildschirm, für Größenvergleiche. `null`, wenn leer oder unbekannt. */
     val bounds: NodeBounds?
 

@@ -146,6 +146,26 @@ nicht mehr benutzen; wer ein Reel zu viel sieht, ärgert sich kurz. Im Zweifel n
   zugedrückt hat. Was `BackGuard` fürs Zurück leistet, leistet `isEcho` fürs Scrollen. Eine
   zurückgestellte Uhr gilt hier bewusst **nicht** als Echo: Eine Bremse, die sich für ihr
   eigenes Echo hält, bremst nie wieder.
+- **Die Bremse sitzt im Scan-Pfad, nicht am Scroll-Ereignis — und das muss so bleiben.**
+  v0.14.0 hing am `TYPE_VIEW_SCROLLED`-Zweig und verlangte, dass das Ereignis selbst eine der
+  Feed-Kennungen trägt; Scroll-Ereignisse tragen aber oft **gar keine** View-ID. Schlimmer:
+  Sie prüfte `forYouActive`, und das wurde bei `FeedDecision.Idle` gelöscht — also ständig,
+  sobald die Kopfzeile beim Scrollen aus dem Bild wandert. **Die Bremse war damit genau dann
+  aus, wenn gescrollt wurde.** Jetzt kommt die Entscheidung frisch aus dem Baum, und die Liste
+  wird über dieselben Kennungen gesucht, mit denen `FeedPolicy` den Startfeed erkennt.
+- **`FeedDecision.Idle` darf nichts zurücksetzen.** „Unklar" ist kein Beleg für irgendetwas.
+  Nur `AlreadyFiltered` — der positive Beleg, dass umgeschaltet wurde — leert die Zähler,
+  dazu der Paketwechsel. Dieselbe Regel gilt in `FeedPolicy.evaluate` seit v0.10.1; sie
+  einmal ins Gegenteil zu verkehren hat die ganze Bremse lahmgelegt. Sicher ist diese
+  Lockerung nur, **weil** die Bremse im Scan sitzt und dort jedes Mal frisch
+  `RemindToSwitch` verlangt: Auf einer Profilseite gibt es das nicht, dort wird also nie
+  gebremst.
+- **Jede Abbruchstelle der Bremse muss sich melden** (`brake_no_list`, `brake_not_scrollable`,
+  `brake_at_top`, einmal je Grund wie bei `noteSingleClipDenied`). v0.14.0 hatte acht
+  Abbruchstellen und protokollierte keine einzige — zu melden blieb „scrollt weiter", zu tun
+  blieb raten. `brake_at_top` und `brake_not_scrollable` sehen von aussen gleich aus und sind
+  es nicht: einmal ist alles in Ordnung, einmal greift die Bremse nie. Dafür trägt `UiNode`
+  seit v0.14.1 `isScrollable`.
 - **Der Tipp auf „Gefolgt" darf nie über eine Textsuche laufen.** „Gefolgt" steht bei Instagram
   auch als Knopf unter jedem fremden Profil — ein Fehlgriff **entfolgt jemanden**, ohne
   Rückmeldung und ohne Rückgängig. Deshalb liegt die Beschriftung in
