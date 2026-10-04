@@ -36,6 +36,19 @@ object FeedGuard {
      */
     const val ECHO_MS = 700L
 
+    /**
+     * So viele Beiträge laufen frei durch, bevor die Bremse greift.
+     *
+     * Gezählt wird der **Listenindex** aus dem Scroll-Ereignis, nicht eine geschätzte
+     * Scroll-Strecke: `event.fromIndex` ist der erste sichtbare Eintrag, also buchstäblich die
+     * Nummer des Beitrags. Dieselbe Quelle benutzt `SharedClip.countsAsSwipe` seit v0.9.
+     */
+    const val FREE_POSTS = 2
+
+    /** Darf noch frei gescrollt werden? `-1` heisst „Index unbekannt“ — dann ja. */
+    fun isWithinFreePosts(firstVisibleIndex: Int): Boolean =
+        firstVisibleIndex < 0 || firstVisibleIndex < FREE_POSTS
+
     enum class Step {
         /** Der „Gefolgt“-Tab ist nachweisbar da — antippen und das Problem lösen. */
         TAP_FOLLOWING,

@@ -309,6 +309,18 @@ object Rules {
             "feed_tab",
         )
 
+        /**
+         * Scroller, die **nie** gebremst werden dürfen.
+         *
+         * `swipeable_tab_view_pager` ist Instagrams waagerechter Umschalter zwischen
+         * Startseite, Suche, Reels und Profil. Er ist bildschirmfüllend und scrollbar, und ein
+         * Zurück-Scroll darauf schiebt den Nutzer seitwärts in einen anderen Tab. In v0.14.2
+         * hat die Formsuche genau ihn erwischt.
+         */
+        val NEVER_BRAKE_VIEW_IDS = listOf(
+            "pager",
+        )
+
         /** Der antippbare Titel oben links, der den Feed umschaltet. */
         val TITLE_VIEW_IDS = listOf(
             "action_bar_title",

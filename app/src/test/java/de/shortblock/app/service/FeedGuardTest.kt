@@ -104,3 +104,30 @@ class FeedGuardTest {
         assertFalse(FeedGuard.isEcho(lastBrakeAtMs = now, nowMs = now - 60_000L))
     }
 }
+
+/**
+ * Die Freigabe: ein, zwei Beiträge laufen durch, dann greift die Bremse.
+ *
+ * Gezählt wird der Listenindex aus dem Scroll-Ereignis — buchstäblich die Nummer des Beitrags,
+ * nicht eine geschätzte Scroll-Strecke.
+ */
+class FeedGuardFreePostsTest {
+
+    @Test
+    fun `the first posts are free`() {
+        assertTrue(FeedGuard.isWithinFreePosts(0))
+        assertTrue(FeedGuard.isWithinFreePosts(1))
+    }
+
+    @Test
+    fun `after that the brake engages`() {
+        assertFalse(FeedGuard.isWithinFreePosts(FeedGuard.FREE_POSTS))
+        assertFalse(FeedGuard.isWithinFreePosts(FeedGuard.FREE_POSTS + 5))
+    }
+
+    /** Kein Index gemeldet heisst: nicht bremsen. Im Zweifel nichts tun. */
+    @Test
+    fun `an unknown index stays free`() {
+        assertTrue(FeedGuard.isWithinFreePosts(-1))
+    }
+}

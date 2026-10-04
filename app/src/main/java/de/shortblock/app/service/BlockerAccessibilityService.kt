@@ -129,6 +129,8 @@ class BlockerAccessibilityService : AccessibilityService() {
     private var lastBrakeReason: String? = null
     /** Merkmal der gefundenen Liste — einmal je Feed-Besuch protokolliert. */
     private var lastBrakeListSignature: String? = null
+    /** Weitester erreichter Listenindex im Feed; -1 = noch keiner gemeldet. */
+    private var feedFirstVisibleIndex = -1
 
     /**
      * Weckt die Bedienungshilfe beim Entsperren.
@@ -271,6 +273,12 @@ class BlockerAccessibilityService : AccessibilityService() {
         // Ein Wisch in der Seitenliste beendet die Ausnahme. Der Kommentar-Bereich scrollt
         // ebenfalls und ist deshalb durch das Muster-Gatter ausgeschlossen.
         if (event.eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED) {
+            // Nur mitzählen, nicht bremsen: Gebremst wird im Scan-Pfad. `fromIndex` ist der
+            // erste sichtbare Listeneintrag — damit lässt sich „nach zwei Beiträgen“ wörtlich
+            // nehmen, statt eine Scroll-Strecke zu schätzen.
+            if (forYouActive && event.fromIndex >= 0) {
+                feedFirstVisibleIndex = maxOf(feedFirstVisibleIndex, event.fromIndex)
+            }
             if (singleWatchActive) {
                 val fromPager = SharedClip.isFromPager(event.source?.viewIdResourceName, packageName)
                 val index = event.fromIndex
@@ -776,6 +784,10 @@ class BlockerAccessibilityService : AccessibilityService() {
      * mitten darin, bleibt nichts stehen.
      */
     private fun brakeFeed(root: UiNode) {
+        // Die ersten Beiträge laufen frei durch — erst danach greift die Bremse. Ohne das
+        // fühlt sich der Feed kaputt an, statt begrenzt.
+        if (FeedGuard.isWithinFreePosts(feedFirstVisibleIndex)) return
+
         val now = System.currentTimeMillis()
         // Der Zurück-Scroll erzeugt selbst ein Ereignis, und der Scan läuft im 150-ms-Takt
         // weiter. Ohne dieses Gatter zöge die App gegen ihr eigenes Bremsen.
@@ -830,6 +842,7 @@ class BlockerAccessibilityService : AccessibilityService() {
         lastBrakeAtMs = 0L
         lastBrakeReason = null
         lastBrakeListSignature = null
+        feedFirstVisibleIndex = -1
     }
 
     private fun toast(messageRes: Int) {

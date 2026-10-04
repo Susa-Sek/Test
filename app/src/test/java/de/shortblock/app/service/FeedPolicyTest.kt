@@ -569,7 +569,7 @@ class FeedListToBrakeTest {
         assertNotNull("Die Liste muss auch ohne bekannte Kennung gefunden werden", list)
     }
 
-    /** Von zwei scrollbaren Kandidaten gewinnt der höhere — das ist die Beitragsliste. */
+    /** Auf gleicher Ebene gewinnt der höhere — das ist die Beitragsliste, nicht der Streifen. */
     @Test
     fun `the taller scroller wins over a flat strip`() {
         val strip = NodeBounds(0, 200, 1080, 500)
@@ -580,6 +580,47 @@ class FeedListToBrakeTest {
         )
 
         assertEquals(feed, FeedPolicy.feedListToBrake(root)?.bounds)
+    }
+
+    /**
+     * Der Fehler aus v0.14.2, und der teuerste von beiden.
+     *
+     * `swipeable_tab_view_pager` ist Instagrams waagerechter Umschalter zwischen Startseite,
+     * Suche, Reels und Profil. Er ist bildschirmfüllend hoch **und** breit, gewinnt also jeden
+     * Grössenvergleich — die Formsuche hat genau ihn geliefert. Ein Zurück-Scroll darauf
+     * blättert Tabs und schiebt den Nutzer seitwärts aus dem Feed.
+     *
+     * Die Beitragsliste steckt **innerhalb** des Pagers: Tiefe trennt die beiden, Grösse nicht.
+     */
+    @Test
+    fun `the tab pager is never the list, the feed inside it is`() {
+        val feed = NodeBounds(0, 300, 1080, 2400)
+        val root = igNode(
+            id = "root",
+            bounds = window,
+            children = listOf(
+                igNode(
+                    id = "swipeable_tab_view_pager",
+                    bounds = window,
+                    scrollable = true,
+                    children = listOf(
+                        igNode(id = "unbekannte_liste", bounds = feed, scrollable = true),
+                    ),
+                ),
+            ),
+        )
+
+        assertEquals(feed, FeedPolicy.feedListToBrake(root)?.bounds)
+    }
+
+    /** Und steht nur der Pager da, wird gar nichts geliefert — lieber nicht bremsen. */
+    @Test
+    fun `a lone tab pager yields nothing`() {
+        val root = screen(
+            igNode(id = "swipeable_tab_view_pager", bounds = window, scrollable = true),
+        )
+
+        assertNull(FeedPolicy.feedListToBrake(root))
     }
 
     /** Ein schmales Karussell mitten im Beitrag ist nicht die Liste. */

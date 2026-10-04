@@ -153,6 +153,17 @@ nicht mehr benutzen; wer ein Reel zu viel sieht, ärgert sich kurz. Im Zweifel n
   sobald die Kopfzeile beim Scrollen aus dem Bild wandert. **Die Bremse war damit genau dann
   aus, wenn gescrollt wurde.** Jetzt kommt die Entscheidung frisch aus dem Baum, und die Liste
   wird über dieselben Kennungen gesucht, mit denen `FeedPolicy` den Startfeed erkennt.
+- **Beim Suchen der Feed-Liste schlägt Tiefe die Grösse.** v0.14.2 nahm den höchsten breiten
+  Scroller — und erwischte `swipeable_tab_view_pager`, Instagrams waagerechten Umschalter
+  zwischen Startseite, Suche, Reels und Profil. Der ist bildschirmfüllend hoch **und** breit,
+  gewinnt also jeden Grössenvergleich; ein Zurück-Scroll darauf blättert Tabs und schiebt den
+  Nutzer seitwärts aus dem Feed. Die Beitragsliste steckt immer **innerhalb** des Pagers —
+  deshalb gewinnt der am tiefsten verschachtelte Kandidat, und `NEVER_BRAKE_VIEW_IDS` wirft
+  alles mit `pager` im Namen zusätzlich heraus.
+- **Die ersten `FeedGuard.FREE_POSTS` Beiträge laufen frei durch.** Gezählt wird der
+  Listenindex aus `event.fromIndex` — buchstäblich die Nummer des Beitrags, nicht eine
+  geschätzte Scroll-Strecke; dieselbe Quelle benutzt `SharedClip.countsAsSwipe` seit v0.9. Ein
+  unbekannter Index (`-1`) gilt als „noch frei": im Zweifel nicht bremsen.
 - **Die Feed-Liste wird über die Form gefunden, nicht nur über Namen.** v0.14.1 suchte sie
   ausschliesslich über `FEED_ROOT_VIEW_IDS`; auf einem echten Gerät stand keine der beiden
   Kennungen im Baum, die Bremse meldete `brake_no_list` und tat nichts — dieselbe Falle wie bei

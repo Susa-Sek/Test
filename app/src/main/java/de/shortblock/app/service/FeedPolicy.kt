@@ -204,7 +204,7 @@ object FeedPolicy {
      */
     fun feedListToBrake(root: UiNode): UiNode? {
         byViewId(root)?.let { return it }
-        return widestScroller(root)
+        return deepestScroller(root)
     }
 
     private fun byViewId(root: UiNode): UiNode? = RuleMatcher.findNode(root) { node ->
@@ -212,22 +212,52 @@ object FeedPolicy {
         Rules.InstagramFeed.FEED_ROOT_VIEW_IDS.any { viewId.contains(it) }
     }
 
-    private fun widestScroller(root: UiNode): UiNode? {
+    /**
+     * Der am **tiefsten verschachtelte** breite Scroller.
+     *
+     * v0.14.2 nahm den höchsten — und erwischte damit `swipeable_tab_view_pager`, Instagrams
+     * waagerechten Umschalter zwischen Startseite, Suche, Reels und Profil. Der ist
+     * bildschirmfüllend hoch **und** breit, also gewinnt er jeden Grössenvergleich; ein
+     * Zurück-Scroll darauf blättert Tabs statt den Feed.
+     *
+     * Die Beitragsliste steckt immer **innerhalb** dieses Pagers. Tiefe trennt die beiden
+     * zuverlässig, Grösse nicht. Zusätzlich fliegen Knoten mit `pager` im Namen heraus —
+     * doppelt gesichert, weil ein Fehlgriff hier den Nutzer seitwärts aus dem Feed schiebt.
+     */
+    private fun deepestScroller(root: UiNode): UiNode? {
         val windowWidth = root.bounds?.width ?: return null
         if (windowWidth <= 0) return null
         val minWidth = windowWidth * MIN_LIST_WIDTH_FRACTION
 
         var best: UiNode? = null
-        RuleMatcher.traverse(root) { node ->
-            if (node.isVisible && node.isScrollable) {
-                val bounds = node.bounds
-                if (bounds != null && bounds.width >= minWidth) {
-                    if (bounds.height > (best?.bounds?.height ?: 0)) best = node
+        var bestDepth = -1
+
+        fun walk(node: UiNode, depth: Int) {
+            if (depth > RuleMatcher.MAX_DEPTH) return
+            val bounds = node.bounds
+            if (node.isVisible && node.isScrollable && bounds != null &&
+                bounds.width >= minWidth && !looksLikePager(node)
+            ) {
+                // Tiefer schlägt höher. Bei gleicher Tiefe entscheidet die Höhe.
+                if (depth > bestDepth ||
+                    (depth == bestDepth && bounds.height > (best?.bounds?.height ?: 0))
+                ) {
+                    best = node
+                    bestDepth = depth
                 }
             }
-            false
+            for (index in 0 until node.childCount) {
+                node.child(index)?.let { walk(it, depth + 1) }
+            }
         }
+
+        walk(root, 0)
         return best
+    }
+
+    private fun looksLikePager(node: UiNode): Boolean {
+        val viewId = normalizeForMatch(node.viewId) ?: return false
+        return Rules.InstagramFeed.NEVER_BRAKE_VIEW_IDS.any { viewId.contains(it) }
     }
 
     private fun findTab(root: UiNode, labels: List<String>): UiNode? =
