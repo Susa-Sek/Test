@@ -127,6 +127,8 @@ class BlockerAccessibilityService : AccessibilityService() {
     private var lastBrakeAtMs = 0L
     /** Zuletzt protokollierter Grund, warum die Bremse nicht griff. */
     private var lastBrakeReason: String? = null
+    /** Merkmal der gefundenen Liste — einmal je Feed-Besuch protokolliert. */
+    private var lastBrakeListSignature: String? = null
 
     /**
      * Weckt die Bedienungshilfe beim Entsperren.
@@ -140,7 +142,12 @@ class BlockerAccessibilityService : AccessibilityService() {
         override fun onReceive(context: Context?, intent: Intent?) {
             val silence = System.currentTimeMillis() - ServiceHealth.state.value.lastEventAtMs
             refreshServiceInfo()
-            BlockLog.record("service_repair", "wake after ${silence / 1000}s")
+            // Nur echte Lücken protokollieren. Ein Aufwachen nach null Sekunden ist kein
+            // Befund, und zwanzig solcher Zeilen drücken genau das aus dem Protokoll, wofür
+            // es da ist — in der gemeldeten Diagnose stand nichts anderes mehr drin.
+            if (silence >= REPAIR_LOG_MIN_SILENCE_MS) {
+                BlockLog.record("service_repair", "wake after ${silence / 1000}s")
+            }
         }
     }
 
@@ -774,11 +781,16 @@ class BlockerAccessibilityService : AccessibilityService() {
         // weiter. Ohne dieses Gatter zöge die App gegen ihr eigenes Bremsen.
         if (FeedGuard.isEcho(lastBrakeAtMs, now)) return
 
-        val list = RuleMatcher.findNode(root) { node ->
-            val viewId = normalizeForMatch(node.viewId) ?: return@findNode false
-            Rules.InstagramFeed.FEED_ROOT_VIEW_IDS.any { viewId.contains(it) }
+        val list = FeedPolicy.feedListToBrake(root)
+            ?: return noteBrakeSkipped("brake_no_list")
+
+        // Welche Kennung die Liste wirklich trägt, einmal ins Protokoll — nur so kommt der
+        // genaue Name in Rules.kt, statt dass er weiter geraten wird. v0.14.1 suchte nur nach
+        // zwei Namen, fand keinen und meldete `brake_no_list`.
+        if (lastBrakeListSignature == null) {
+            lastBrakeListSignature = RuleMatcher.describe(list)
+            BlockLog.record("brake_list", lastBrakeListSignature ?: "")
         }
-        if (list == null) return noteBrakeSkipped("brake_no_list")
 
         if (!Actions.scrollBack(list)) {
             // Zwei Fälle, die gleich aussehen und es nicht sind: Die Liste ist schon oben
@@ -817,6 +829,7 @@ class BlockerAccessibilityService : AccessibilityService() {
         feedBrakesUsed = 0
         lastBrakeAtMs = 0L
         lastBrakeReason = null
+        lastBrakeListSignature = null
     }
 
     private fun toast(messageRes: Int) {
@@ -845,6 +858,9 @@ class BlockerAccessibilityService : AccessibilityService() {
         const val SCAN_INTERVAL_MS = 150L
         const val BROWSER_SCAN_INTERVAL_MS = 500L
         const val BACK_COOLDOWN_MS = 800L
+
+        /** Ab welcher Stille eine Aufwach-Reparatur überhaupt eine Protokollzeile wert ist. */
+        const val REPAIR_LOG_MIN_SILENCE_MS = 60_000L
         // 900 statt 600 ms seit v0.8.1: Instagrams mittiges Feed-Menü geht animiert auf.
         // Ist es nach 600 ms noch nicht im Baum, tippt die App den Titel ein zweites Mal — und
         // schließt damit genau das Menü, das sie gerade geöffnet hat.

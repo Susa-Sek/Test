@@ -32,6 +32,7 @@ fun igNode(
     description: String? = null,
     selected: Boolean = false,
     visible: Boolean = true,
+    scrollable: Boolean = false,
     bounds: NodeBounds? = FakeNode.FULLSCREEN,
     children: List<FakeNode> = emptyList(),
 ) = FakeNode(
@@ -40,6 +41,7 @@ fun igNode(
     contentDescription = description,
     isSelected = selected,
     isVisible = visible,
+    isScrollable = scrollable,
     bounds = bounds,
     children = children,
 )

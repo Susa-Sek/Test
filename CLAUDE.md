@@ -153,6 +153,22 @@ nicht mehr benutzen; wer ein Reel zu viel sieht, ärgert sich kurz. Im Zweifel n
   sobald die Kopfzeile beim Scrollen aus dem Bild wandert. **Die Bremse war damit genau dann
   aus, wenn gescrollt wurde.** Jetzt kommt die Entscheidung frisch aus dem Baum, und die Liste
   wird über dieselben Kennungen gesucht, mit denen `FeedPolicy` den Startfeed erkennt.
+- **Die Feed-Liste wird über die Form gefunden, nicht nur über Namen.** v0.14.1 suchte sie
+  ausschliesslich über `FEED_ROOT_VIEW_IDS`; auf einem echten Gerät stand keine der beiden
+  Kennungen im Baum, die Bremse meldete `brake_no_list` und tat nichts — dieselbe Falle wie bei
+  `yt_shorts_player`. `FeedPolicy.feedListToBrake` hat deshalb ein zweites Bein: der höchste
+  sichtbare **scrollbare** Knoten mit nahezu voller Fensterbreite. Erlaubt ist das hier, obwohl
+  weite Muster sonst verboten sind, weil der Aufrufer bereits `RemindToSwitch` hat — es steht
+  **positiv fest**, dass der algorithmische Startfeed vorne ist, und innerhalb dieses
+  Bildschirms ist „das grosse senkrechte Scrollding" eindeutig. Verglichen wird die **Breite**,
+  nie die Fläche: Die Höhe einer scrollbaren Liste ist ihre Layout-Höhe und überschreitet das
+  Fenster regelmässig.
+- **Die gefundene Liste wird einmal je Feed-Besuch protokolliert** (`brake_list`). Nur so kommt
+  der echte Name ins Protokoll und von dort in `Rules.kt`, statt weiter geraten zu werden.
+- **Das Protokoll ist das Messinstrument und darf nicht geflutet werden.** Der Aufwach-Empfänger
+  schrieb jedes `service_repair`, auch „wake after 0s" — in einer gemeldeten Diagnose stand
+  nichts anderes mehr, und der eigentliche Befund war längst herausgedrückt. Protokolliert wird
+  erst ab `REPAIR_LOG_MIN_SILENCE_MS` echter Stille.
 - **`FeedDecision.Idle` darf nichts zurücksetzen.** „Unklar" ist kein Beleg für irgendetwas.
   Nur `AlreadyFiltered` — der positive Beleg, dass umgeschaltet wurde — leert die Zähler,
   dazu der Paketwechsel. Dieselbe Regel gilt in `FeedPolicy.evaluate` seit v0.10.1; sie

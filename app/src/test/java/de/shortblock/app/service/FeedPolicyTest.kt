@@ -529,3 +529,102 @@ class FollowingTabToTapTest {
         assertNull(FeedPolicy.followingTabToTap(root))
     }
 }
+
+/**
+ * Die Liste, die gebremst wird.
+ *
+ * v0.14.1 suchte sie ausschliesslich über zwei View-IDs. Auf einem echten Gerät stand keine
+ * davon im Baum — die Bremse meldete `brake_no_list` und tat nichts. Deshalb ein zweites Bein,
+ * das keine Namen kennt und nach der Form sucht.
+ */
+class FeedListToBrakeTest {
+
+    private val window = NodeBounds(0, 0, 1080, 2400)
+
+    private fun screen(vararg children: FakeNode) =
+        igNode(id = "root", bounds = window, children = children.toList())
+
+    @Test
+    fun `the known id is found`() {
+        val root = screen(
+            igNode(id = "feed_recycler_view", bounds = NodeBounds(0, 300, 1080, 2400)),
+        )
+
+        assertNotNull(FeedPolicy.feedListToBrake(root))
+    }
+
+    /** Der Fall, an dem v0.14.1 scheiterte: eine Liste, deren Kennung die App nicht kennt. */
+    @Test
+    fun `an unknown list is found by its shape`() {
+        val root = screen(
+            igNode(
+                id = "irgendein_neuer_name",
+                bounds = NodeBounds(0, 300, 1080, 2400),
+                scrollable = true,
+            ),
+        )
+
+        val list = FeedPolicy.feedListToBrake(root)
+
+        assertNotNull("Die Liste muss auch ohne bekannte Kennung gefunden werden", list)
+    }
+
+    /** Von zwei scrollbaren Kandidaten gewinnt der höhere — das ist die Beitragsliste. */
+    @Test
+    fun `the taller scroller wins over a flat strip`() {
+        val strip = NodeBounds(0, 200, 1080, 500)
+        val feed = NodeBounds(0, 500, 1080, 2400)
+        val root = screen(
+            igNode(id = "stories", bounds = strip, scrollable = true),
+            igNode(id = "posts", bounds = feed, scrollable = true),
+        )
+
+        assertEquals(feed, FeedPolicy.feedListToBrake(root)?.bounds)
+    }
+
+    /** Ein schmales Karussell mitten im Beitrag ist nicht die Liste. */
+    @Test
+    fun `a narrow carousel is not the list`() {
+        val root = screen(
+            igNode(id = "carousel", bounds = NodeBounds(300, 600, 700, 2400), scrollable = true),
+        )
+
+        assertNull(FeedPolicy.feedListToBrake(root))
+    }
+
+    /** Was nicht scrollbar ist, kann auch nicht gebremst werden. */
+    @Test
+    fun `a wide but unscrollable container is not the list`() {
+        val root = screen(igNode(id = "container", bounds = NodeBounds(0, 300, 1080, 2400)))
+
+        assertNull(FeedPolicy.feedListToBrake(root))
+    }
+
+    /** Unsichtbare Knoten zählen nie — der Baum enthält recycelte Views. */
+    @Test
+    fun `an invisible scroller is ignored`() {
+        val root = screen(
+            igNode(
+                id = "recycelt",
+                bounds = NodeBounds(0, 300, 1080, 2400),
+                scrollable = true,
+                visible = false,
+            ),
+        )
+
+        assertNull(FeedPolicy.feedListToBrake(root))
+    }
+
+    @Test
+    fun `without window bounds nothing is offered`() {
+        val root = igNode(
+            id = "root",
+            bounds = null,
+            children = listOf(
+                igNode(id = "posts", bounds = NodeBounds(0, 300, 1080, 2400), scrollable = true),
+            ),
+        )
+
+        assertNull(FeedPolicy.feedListToBrake(root))
+    }
+}

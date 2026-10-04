@@ -180,6 +180,56 @@ object FeedPolicy {
         }
     }
 
+    /**
+     * Die scrollbare Liste des Startfeeds — für die Bremse.
+     *
+     * **Zwei Beine, und das zweite kennt keine Namen.** v0.14.1 suchte ausschliesslich über
+     * [Rules.InstagramFeed.FEED_ROOT_VIEW_IDS]; auf einem echten Gerät stand dort keine der
+     * beiden Kennungen im Baum, die Bremse meldete `brake_no_list` und tat nichts. Dieselbe
+     * Falle wie bei `yt_shorts_player`: eine Handvoll Namen, die ein App-Update umbenennt.
+     *
+     * Das zweite Bein sucht deshalb nach der **Form**: der höchste sichtbare scrollbare Knoten,
+     * der praktisch die volle Fensterbreite einnimmt. Das ist in einem Startfeed eindeutig die
+     * Beitragsliste.
+     *
+     * Warum das hier erlaubt ist, obwohl `CLAUDE.md` vor weiten Mustern warnt: Der Aufrufer hat
+     * bereits [FeedDecision.RemindToSwitch] — es steht also **positiv fest**, dass der
+     * algorithmische Startfeed vorne ist. Innerhalb dieses Bildschirms ist „das grosse
+     * senkrechte Scrollding“ nicht mehrdeutig. Und die schlimmste Folge eines Fehlgriffs ist
+     * ein Zurück-Scroll, der nichts hinterlässt.
+     *
+     * Verglichen wird die **Breite**, nicht die Fläche: Die Höhe einer scrollbaren Liste ist
+     * ihre Layout-Höhe und kann das Fenster weit überschreiten — siehe den `minAreaFraction`-
+     * Fallstrick in `CLAUDE.md`.
+     */
+    fun feedListToBrake(root: UiNode): UiNode? {
+        byViewId(root)?.let { return it }
+        return widestScroller(root)
+    }
+
+    private fun byViewId(root: UiNode): UiNode? = RuleMatcher.findNode(root) { node ->
+        val viewId = normalizeForMatch(node.viewId) ?: return@findNode false
+        Rules.InstagramFeed.FEED_ROOT_VIEW_IDS.any { viewId.contains(it) }
+    }
+
+    private fun widestScroller(root: UiNode): UiNode? {
+        val windowWidth = root.bounds?.width ?: return null
+        if (windowWidth <= 0) return null
+        val minWidth = windowWidth * MIN_LIST_WIDTH_FRACTION
+
+        var best: UiNode? = null
+        RuleMatcher.traverse(root) { node ->
+            if (node.isVisible && node.isScrollable) {
+                val bounds = node.bounds
+                if (bounds != null && bounds.width >= minWidth) {
+                    if (bounds.height > (best?.bounds?.height ?: 0)) best = node
+                }
+            }
+            false
+        }
+        return best
+    }
+
     private fun findTab(root: UiNode, labels: List<String>): UiNode? =
         RuleMatcher.findNode(root) { node ->
             val label = normalizeForMatch(node.text)
@@ -265,6 +315,14 @@ object FeedPolicy {
         }
         return algorithmic && following
     }
+
+    /**
+     * Wie breit die Beitragsliste mindestens sein muss, gemessen am Fenster.
+     *
+     * Eine Feed-Liste füllt die Breite; ein waagerechter Stories-Streifen oder ein Karussell
+     * tut das zwar auch, ist aber flacher — deshalb entscheidet am Ende die Höhe.
+     */
+    private const val MIN_LIST_WIDTH_FRACTION = 0.8f
 
     private const val HEADER_FRACTION = 0.20f
 
