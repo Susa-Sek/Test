@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Das Erinnerungsfenster, das über der geblockten App liegt.
+
+  Bewusst als XML-View und nicht in Compose: Das Fenster hängt an einem Dienst, nicht an einer
+  Activity — ohne Lifecycle-Besitzer wäre Compose hier der deutlich längere Weg.
+-->
+<!--
+  Der äußere Rahmen sieht für Lint überflüssig aus, ist es aber nicht: Das Fenster hängt am
+  WindowManager und ist bildschirmbreit. Ohne diesen Abstand klebte die Karte an beiden
+  Bildschirmrändern; ein Rand am Wurzel-View selbst wird beim addView ignoriert.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="24dp"
+    tools:ignore="UselessParent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/overlay_card"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView
+            android:id="@+id/reminder_line"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:lineSpacingExtra="4dp"
+            android:textColor="@color/overlay_on_surface"
+            android:textSize="19sp" />
+
+        <TextView
+            android:id="@+id/reminder_detail"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:textColor="@color/overlay_on_surface_variant"
+            android:textSize="14sp" />
+
+        <Button
+            android:id="@+id/reminder_dismiss"
+            style="?android:attr/borderlessButtonStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:layout_marginTop="8dp"
+            android:text="@string/overlay_dismiss"
+            android:textColor="@color/overlay_accent" />
+    </LinearLayout>
+</FrameLayout>

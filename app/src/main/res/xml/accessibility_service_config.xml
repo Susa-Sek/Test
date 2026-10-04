@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  flagRequestAccessibilityButton macht aus dem Bedienungshilfen-Kurzbefehl (dem
+  schwebenden Kreis am Bildschirmrand) den Cheat-Knopf: Erst dadurch liefert Android den
+  Druck als onAccessibilityButtonClicked an den Dienst, statt damit den Dienst an- und
+  auszuschalten. Der Preis ist genau das — An/Aus geht danach nur noch über die
+  Systemeinstellungen. Steht so auch im Einrichtungstext.
+
+  packageNames ist der zentrale Performance- und Akku-Hebel: Ereignisse aus allen
+  anderen Apps werden dem Service gar nicht erst zugestellt. Wer hier weitere Apps
+  ergänzt, muss auch Rules.kt erweitern.
+-->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged|typeViewScrolled"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagReportViewIds|flagIncludeNotImportantViews|flagRequestAccessibilityButton"
+    android:canRetrieveWindowContent="true"
+    android:description="@string/accessibility_service_description"
+    android:notificationTimeout="100"
+    android:packageNames="com.instagram.android,com.google.android.youtube,com.zhiliaoapp.musically,com.zhiliaoapp.musically.go,com.ss.android.ugc.trill,com.ss.android.ugc.aweme,com.android.chrome,org.mozilla.firefox,com.brave.browser,com.microsoft.emmx,com.opera.browser,com.opera.mini.native,com.sec.android.app.sbrowser,com.duckduckgo.mobile.android,com.kiwibrowser.browser,com.vivaldi.browser"
+    android:settingsActivity="de.shortblock.app.MainActivity"
+    android:summary="@string/accessibility_service_summary" />

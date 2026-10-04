@@ -1,0 +1,11 @@
+*.iml
+.gradle/
+/local.properties
+/.idea/
+.DS_Store
+# Gilt fuer jedes Modul, nicht nur app: sonst landen Build-Ausgaben im Repo.
+build/
+/captures
+.externalNativeBuild
+.cxx
+local.properties
