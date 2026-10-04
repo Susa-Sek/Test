@@ -155,7 +155,17 @@ class BlockerAccessibilityService : AccessibilityService() {
 
     override fun onServiceConnected() {
         super.onServiceConnected()
+        // Erst lesen, dann vermerken: Steht hier schon ein Ereignis, hat Android das
+        // Dienst-Objekt neu gebaut, ohne den Prozess zu beenden. Bisher war dieser Vorgang
+        // nirgends zu sehen — und er ist der Grund, warum die Anzeige „Letztes Ereignis"
+        // auf „nie" sprang, während das Protokoll voll war. Eine Zeile je Neuverbindung;
+        // das flutet nichts, Neuverbindungen sind selten.
+        val previousHealth = ServiceHealth.state.value
         ServiceHealth.onConnected()
+        if (previousHealth.lastEventAtMs > 0L) {
+            val ageSeconds = (System.currentTimeMillis() - previousHealth.lastEventAtMs) / 1000
+            BlockLog.record("service_rebind", "last event ${ageSeconds}s ago")
+        }
 
         settingsRepository = SettingsRepository(applicationContext)
         statsRepository = StatsRepository(applicationContext)

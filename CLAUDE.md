@@ -180,6 +180,22 @@ nicht mehr benutzen; wer ein Reel zu viel sieht, ärgert sich kurz. Im Zweifel n
   schrieb jedes `service_repair`, auch „wake after 0s" — in einer gemeldeten Diagnose stand
   nichts anderes mehr, und der eigentliche Befund war längst herausgedrückt. Protokolliert wird
   erst ab `REPAIR_LOG_MIN_SILENCE_MS` echter Stille.
+- **Ein Neuverbinden des Dienstes darf die Messung nicht löschen.** `ServiceHealth.onConnected`
+  schrieb einen frischen `Snapshot(connectedAtMs = …)` und `onDisconnected` ein leeres —
+  `lastEventAtMs` war danach 0. Android baut das Dienst-Objekt neu, **ohne den Prozess zu
+  beenden**: `BlockLog` überlebt das, der Zustand nicht. Daher stand im Zustandskasten
+  „Letztes Ereignis: nie" neben einem **gefüllten Protokoll**, und genau diese Aufteilung war
+  der Hinweis. Schlimmer als die falsche Anzeige war die Folge: `WakeRepair.needsRepair` gibt
+  bei `lastEventAtMs == 0` immer `false` — die Aufwach-Reparatur war nach jedem Neuverbinden
+  abgeschaltet, also wieder der Morgen-Fehler. Seit v0.15.1 setzt `connected` nur die
+  Verbindungszeit, `disconnected` löscht nur sie, und ein Neuverbinden mit vorhandener Messung
+  schreibt `service_rebind` ins Protokoll — bis dahin war dieser Vorgang nirgends sichtbar.
+  Ebenso darf die Entprellung in `withEvent` eine **zurückgestellte Uhr** nicht festschreiben:
+  Ein Wert in der Zukunft gilt der Oberfläche als „nie" und ergibt negative Stille.
+- **Ein Anzeiger darf nicht einfrieren.** Der Zustandskasten rechnete sein Alter aus einem
+  `System.currentTimeMillis()` der Komposition; bei stillem Dienst stand dort minutenlang
+  „vor 0 Min.". Jetzt läuft eine Uhr im `produceState`. Was man morgens abliest, muss auch
+  dann stimmen, wenn nichts passiert.
 - **`FeedDecision.Idle` darf nichts zurücksetzen.** „Unklar" ist kein Beleg für irgendetwas.
   Nur `AlreadyFiltered` — der positive Beleg, dass umgeschaltet wurde — leert die Zähler,
   dazu der Paketwechsel. Dieselbe Regel gilt in `FeedPolicy.evaluate` seit v0.10.1; sie

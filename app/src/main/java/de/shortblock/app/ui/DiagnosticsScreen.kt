@@ -28,12 +28,14 @@ import de.shortblock.app.system.SystemSettings
 import de.shortblock.app.service.ServiceHealth
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import de.shortblock.app.service.BlockLog
 import de.shortblock.app.ui.components.InfoCard
 import de.shortblock.app.ui.components.SectionHeader
 import de.shortblock.app.ui.components.SettingRow
+import kotlinx.coroutines.delay
 
 @Composable
 fun DiagnosticsScreen(
@@ -205,7 +207,15 @@ private fun CopyButton(entries: List<String>) {
 private fun ServiceStateCard() {
     val context = LocalContext.current
     val health by ServiceHealth.state.collectAsStateWithLifecycle()
-    val now = System.currentTimeMillis()
+    // Mitlaufende Uhr, nicht ein Wert von der Komposition: Stand hier `System.currentTimeMillis()`
+    // einmalig, zeigte der Kasten bei stillem Dienst minutenlang „vor 0 Min.". Ein Anzeiger, auf
+    // den man sich morgens verlässt, darf nicht einfrieren.
+    val now by produceState(System.currentTimeMillis()) {
+        while (true) {
+            value = System.currentTimeMillis()
+            delay(TICK_MS)
+        }
+    }
     val batteryExempt = remember { SystemSettings.isIgnoringBatteryOptimizations(context) }
 
     SectionHeader(
@@ -229,6 +239,9 @@ private fun ServiceStateCard() {
         )
     }
 }
+
+/** Wie oft der Zustandskasten seine Altersangaben nachrechnet. */
+private const val TICK_MS = 30_000L
 
 /** „vor 12 Min." oder „nie" — mehr Genauigkeit braucht hier niemand. */
 @Composable
