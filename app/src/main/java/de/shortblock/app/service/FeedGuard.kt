@@ -45,9 +45,32 @@ object FeedGuard {
      */
     const val FREE_POSTS = 2
 
-    /** Darf noch frei gescrollt werden? `-1` heisst „Index unbekannt“ — dann ja. */
-    fun isWithinFreePosts(firstVisibleIndex: Int): Boolean =
-        firstVisibleIndex < 0 || firstVisibleIndex < FREE_POSTS
+    /**
+     * Rückfall, wenn die Liste **keinen** Index meldet: So viele Scroll-Ereignisse laufen frei.
+     *
+     * Bis v0.15.1 galt ein unbekannter Index (`-1`) als „noch frei" — ohne Gegenstück. Meldet
+     * eine Liste **nie** einen Index, und das tun Listen ausserhalb von `RecyclerView`
+     * regelmässig, dann war die Freigabe damit dauerhaft offen und die Bremse griff kein
+     * einziges Mal. Dieselbe Sorte stille Falle wie `yt_shorts_player`: eine Bedingung, die
+     * auf dem Papier richtig ist und auf dem Gerät nie zutrifft.
+     *
+     * Vier Ereignisse sind grosszügig gezählt und knapp gemessen: Ein Fling erzeugt mehrere.
+     * Im Zweifel greift die Bremse hier früher — sie scrollt zurück, sie sperrt nicht.
+     */
+    const val FREE_SCROLLS = 4
+
+    /**
+     * Darf noch frei gescrollt werden?
+     *
+     * @param firstVisibleIndex `event.fromIndex`; `-1` heisst „die Liste meldet keinen Index".
+     * @param scrollEvents wie viele Scroll-Ereignisse dieser Feed-Besuch gezählt hat.
+     */
+    fun isWithinFreePosts(firstVisibleIndex: Int, scrollEvents: Int): Boolean =
+        if (firstVisibleIndex >= 0) {
+            firstVisibleIndex < FREE_POSTS
+        } else {
+            scrollEvents < FREE_SCROLLS
+        }
 
     enum class Step {
         /** Der „Gefolgt“-Tab ist nachweisbar da — antippen und das Problem lösen. */

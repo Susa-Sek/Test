@@ -160,6 +160,26 @@ nicht mehr benutzen; wer ein Reel zu viel sieht, ärgert sich kurz. Im Zweifel n
   Nutzer seitwärts aus dem Feed. Die Beitragsliste steckt immer **innerhalb** des Pagers —
   deshalb gewinnt der am tiefsten verschachtelte Kandidat, und `NEVER_BRAKE_VIEW_IDS` wirft
   alles mit `pager` im Namen zusätzlich heraus.
+- **Die Bremse darf nicht an der Kopfzeile hängen.** v0.15.1 rief sie ausschliesslich im
+  `RemindToSwitch`-Zweig — und `FeedPolicy.evaluate` braucht für jede Entscheidung die
+  Kopfzeile (Titel, Tab-Leiste oder Titeltext). **Instagram schiebt die Kopfzeile beim Scrollen
+  aus dem Baum**, nach zwei Beiträgen liefert `evaluate` deshalb `Idle`, und die Bremse war
+  genau dann aus, wenn gescrollt wurde. Das ist derselbe Fehler wie v0.14.0, nur eine Ebene
+  tiefer: damals hing sie am Scroll-Ereignis, danach an der Kopfzeile. Gemeldet wurde er als
+  „ich doomscrolle". Seit v0.16.0 verlängert `FeedPolicy.stillOnAlgorithmicFeed` den **bereits
+  erbrachten** Beleg (`forYouActive`, gesetzt nur durch `RemindToSwitch`) und prüft bei jedem
+  Scan frisch nach: sichtbare Beitragszeile (`FEED_ROW_VIEW_IDS`) **oder** zwei verschiedene
+  Beitragsknöpfe (`POST_ACTION_LABELS`), und kein anderer Tab ausgewählt. Das Tab-Veto ist
+  bewusst ein **Veto** und keine Bedingung: „`feed_tab` ist ausgewählt" als Pflicht hätte ein
+  umbenanntes `feed_tab` zur stillen Abschaltung gemacht. Der gefilterte Feed ist dadurch
+  geschützt, dass man zum Umschalten die Kopfzeile antippen muss — `AlreadyFiltered` löscht den
+  Beleg, bevor dort gescrollt werden kann.
+- **Zu jeder Freigabe gehört ein Gegenstück.** `isWithinFreePosts` gab bei unbekanntem Index
+  (`-1`) „noch frei" zurück — ohne Grenze. Eine Liste, die **nie** einen Index meldet, und das
+  tun Listen ausserhalb von `RecyclerView` regelmässig, hielt die Freigabe damit dauerhaft
+  offen; die Bremse griff kein einziges Mal. Dieselbe Sorte Bedingung wie `yt_shorts_player`:
+  auf dem Papier richtig, auf dem Gerät nie zutreffend. Deshalb zählt `feedScrollEvents`
+  mit, und ohne Index gilt `FREE_SCROLLS`.
 - **Die ersten `FeedGuard.FREE_POSTS` Beiträge laufen frei durch.** Gezählt wird der
   Listenindex aus `event.fromIndex` — buchstäblich die Nummer des Beitrags, nicht eine
   geschätzte Scroll-Strecke; dieselbe Quelle benutzt `SharedClip.countsAsSwipe` seit v0.9. Ein

@@ -1,5 +1,6 @@
 package de.shortblock.app.service
 
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -667,5 +668,114 @@ class FeedListToBrakeTest {
         )
 
         assertNull(FeedPolicy.feedListToBrake(root))
+    }
+}
+
+/**
+ * Der Beleg, der die weggescrollte Kopfzeile überbrückt.
+ *
+ * **Warum es diese Funktion gibt.** `evaluate` braucht die Kopfzeile — Titel, Tab-Leiste oder
+ * Titeltext. Instagram schiebt sie beim Scrollen aus dem Baum, also liefert `evaluate` nach
+ * zwei Beiträgen `Idle`. Die Bremse hing im `RemindToSwitch`-Zweig und war damit genau dann
+ * aus, wenn gescrollt wurde: derselbe Fehler wie v0.14.0, nur eine Ebene tiefer. Gemeldet
+ * wurde er als „ich doomscrolle".
+ *
+ * Diese Tests halten beide Seiten fest: dass der Feed ohne Kopfzeile erkannt wird — und dass
+ * eine Profilseite und ein anderer Tab es nicht sind.
+ */
+class FeedPolicyStillOnFeedTest {
+
+    /** Die Knöpfe unter einem Beitrag, so wie sie im Baum stehen. */
+    private fun postActions() = listOf(
+        igNode(id = "row_feed_button_like", description = "Gefällt mir"),
+        igNode(id = "row_feed_button_comment", description = "Kommentieren"),
+    )
+
+    @Test
+    fun `a scrolled feed without a header still counts`() {
+        val root = igNode(
+            id = "feed_tab_root",
+            children = listOf(
+                igNode(id = "feed_recycler_view", scrollable = true, children = postActions()),
+            ),
+        )
+
+        assertTrue(FeedPolicy.stillOnAlgorithmicFeed(root))
+    }
+
+    /** Das namenlose Bein allein: keine bekannte Kennung, nur die beiden Knöpfe. */
+    @Test
+    fun `two post buttons are enough without any known view id`() {
+        val root = igNode(
+            children = listOf(
+                igNode(description = "Gefällt mir"),
+                igNode(description = "Kommentieren"),
+            ),
+        )
+
+        assertTrue(FeedPolicy.stillOnAlgorithmicFeed(root))
+    }
+
+    /**
+     * Ein einzelner Knopf genügt nicht.
+     *
+     * „Teilen" steht in Instagram auch an Orten, die kein Feed sind. Ein Bein muss tragen,
+     * nicht ein Anhaltspunkt.
+     */
+    @Test
+    fun `a single button is not a feed`() {
+        val root = igNode(children = listOf(igNode(description = "Teilen")))
+
+        assertFalse(FeedPolicy.stillOnAlgorithmicFeed(root))
+    }
+
+    /**
+     * Die Profilseite — der Fall, den die Bremse nie anfassen darf.
+     *
+     * Sie liegt **innerhalb** des Home-Tabs, der Tab-Zustand trennt sie also nicht ab. Was sie
+     * abtrennt, ist das Fehlen von Beitragszeilen: Ein Profilraster besteht aus Vorschaubildern,
+     * nicht aus Beiträgen mit Knöpfen.
+     */
+    @Test
+    fun `a profile page inside the home tab is not a feed`() {
+        val root = igNode(
+            children = listOf(
+                igNode(id = "feed_tab", selected = true),
+                igNode(id = "profile_header_follow_button", text = "Gefolgt"),
+                igNode(id = "profile_grid", scrollable = true),
+            ),
+        )
+
+        assertFalse(FeedPolicy.stillOnAlgorithmicFeed(root))
+    }
+
+    /** Das Veto: Reels trägt dieselben Knöpfe, ist aber ein anderer Tab. */
+    @Test
+    fun `another selected tab vetoes even with post buttons`() {
+        val root = igNode(
+            children = listOf(
+                igNode(id = "clips_tab", selected = true),
+            ) + postActions(),
+        )
+
+        assertFalse(FeedPolicy.stillOnAlgorithmicFeed(root))
+    }
+
+    /** Unsichtbare Knoten belegen nichts — recycelte Views stehen im Baum. */
+    @Test
+    fun `invisible rows prove nothing`() {
+        val root = igNode(
+            children = listOf(
+                igNode(id = "row_feed_button_like", description = "Gefällt mir", visible = false),
+                igNode(id = "row_feed_button_comment", description = "Kommentieren", visible = false),
+            ),
+        )
+
+        assertFalse(FeedPolicy.stillOnAlgorithmicFeed(root))
+    }
+
+    @Test
+    fun `no tree is no proof`() {
+        assertFalse(FeedPolicy.stillOnAlgorithmicFeed(null))
     }
 }

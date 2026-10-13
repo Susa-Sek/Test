@@ -131,6 +131,10 @@ class BlockerAccessibilityService : AccessibilityService() {
     private var lastBrakeListSignature: String? = null
     /** Weitester erreichter Listenindex im Feed; -1 = noch keiner gemeldet. */
     private var feedFirstVisibleIndex = -1
+    /** Scroll-Ereignisse dieses Feed-Besuchs — der Rückfall, wenn kein Index gemeldet wird. */
+    private var feedScrollEvents = 0
+    /** Einmal je Feed-Besuch: Die Kopfzeile ist weg, der Beleg trägt trotzdem. */
+    private var headlessFeedLogged = false
 
     /**
      * Weckt die Bedienungshilfe beim Entsperren.
@@ -286,8 +290,13 @@ class BlockerAccessibilityService : AccessibilityService() {
             // Nur mitzählen, nicht bremsen: Gebremst wird im Scan-Pfad. `fromIndex` ist der
             // erste sichtbare Listeneintrag — damit lässt sich „nach zwei Beiträgen“ wörtlich
             // nehmen, statt eine Scroll-Strecke zu schätzen.
-            if (forYouActive && event.fromIndex >= 0) {
-                feedFirstVisibleIndex = maxOf(feedFirstVisibleIndex, event.fromIndex)
+            if (forYouActive) {
+                if (event.fromIndex >= 0) {
+                    feedFirstVisibleIndex = maxOf(feedFirstVisibleIndex, event.fromIndex)
+                }
+                // Auch ohne Index zählen. Meldet die Liste nie einen, war die Freigabe bis
+                // v0.15.1 dauerhaft offen und die Bremse griff kein einziges Mal.
+                feedScrollEvents++
             }
             if (singleWatchActive) {
                 val fromPager = SharedClip.isFromPager(event.source?.viewIdResourceName, packageName)
@@ -555,11 +564,29 @@ class BlockerAccessibilityService : AccessibilityService() {
      */
     private fun handleInstagramFeed(root: UiNode) {
         when (val decision = FeedPolicy.evaluate(root)) {
-            // „Unklar“ darf nichts zurücksetzen. Beim Scrollen wandert die Kopfzeile aus
-            // dem Bild und die Auswertung liefert Idle — wer hier zurücksetzt, schaltet die
-            // Bremse genau dann ab, wenn gescrollt wird. Dieselbe Regel wie in
-            // FeedPolicy.evaluate: Idle gibt nichts weiter.
-            FeedDecision.Idle -> Unit
+            // „Unklar“ darf nichts zurücksetzen — und darf die Bremse auch nicht anhalten.
+            //
+            // Hier lag die Lücke, durch die das Doomscrollen durchkam: Beim Scrollen wandert
+            // Instagrams Kopfzeile aus dem Baum, `evaluate` liefert deshalb nach zwei
+            // Beiträgen `Idle`, und die Bremse hing allein im `RemindToSwitch`-Zweig. **Sie
+            // war damit genau dann aus, wenn gescrollt wurde** — derselbe Fehler wie v0.14.0,
+            // nur eine Ebene tiefer. Gebremst wird jetzt weiter, solange der Beleg aus dem
+            // Baum trägt: `forYouActive` ist der bereits erbrachte Beweis, dass „Für dich"
+            // vorne war, `stillOnAlgorithmicFeed` prüft bei jedem Scan frisch nach, dass
+            // immer noch ein Beitragsfeed davorsteht und kein anderer Tab.
+            FeedDecision.Idle -> if (forYouActive) {
+                if (FeedPolicy.stillOnAlgorithmicFeed(root)) {
+                    if (!headlessFeedLogged) {
+                        headlessFeedLogged = true
+                        BlockLog.record("ig_feed_headless", "Kopfzeile weg, Feed belegt")
+                    }
+                    // Ohne Kopfzeile gibt es kein Tippziel — die Eskalation beginnt bei der
+                    // Bremse und endet, wie gebaut, beim Verlassen.
+                    escalateFeed(root, tapTarget = null)
+                } else {
+                    noteBrakeSkipped("brake_off_feed")
+                }
+            }
 
             // Nur das ist ein positiver Beleg, dass umgeschaltet wurde.
             FeedDecision.AlreadyFiltered -> resetFeedState()
@@ -573,38 +600,7 @@ class BlockerAccessibilityService : AccessibilityService() {
                     BlockLog.record("ig_feed_for_you", "erinnert")
                     scope.launch { statsRepository.increment(Feature.INSTAGRAM_FEED) }
                 }
-                when (
-                    FeedGuard.next(
-                        tapTargetFound = FeedPolicy.followingTabToTap(root) != null,
-                        tapsTried = feedTapsTried,
-                        brakesUsed = feedBrakesUsed,
-                    )
-                ) {
-                    // Die sanfteste Stufe: einmal auf „Gefolgt“ tippen und das Problem lösen.
-                    // Das Ziel kommt ausschliesslich aus followingTabToTap — nie aus einer
-                    // Textsuche, sonst entfolgt ein Fehlgriff jemanden.
-                    FeedGuard.Step.TAP_FOLLOWING -> {
-                        feedTapsTried++
-                        val target = FeedPolicy.followingTabToTap(root)
-                        if (target != null &&
-                            Actions.clickNearest(target, RuleMatcher.windowArea(root))
-                        ) {
-                            BlockLog.record("ig_feed_tap", "auf Gefolgt getippt")
-                            pausedUntil = SystemClock.uptimeMillis() + CLICK_COOLDOWN_MS
-                        }
-                    }
-
-                    FeedGuard.Step.BRAKE -> {
-                        showReminder(getString(R.string.feed_reminder))
-                        brakeFeed(root)
-                    }
-
-                    FeedGuard.Step.LEAVE -> {
-                        BlockLog.record("ig_feed_leave", "Bremse hat nicht gereicht")
-                        toast(R.string.toast_feed_left)
-                        blockAndGoBack(Feature.INSTAGRAM_FEED, "ig_feed_leave")
-                    }
-                }
+                escalateFeed(root, FeedPolicy.followingTabToTap(root))
             }
 
             // Liefert FeedPolicy für Instagram nicht mehr; der Zweig gehört TikTok.
@@ -772,6 +768,51 @@ class BlockerAccessibilityService : AccessibilityService() {
     private fun today(): Int = LocalDate.now().toEpochDay().toInt()
 
     /**
+     * Erst tippen, dann bremsen, dann verlassen — eine Stelle für beide Wege dorthin.
+     *
+     * Gerufen aus zwei Zweigen: mit Kopfzeile (`RemindToSwitch`, dann gibt es ein Tippziel)
+     * und ohne Kopfzeile (`Idle` plus Beleg aus dem Baum, dann gibt es keines). Dass es nur
+     * **eine** Funktion ist, ist Absicht: Als die Eskalation im `RemindToSwitch`-Zweig
+     * eingebaut war, lief sie beim Scrollen nie — und das fiel niemandem auf, weil der zweite
+     * Weg gar nicht existierte.
+     *
+     * @param tapTarget der „Gefolgt"-Knoten aus [FeedPolicy.followingTabToTap], oder null.
+     */
+    private fun escalateFeed(root: UiNode, tapTarget: UiNode?) {
+        when (
+            FeedGuard.next(
+                tapTargetFound = tapTarget != null,
+                tapsTried = feedTapsTried,
+                brakesUsed = feedBrakesUsed,
+            )
+        ) {
+            // Die sanfteste Stufe: einmal auf „Gefolgt“ tippen und das Problem lösen.
+            // Das Ziel kommt ausschliesslich aus followingTabToTap — nie aus einer
+            // Textsuche, sonst entfolgt ein Fehlgriff jemanden.
+            FeedGuard.Step.TAP_FOLLOWING -> {
+                feedTapsTried++
+                if (tapTarget != null &&
+                    Actions.clickNearest(tapTarget, RuleMatcher.windowArea(root))
+                ) {
+                    BlockLog.record("ig_feed_tap", "auf Gefolgt getippt")
+                    pausedUntil = SystemClock.uptimeMillis() + CLICK_COOLDOWN_MS
+                }
+            }
+
+            FeedGuard.Step.BRAKE -> {
+                showReminder(getString(R.string.feed_reminder))
+                brakeFeed(root)
+            }
+
+            FeedGuard.Step.LEAVE -> {
+                BlockLog.record("ig_feed_leave", "Bremse hat nicht gereicht")
+                toast(R.string.toast_feed_left)
+                blockAndGoBack(Feature.INSTAGRAM_FEED, "ig_feed_leave")
+            }
+        }
+    }
+
+    /**
      * Die Bremse: den „Für dich“-Feed oben halten.
      *
      * **Warum im Scan und nicht am Scroll-Ereignis.** v0.14.0 hing am `TYPE_VIEW_SCROLLED`-
@@ -781,10 +822,16 @@ class BlockerAccessibilityService : AccessibilityService() {
      * Kopfzeile beim Scrollen aus dem Bild wanderte. Die Bremse war damit genau dann aus, wenn
      * gescrollt wurde.
      *
-     * Hier kommt die Entscheidung frisch aus dem Baum: Gerufen wird nur nach
-     * [FeedDecision.RemindToSwitch], und die Liste wird über dieselben Kennungen gesucht, mit
-     * denen [FeedPolicy] den Startfeed erkennt. Auf einer Profilseite gibt es kein
-     * `RemindToSwitch`, also wird dort nie gebremst.
+     * Hier kommt die Entscheidung frisch aus dem Baum, und die Liste wird über dieselben
+     * Kennungen gesucht, mit denen [FeedPolicy] den Startfeed erkennt.
+     *
+     * **Seit v0.16.0 auch ohne Kopfzeile.** Bis dahin hing der Aufruf allein an
+     * [FeedDecision.RemindToSwitch] — und das setzt die Kopfzeile im Baum voraus, die
+     * Instagram beim Scrollen wegschiebt. Die Bremse war damit genau dann aus, wenn gescrollt
+     * wurde. Der zweite Weg führt über [FeedPolicy.stillOnAlgorithmicFeed]: ein bereits
+     * erbrachter Beleg (`forYouActive`), bei jedem Scan neu daraufhin geprüft, dass noch ein
+     * Beitragsfeed davorsteht. Eine Profilseite trägt keine Beitragszeilen und wird dort
+     * aussortiert; ein anderer Tab legt zusätzlich sein Veto ein.
      *
      * **Begrenzt sich selbst:** Steht die Liste schon oben, liefert `ACTION_SCROLL_BACKWARD`
      * `false`. Dann passiert nichts und es wird nichts gezählt — [feedBrakesUsed] wächst nur,
@@ -796,7 +843,7 @@ class BlockerAccessibilityService : AccessibilityService() {
     private fun brakeFeed(root: UiNode) {
         // Die ersten Beiträge laufen frei durch — erst danach greift die Bremse. Ohne das
         // fühlt sich der Feed kaputt an, statt begrenzt.
-        if (FeedGuard.isWithinFreePosts(feedFirstVisibleIndex)) return
+        if (FeedGuard.isWithinFreePosts(feedFirstVisibleIndex, feedScrollEvents)) return
 
         val now = System.currentTimeMillis()
         // Der Zurück-Scroll erzeugt selbst ein Ereignis, und der Scan läuft im 150-ms-Takt
@@ -853,6 +900,8 @@ class BlockerAccessibilityService : AccessibilityService() {
         lastBrakeReason = null
         lastBrakeListSignature = null
         feedFirstVisibleIndex = -1
+        feedScrollEvents = 0
+        headlessFeedLogged = false
     }
 
     private fun toast(messageRes: Int) {

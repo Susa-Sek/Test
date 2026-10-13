@@ -310,6 +310,54 @@ object Rules {
         )
 
         /**
+         * Kennungen, die nur an **Beitragszeilen des Startfeeds** hängen.
+         *
+         * Der Beleg dafür, dass der Feed noch vorne steht, wenn die Kopfzeile weggescrollt
+         * ist. Instagrams Beitragszeilen tragen seit Jahren `row_feed_*`; ein Profilraster,
+         * Explore und die Suche tragen das nicht.
+         */
+        val FEED_ROW_VIEW_IDS = listOf(
+            "row_feed",
+        )
+
+        /**
+         * Die Knöpfe unter jedem Beitrag — das zweite, namenlose Bein desselben Belegs.
+         *
+         * Verlangt werden **zwei verschiedene** davon sichtbar (siehe
+         * [FeedPolicy.stillOnAlgorithmicFeed]). Ein einzelnes „Teilen" steht auch anderswo;
+         * „Gefällt mir" **und** „Kommentieren" nebeneinander gibt es nur an einem Beitrag.
+         * Ein Profilraster hat sie nicht, dort sind es nur Vorschaubilder.
+         */
+        val POST_ACTION_LABELS = listOf(
+            "gefällt mir",
+            "kommentieren",
+            "teilen",
+            "senden",
+            "speichern",
+            "like",
+            "comment",
+            "share",
+            "save",
+        )
+
+        /**
+         * Die **anderen** Tabs der unteren Leiste — ein Veto, kein Beleg.
+         *
+         * Ist einer davon ausgewählt, steht fest, dass der Startfeed nicht vorne ist. Als
+         * Veto formuliert und nicht als Bedingung: Wäre „`feed_tab` ist ausgewählt" Pflicht,
+         * hätte ein umbenanntes `feed_tab` die Bremse still abgeschaltet — genau die Falle,
+         * in die `yt_shorts_player` und v0.14.1 gelaufen sind. Fehlt diese Liste im Baum,
+         * bremst die App weiter; sie hört nur auf, wenn ein anderer Tab es ausdrücklich sagt.
+         */
+        val OTHER_TAB_VIEW_IDS = listOf(
+            "search_tab",
+            "clips_tab",
+            "profile_tab",
+            "news_tab",
+            "shopping_tab",
+        )
+
+        /**
          * Scroller, die **nie** gebremst werden dürfen.
          *
          * `swipeable_tab_view_pager` ist Instagrams waagerechter Umschalter zwischen

@@ -181,6 +181,74 @@ object FeedPolicy {
     }
 
     /**
+     * Steht der Beitragsfeed **noch** vorne, obwohl die Kopfzeile weggescrollt ist?
+     *
+     * **Das ist die Lücke, durch die das Doomscrollen durchkam.** [evaluate] braucht für seine
+     * Entscheidung die Kopfzeile: Titel, Tab-Leiste oder Titeltext. Instagram schiebt die
+     * Kopfzeile beim Scrollen aus dem Baum — nach zwei Beiträgen liefert [evaluate] deshalb
+     * `Idle`, und die Bremse hing allein im `RemindToSwitch`-Zweig. **Sie war damit genau dann
+     * aus, wenn gescrollt wurde** — derselbe Fehler wie in v0.14.0, nur eine Ebene tiefer:
+     * damals am Scroll-Ereignis, hier an der Kopfzeile.
+     *
+     * Diese Funktion ersetzt die Kopfzeile nicht, sie **verlängert einen bereits erbrachten
+     * Beweis**. Der Aufrufer darf sie nur fragen, wenn [evaluate] in diesem Feed-Besuch schon
+     * einmal [FeedDecision.RemindToSwitch] geliefert hat. Dass „Für dich" und nicht „Gefolgt"
+     * vorne ist, steht damit fest: Zum Umschalten muss man die Kopfzeile antippen, und dabei
+     * ist sie sichtbar — [FeedDecision.AlreadyFiltered] löscht den Beleg also, bevor im
+     * gefilterten Feed gescrollt werden kann.
+     *
+     * Zwei Beine für den Beleg, eines mit Namen, eines ohne — wie bei [feedListToBrake]:
+     *
+     * 1. Eine sichtbare Beitragszeile ([Rules.InstagramFeed.FEED_ROW_VIEW_IDS]).
+     * 2. **Zwei verschiedene** sichtbare Beitragsknöpfe
+     *    ([Rules.InstagramFeed.POST_ACTION_LABELS]). Zwei, nicht einer: Ein einzelnes
+     *    „Teilen" steht auch anderswo.
+     *
+     * Dazu ein Veto: Ist ein anderer Tab der unteren Leiste ausgewählt, ist Schluss. Das Veto
+     * trennt Explore, Reels und Profil ab, ohne dass ein umbenanntes `feed_tab` die Bremse
+     * still abschalten könnte.
+     *
+     * Was dabei bewusst in Kauf genommen wird: Ein aus dem Feed geöffneter einzelner Beitrag
+     * trägt dieselben Knöpfe und gilt weiter als Feed. Die Folge ist ein Zurück-Scroll, der
+     * nichts hinterlässt — gemessen am Leitsatz die billigere Seite.
+     */
+    fun stillOnAlgorithmicFeed(root: UiNode?): Boolean {
+        if (root == null) return false
+        if (isOnOtherTab(root)) return false
+        return hasFeedRow(root) || countPostActions(root) >= MIN_POST_ACTIONS
+    }
+
+    private fun isOnOtherTab(root: UiNode): Boolean = RuleMatcher.containsNode(root) { node ->
+        if (!node.isSelected) return@containsNode false
+        val viewId = normalizeForMatch(node.viewId) ?: return@containsNode false
+        Rules.InstagramFeed.OTHER_TAB_VIEW_IDS.any { viewId.contains(it) }
+    }
+
+    private fun hasFeedRow(root: UiNode): Boolean = RuleMatcher.containsNode(root) { node ->
+        val viewId = normalizeForMatch(node.viewId) ?: return@containsNode false
+        Rules.InstagramFeed.FEED_ROW_VIEW_IDS.any { viewId.contains(it) }
+    }
+
+    /** Wie viele **verschiedene** Beitragsknöpfe sichtbar sind. */
+    private fun countPostActions(root: UiNode): Int {
+        val seen = mutableSetOf<String>()
+        RuleMatcher.traverse(root) { node ->
+            if (node.isVisible) {
+                val label = normalizeForMatch(node.text)
+                    ?: normalizeForMatch(node.contentDescription)
+                if (label != null) {
+                    Rules.InstagramFeed.POST_ACTION_LABELS
+                        .firstOrNull { label == it }
+                        ?.let { seen += it }
+                }
+            }
+            // Immer weiterlaufen: Gesucht ist die Anzahl, nicht der erste Treffer.
+            false
+        }
+        return seen.size
+    }
+
+    /**
      * Die scrollbare Liste des Startfeeds — für die Bremse.
      *
      * **Zwei Beine, und das zweite kennt keine Namen.** v0.14.1 suchte ausschliesslich über
@@ -352,6 +420,14 @@ object FeedPolicy {
      * Eine Feed-Liste füllt die Breite; ein waagerechter Stories-Streifen oder ein Karussell
      * tut das zwar auch, ist aber flacher — deshalb entscheidet am Ende die Höhe.
      */
+    /**
+     * So viele **verschiedene** Beitragsknöpfe belegen einen Beitragsfeed.
+     *
+     * Einer genügt nicht: „Teilen" und „Speichern" stehen in Instagram auch an Orten, die
+     * kein Feed sind. „Gefällt mir" und „Kommentieren" nebeneinander gibt es nur am Beitrag.
+     */
+    private const val MIN_POST_ACTIONS = 2
+
     private const val MIN_LIST_WIDTH_FRACTION = 0.8f
 
     private const val HEADER_FRACTION = 0.20f

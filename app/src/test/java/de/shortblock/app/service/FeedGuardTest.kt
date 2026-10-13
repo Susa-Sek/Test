@@ -115,19 +115,41 @@ class FeedGuardFreePostsTest {
 
     @Test
     fun `the first posts are free`() {
-        assertTrue(FeedGuard.isWithinFreePosts(0))
-        assertTrue(FeedGuard.isWithinFreePosts(1))
+        assertTrue(FeedGuard.isWithinFreePosts(0, scrollEvents = 0))
+        assertTrue(FeedGuard.isWithinFreePosts(1, scrollEvents = 99))
     }
 
     @Test
     fun `after that the brake engages`() {
-        assertFalse(FeedGuard.isWithinFreePosts(FeedGuard.FREE_POSTS))
-        assertFalse(FeedGuard.isWithinFreePosts(FeedGuard.FREE_POSTS + 5))
+        assertFalse(FeedGuard.isWithinFreePosts(FeedGuard.FREE_POSTS, scrollEvents = 0))
+        assertFalse(FeedGuard.isWithinFreePosts(FeedGuard.FREE_POSTS + 5, scrollEvents = 0))
     }
 
-    /** Kein Index gemeldet heisst: nicht bremsen. Im Zweifel nichts tun. */
+    /**
+     * Ein gemeldeter Index schlägt den Rückfall — in **beide** Richtungen.
+     *
+     * Sonst stünde die Freigabe bei einer Liste, die ihren Index meldet, nach vier Ereignissen
+     * zu, obwohl noch der erste Beitrag zu sehen ist (ein Fling erzeugt mehrere Ereignisse).
+     */
     @Test
-    fun `an unknown index stays free`() {
-        assertTrue(FeedGuard.isWithinFreePosts(-1))
+    fun `a reported index beats the fallback`() {
+        assertTrue(FeedGuard.isWithinFreePosts(0, scrollEvents = 500))
+        assertFalse(FeedGuard.isWithinFreePosts(9, scrollEvents = 0))
+    }
+
+    /**
+     * Der Rückfall ohne Index — und die stille Falle, die er schliesst.
+     *
+     * Bis v0.15.1 hiess „kein Index" **immer** „noch frei". Meldet eine Liste nie einen Index
+     * — und das tun Listen ausserhalb von `RecyclerView` regelmässig —, war die Freigabe damit
+     * dauerhaft offen und die Bremse griff kein einziges Mal. Dieselbe Sorte Bedingung wie
+     * `yt_shorts_player`: auf dem Papier richtig, auf dem Gerät nie zutreffend.
+     */
+    @Test
+    fun `without an index the scroll count takes over`() {
+        assertTrue(FeedGuard.isWithinFreePosts(-1, scrollEvents = 0))
+        assertTrue(FeedGuard.isWithinFreePosts(-1, scrollEvents = FeedGuard.FREE_SCROLLS - 1))
+        assertFalse(FeedGuard.isWithinFreePosts(-1, scrollEvents = FeedGuard.FREE_SCROLLS))
+        assertFalse(FeedGuard.isWithinFreePosts(-1, scrollEvents = 100))
     }
 }
