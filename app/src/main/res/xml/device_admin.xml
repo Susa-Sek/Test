@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Bewusst LEER.
+
+  Der Deinstallationsschutz haengt allein daran, DASS ein Geraeteadministrator aktiv ist, nicht
+  daran, was er darf. Jede Richtlinie hier waere ein Recht, das die App nicht braucht — und bei
+  einer App, die den Bildschirminhalt fremder Apps liest, ist jedes ungenutzte Recht eines zu
+  viel. Wer hier etwas ergaenzt, muss sagen koennen, wofuer.
+-->
+<device-admin xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-policies />
+</device-admin>
