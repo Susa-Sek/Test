@@ -237,8 +237,42 @@ nicht mehr benutzen; wer ein Reel zu viel sieht, ärgert sich kurz. Im Zweifel n
   Fenstermasse liefert es gar nichts. Dazu kommt der Flächendeckel in `Actions.clickNearest`.
   Drei Gatter, alle nötig. Der Test `a follow button in the middle of the screen is never a
   target` hält sie fest.
-- **Scheitert die Bremse, wird nichts gezählt.** Sonst zählte ein wirkungsloser Zurück-Scroll
-  zur harten Stufe hoch, und Instagram würde geschlossen, obwohl nie etwas gebremst hat.
+- **Scheitert die Bremse, wird nichts gezählt — aber „kann hier nie greifen" zählt doch.**
+  Die alte Regel stand, als die harte Stufe eine Zurück-Kette war, die Instagram zudrückte; ein
+  wirkungsloser Zurück-Scroll durfte dahin nicht hochzählen. Seit v0.17.0 ist die harte Stufe
+  ein eigener Bildschirm plus Home, und die Abwägung kippt: Gezählt wird nur eine
+  **erfolgreiche** Bremsung, also wäre `feedBrakesUsed` bei einer Liste, die
+  `ACTION_SCROLL_BACKWARD` nicht annimmt, nie gewachsen — der Stopp wäre nie gekommen, und die
+  App hätte beim Doomscrollen zugesehen und dabei protokolliert. Deshalb gilt `brake_no_list`
+  und `brake_not_scrollable` als „Bremse aufgebraucht" (`brakeImpossible`). `brake_at_top`
+  **nicht**: Schon oben heisst, dass niemand nach unten scrollt — der gutartige Fall. Was den
+  Fehlalarm jetzt abfängt, ist nicht dieser Zähler, sondern das Gatter davor
+  (`RemindToSwitch` bzw. `stillOnAlgorithmicFeed`) und die Kettenprüfung im Stopp.
+- **Der harte Stopp ist ein eigener Bildschirm, keine Zurück-Kette und keine Wand.** Zurück
+  verlässt einen Startfeed nicht, es blättert eine Ebene zurück; steht der Feed danach wieder
+  vorne, drückt die App erneut — die Kette, die v0.11.4 YouTube zugedrückt hat. Für Regeltreffer
+  (Reels, Shorts) bleibt Zurück richtig, dort **verlässt** es den Bildschirm. Für den Feed gilt
+  seit v0.17.0 `HardStop`: `BlockScreenActivity` davor, sonst `GLOBAL_ACTION_HOME`.
+  Eine **Activity** darf das, was einem Overlay verboten ist, weil ihr Lebenslauf dem System
+  gehört: `noHistory` beendet sie, sobald der Nutzer weggeht, Home und Zurück gehen immer, und
+  stirbt der Prozess, ist sie weg. **Was aufgeräumt werden muss, darf nicht uns gehören** — das
+  ist die Lehre der hängenden Wand, hier als Bauform. Dafür steht `SYSTEM_ALERT_WINDOW` im
+  Manifest: nicht für ein Fenster, sondern weil Android nur mit dieser Berechtigung aus dem
+  Hintergrund eine Activity starten lässt. Fehlt sie, greift der Rückfall — nie stilles
+  Nichtstun. Der Blockbildschirm hat bewusst **keinen „Weiter"-Knopf**: Dafür gibt es den
+  Tages-Cheat, und der kostet Wartezeit und Kontingent.
+- **Die Abklingzeit ist der halbe Stopp** (`HardStop.COOLDOWN_MS`). Ohne sie genügt Instagram
+  zu- und wieder aufzumachen, und die freien Beiträge beginnen von vorn — dieselbe Lücke wie
+  bei der Ausnahme „einmal ansehen", deren Zustand ein Scan ohne Treffer zurücksetzte.
+  `lastHardStopAtMs` liegt deshalb **nicht** in `resetFeedState()`: Es muss den Paketwechsel
+  überleben. In der Abklingzeit bleibt die Freigabe für die ersten Beiträge bestehen (wer eine
+  Nachricht lesen will, kommt durch), aber die sanfte Stufe fällt weg.
+- **Der Ton gibt sich selbst zurück** (`AudioDuck.MUTE_MS`). Audio-Fokus ist das kleinste
+  wirksame Mittel — ohne Ton verliert ein automatisch startendes Video den meisten Zug — aber
+  er ist eine Hinterlassenschaft wie die Wand: Wer Instagram verlässt, erzeugt kein Ereignis,
+  auf das wir reagieren könnten, und bis irgendwann eines käme, wäre der Ton **jeder** App
+  gedämpft. Deshalb `postDelayed` zur Freigabe, dazu `release()` im Abbau des Dienstes. Ein
+  stummes Telefon ist nicht so schlimm wie ein blockiertes, aber derselbe Fehler.
 - **Eine Zusicherung, die an einem Ereignis hängt, gilt nur so weit wie der Ereignisempfang.**
   Das ist die Lehre aus der hängenden Wand, und sie ist allgemein. `resetFeedState()` räumte
   die Wand beim Paketwechsel ab und trug den Kommentar „Wer Instagram verlässt, soll die Wand

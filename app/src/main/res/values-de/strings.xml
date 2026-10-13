@@ -128,6 +128,17 @@
     <string name="health_minutes_ago">vor %1$d Min.</string>
     <string name="health_battery_ok">Akku-Ausnahme erteilt</string>
     <string name="health_battery_missing">Akku-Ausnahme fehlt — der Prozess kann nachts abgeräumt werden</string>
+
+    <!-- Blockbildschirm und die Berechtigung, die er braucht -->
+    <string name="block_screen_title">Schluss für jetzt</string>
+    <string name="block_screen_body">Der „Für dich\"-Feed ist zu. Du wolltest das.</string>
+    <string name="block_screen_cooldown">Er bleibt noch %1$d Minuten geschlossen.</string>
+    <string name="block_screen_home">Zur Startseite</string>
+    <string name="overlay_title">Über anderen Apps anzeigen</string>
+    <string name="overlay_body">Nötig für den Stopp-Bildschirm. Ohne sie wird der Feed nur über die Home-Taste verlassen, und das ist schwächer.</string>
+    <string name="overlay_button">Erlauben</string>
+    <string name="overlay_ok">Stopp-Bildschirm einsatzbereit</string>
+    <string name="overlay_missing">Stopp-Bildschirm fehlt — es bleibt nur die Home-Taste</string>
     <string name="diagnostics_title">Diagnose</string>
     <string name="diagnostics_toggle">View-IDs aufzeichnen</string>
     <string name="diagnostics_hint">Wenn Instagram oder YouTube ihr Layout ändern, blockt die App stillschweigend nicht mehr. Dann hier aufzeichnen einschalten, den nicht mehr geblockten Screen öffnen, zurückkommen und die passenden IDs in Rules.kt übernehmen.</string>

@@ -2,6 +2,7 @@ package de.shortblock.app.service
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -17,21 +18,43 @@ class FeedGuardTest {
 
     // --- Reihenfolge: erst sanft, dann hart ---------------------------------------------
 
+    private fun next(
+        tapTargetFound: Boolean = false,
+        tapsTried: Int = 0,
+        brakesUsed: Int = 0,
+        withinFreePosts: Boolean = false,
+        inCooldown: Boolean = false,
+    ) = FeedGuard.next(tapTargetFound, tapsTried, brakesUsed, withinFreePosts, inCooldown)
+
     @Test
     fun `with a tap target the tap comes first`() {
+        assertEquals(FeedGuard.Step.TAP_FOLLOWING, next(tapTargetFound = true))
+    }
+
+    /**
+     * Getippt wird auch **während** der freien Beiträge.
+     *
+     * Auf „Gefolgt" umzuschalten löst das Problem, statt es zu begrenzen — das ist der beste
+     * Ausgang, und darauf zu warten, bis die Freigabe aufgebraucht ist, wäre verschenkt.
+     */
+    @Test
+    fun `the tap is allowed during the free posts`() {
         assertEquals(
             FeedGuard.Step.TAP_FOLLOWING,
-            FeedGuard.next(tapTargetFound = true, tapsTried = 0, brakesUsed = 0),
+            next(tapTargetFound = true, withinFreePosts = true),
         )
     }
 
     /** Ohne Tippziel — Instagram zeigt die alte Kopfzeile — beginnt es bei der Bremse. */
     @Test
     fun `without a tap target it starts at the brake`() {
-        assertEquals(
-            FeedGuard.Step.BRAKE,
-            FeedGuard.next(tapTargetFound = false, tapsTried = 0, brakesUsed = 0),
-        )
+        assertEquals(FeedGuard.Step.BRAKE, next())
+    }
+
+    /** Solange frei gescrollt werden darf, passiert ohne Tippziel gar nichts. */
+    @Test
+    fun `within the free posts nothing happens`() {
+        assertNull(next(withinFreePosts = true))
     }
 
     /** Greift der Tipp zweimal nicht, greift er hier nicht. Dann übernimmt die Bremse. */
@@ -39,31 +62,50 @@ class FeedGuardTest {
     fun `after the tap limit the brake takes over`() {
         assertEquals(
             FeedGuard.Step.BRAKE,
-            FeedGuard.next(tapTargetFound = true, tapsTried = FeedGuard.TAP_LIMIT, brakesUsed = 0),
+            next(tapTargetFound = true, tapsTried = FeedGuard.TAP_LIMIT),
         )
     }
 
     @Test
-    fun `after the brake limit instagram is closed`() {
+    fun `after the brake limit the feed is closed`() {
+        assertEquals(FeedGuard.Step.HARD_STOP, next(brakesUsed = FeedGuard.BRAKE_LIMIT))
+    }
+
+    /**
+     * Die Abklingzeit: keine sanfte Stufe mehr.
+     *
+     * Ohne das wäre der harte Stopp wertlos — Instagram neu öffnen, und die freien Beiträge
+     * begännen beliebig oft von vorn. Dieselbe Lücke hatte die Ausnahme „einmal ansehen", weil
+     * ein Scan ohne Treffer ihren Zustand zurücksetzte.
+     */
+    @Test
+    fun `during the cooldown the brake is skipped`() {
+        assertEquals(FeedGuard.Step.HARD_STOP, next(inCooldown = true))
         assertEquals(
-            FeedGuard.Step.LEAVE,
-            FeedGuard.next(
-                tapTargetFound = false,
-                tapsTried = 0,
-                brakesUsed = FeedGuard.BRAKE_LIMIT,
-            ),
+            FeedGuard.Step.HARD_STOP,
+            next(brakesUsed = 0, inCooldown = true),
         )
+    }
+
+    /**
+     * Aber die Freigabe liegt **über** der Abklingzeit.
+     *
+     * Wer Instagram für eine Nachricht öffnet, soll auch in der Abklingzeit durchkommen. Der
+     * Startfeed steht dabei zwangsläufig kurz vorne; ihn dafür sofort zuzumachen wäre genau
+     * der Fehlalarm, der teurer ist als die Lücke.
+     */
+    @Test
+    fun `the free posts survive the cooldown`() {
+        assertNull(next(withinFreePosts = true, inCooldown = true))
     }
 
     /** Der ganze Weg am Stück — kein Sprung über eine Stufe. */
     @Test
     fun `the whole escalation runs gentle to hard`() {
-        val steps = (0..FeedGuard.BRAKE_LIMIT).map { brakes ->
-            FeedGuard.next(tapTargetFound = false, tapsTried = 0, brakesUsed = brakes)
-        }
+        val steps = (0..FeedGuard.BRAKE_LIMIT).map { brakes -> next(brakesUsed = brakes) }
 
         assertTrue(steps.dropLast(1).all { it == FeedGuard.Step.BRAKE })
-        assertEquals(FeedGuard.Step.LEAVE, steps.last())
+        assertEquals(FeedGuard.Step.HARD_STOP, steps.last())
     }
 
     // --- Echo: der Test gegen die Endlosschleife -----------------------------------------

@@ -17,6 +17,8 @@ import de.shortblock.app.data.SettingsRepository
 import de.shortblock.app.data.StatsRepository
 import de.shortblock.app.data.WatchBudget
 import de.shortblock.app.data.WatchdogState
+import de.shortblock.app.system.SystemSettings
+import de.shortblock.app.ui.BlockScreenActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -127,6 +129,20 @@ class BlockerAccessibilityService : AccessibilityService() {
     private var lastBrakeAtMs = 0L
     /** Zuletzt protokollierter Grund, warum die Bremse nicht griff. */
     private var lastBrakeReason: String? = null
+
+    /**
+     * Die Bremse **kann** hier nicht greifen — keine Liste gefunden oder nicht scrollbar.
+     *
+     * Ohne dieses Feld hätte v0.17.0 dieselbe stille Falle wie v0.14.1: Gezählt wird nur eine
+     * **erfolgreiche** Bremsung, also wäre `feedBrakesUsed` bei einer Liste, die
+     * `ACTION_SCROLL_BACKWARD` nicht annimmt, nie gewachsen — der harte Stopp wäre nie
+     * gekommen, und die App hätte beim Doomscrollen weiter zugesehen und dabei fleissig
+     * protokolliert.
+     *
+     * `brake_at_top` setzt es bewusst **nicht**: Schon oben zu sein heisst, dass gar nicht nach
+     * unten gescrollt wird — das ist der gutartige Fall und kein Versagen.
+     */
+    private var brakeImpossible = false
     /** Merkmal der gefundenen Liste — einmal je Feed-Besuch protokolliert. */
     private var lastBrakeListSignature: String? = null
     /** Weitester erreichter Listenindex im Feed; -1 = noch keiner gemeldet. */
@@ -135,6 +151,22 @@ class BlockerAccessibilityService : AccessibilityService() {
     private var feedScrollEvents = 0
     /** Einmal je Feed-Besuch: Die Kopfzeile ist weg, der Beleg trägt trotzdem. */
     private var headlessFeedLogged = false
+
+    /**
+     * Wanduhr-Zeit des letzten harten Stopps — die Abklingzeit aus [HardStop].
+     *
+     * **Liegt bewusst nicht in [resetFeedState].** Die Abklingzeit muss das Verlassen von
+     * Instagram überleben, sonst ist sie wertlos: App zu, App auf, und die freien Beiträge
+     * begännen von vorn. Genau diese Lücke hatte die Ausnahme „einmal ansehen", weil ein Scan
+     * ohne Treffer ihren Zustand zurücksetzte.
+     */
+    private var lastHardStopAtMs = 0L
+
+    /** Harte Stopps in kurzer Folge — dieselbe Kettenprüfung wie bei [BackGuard]. */
+    private var hardStopChain = 0
+
+    /** Nimmt kurz den Audio-Fokus, damit ein laufendes Video stumm wird. */
+    private var audioDuck: AudioDuck? = null
 
     /**
      * Weckt die Bedienungshilfe beim Entsperren.
@@ -174,6 +206,7 @@ class BlockerAccessibilityService : AccessibilityService() {
         settingsRepository = SettingsRepository(applicationContext)
         statsRepository = StatsRepository(applicationContext)
         overlay = ReminderOverlay(this)
+        audioDuck = AudioDuck(this)
         runCatching { accessibilityButtonController.registerAccessibilityButtonCallback(cheatButton) }
 
         // Der Wächter darf erst dann Alarm schlagen, wenn der Dienst wirklich einmal lief.
@@ -779,13 +812,27 @@ class BlockerAccessibilityService : AccessibilityService() {
      * @param tapTarget der „Gefolgt"-Knoten aus [FeedPolicy.followingTabToTap], oder null.
      */
     private fun escalateFeed(root: UiNode, tapTarget: UiNode?) {
+        val now = System.currentTimeMillis()
+        val inCooldown = HardStop.isInCooldown(lastHardStopAtMs, now)
+
         when (
             FeedGuard.next(
                 tapTargetFound = tapTarget != null,
                 tapsTried = feedTapsTried,
-                brakesUsed = feedBrakesUsed,
+                // Kann die Bremse gar nicht greifen, gilt sie als aufgebraucht. Sonst
+                // bliebe die Eskalation genau dort stehen, wo sie nichts bewirkt.
+                brakesUsed = if (brakeImpossible) FeedGuard.BRAKE_LIMIT else feedBrakesUsed,
+                withinFreePosts = FeedGuard.isWithinFreePosts(
+                    feedFirstVisibleIndex,
+                    feedScrollEvents,
+                ),
+                inCooldown = inCooldown,
             )
         ) {
+            // Noch frei: nichts tun. Die Freigabe steht seit v0.17.0 in `FeedGuard.next` und
+            // nicht mehr in `brakeFeed` — nur so liegt die Abklingzeit unter ihr.
+            null -> Unit
+
             // Die sanfteste Stufe: einmal auf „Gefolgt“ tippen und das Problem lösen.
             // Das Ziel kommt ausschliesslich aus followingTabToTap — nie aus einer
             // Textsuche, sonst entfolgt ein Fehlgriff jemanden.
@@ -804,12 +851,65 @@ class BlockerAccessibilityService : AccessibilityService() {
                 brakeFeed(root)
             }
 
-            FeedGuard.Step.LEAVE -> {
-                BlockLog.record("ig_feed_leave", "Bremse hat nicht gereicht")
-                toast(R.string.toast_feed_left)
-                blockAndGoBack(Feature.INSTAGRAM_FEED, "ig_feed_leave")
-            }
+            FeedGuard.Step.HARD_STOP -> hardStopFeed(now, inCooldown)
         }
+    }
+
+    /**
+     * Schluss mit dem Feed — eigener Bildschirm davor, sonst nach Hause.
+     *
+     * **Warum nicht mehr `blockAndGoBack`.** Zurück verlässt einen Startfeed nicht, es blättert
+     * in Instagram eine Ebene zurück; steht der Feed danach wieder vorne, drückt die App
+     * erneut. Diese Kette hat in v0.11.4 YouTube zugedrückt, und [BackGuard] ist nur der
+     * Verband darauf. Für Regeltreffer (Reels, Shorts) bleibt Zurück richtig — dort **verlässt**
+     * es den Bildschirm und lässt die App stehen. Für den Startfeed taugt es nicht.
+     *
+     * Die Kettenprüfung bleibt trotzdem: Ein Fehlalarm, der im Zehntelsekundentakt einen
+     * Vollbildschirm startet, wäre schlimmer als einer, der Zurück drückt. Drei in Folge
+     * heissen: Das Mittel löst die Lage nicht — dann `hard_stop_runaway` ins Protokoll und
+     * Finger weg. **So wird ein Fehlalarm überhaupt erst sichtbar.**
+     */
+    private fun hardStopFeed(nowMs: Long, inCooldown: Boolean) {
+        hardStopChain = if (BackGuard.continuesChain(lastHardStopAtMs, nowMs)) {
+            hardStopChain + 1
+        } else {
+            0
+        }
+        if (BackGuard.isRunaway(hardStopChain)) {
+            BlockLog.record("hard_stop_runaway", "Stopp löst die Lage nicht")
+            interventionPausedUntil = nowMs + BackGuard.PAUSE_MS
+            hardStopChain = 0
+            lastHardStopAtMs = 0L
+            toast(R.string.toast_back_runaway)
+            return
+        }
+
+        lastHardStopAtMs = nowMs
+        // Erst der Ton, dann der Bildschirm: Der Fokuswechsel wirkt sofort, der Bildschirmstart
+        // braucht einen Moment.
+        audioDuck?.duck()
+
+        val minutes = HardStop.remainingMinutes(nowMs, nowMs)
+        val means = HardStop.means(SystemSettings.canDrawOverlays(this))
+        val shown = means == HardStop.Means.BLOCK_SCREEN &&
+            BlockScreenActivity.start(this, minutes)
+
+        if (!shown) {
+            // Rückfall ohne „Über anderen Apps anzeigen" — oder wenn der Start scheitert.
+            // Einmal nach Hause, keine Kette: Der Startbildschirm erfüllt die Regel nicht mehr.
+            performGlobalAction(GLOBAL_ACTION_HOME)
+            toast(R.string.toast_feed_left)
+        }
+
+        BlockLog.record(
+            "ig_feed_stop",
+            buildString {
+                append(if (shown) "Blockbildschirm" else "nach Hause")
+                if (inCooldown) append(" · Abklingzeit")
+            },
+        )
+        pausedUntil = SystemClock.uptimeMillis() + HARD_STOP_COOLDOWN_MS
+        scope.launch { statsRepository.increment(Feature.INSTAGRAM_FEED) }
     }
 
     /**
@@ -841,10 +941,9 @@ class BlockerAccessibilityService : AccessibilityService() {
      * mitten darin, bleibt nichts stehen.
      */
     private fun brakeFeed(root: UiNode) {
-        // Die ersten Beiträge laufen frei durch — erst danach greift die Bremse. Ohne das
-        // fühlt sich der Feed kaputt an, statt begrenzt.
-        if (FeedGuard.isWithinFreePosts(feedFirstVisibleIndex, feedScrollEvents)) return
-
+        // Die Freigabe („die ersten Beiträge laufen frei durch“) liegt seit v0.17.0 in
+        // `FeedGuard.next`, damit die Abklingzeit unter ihr liegen kann. Hier wird deshalb
+        // nicht mehr darauf geprüft.
         val now = System.currentTimeMillis()
         // Der Zurück-Scroll erzeugt selbst ein Ereignis, und der Scan läuft im 150-ms-Takt
         // weiter. Ohne dieses Gatter zöge die App gegen ihr eigenes Bremsen.
@@ -872,6 +971,9 @@ class BlockerAccessibilityService : AccessibilityService() {
         lastBrakeAtMs = now
         feedBrakesUsed++
         lastBrakeReason = null
+        // Nur wenn wirklich gebremst wurde: Ein wirkungsloser Zurück-Scroll soll auch den Ton
+        // nicht anfassen.
+        audioDuck?.duck()
     }
 
     /**
@@ -883,6 +985,11 @@ class BlockerAccessibilityService : AccessibilityService() {
      * Scan-Takt über.
      */
     private fun noteBrakeSkipped(reason: String) {
+        // Zwei der Gründe heissen „hier greift die Bremse nie“ — dann muss die Eskalation
+        // weiterlaufen, statt an einer wirkungslosen Stufe zu hängen. `brake_at_top` gehört
+        // nicht dazu: Es heisst, dass niemand nach unten scrollt.
+        if (reason == "brake_no_list" || reason == "brake_not_scrollable") brakeImpossible = true
+
         if (lastBrakeReason == reason) return
         lastBrakeReason = reason
         BlockLog.record(reason, "Bremse hat nicht gegriffen")
@@ -898,6 +1005,7 @@ class BlockerAccessibilityService : AccessibilityService() {
         feedBrakesUsed = 0
         lastBrakeAtMs = 0L
         lastBrakeReason = null
+        brakeImpossible = false
         lastBrakeListSignature = null
         feedFirstVisibleIndex = -1
         feedScrollEvents = 0
@@ -920,6 +1028,11 @@ class BlockerAccessibilityService : AccessibilityService() {
         runCatching { accessibilityButtonController.unregisterAccessibilityButtonCallback(cheatButton) }
         overlay?.hide()
         overlay = null
+        // Der Ton gehört dem Nutzer, nicht uns. Beim Abräumen auf jeden Fall zurückgeben —
+        // AudioDuck gibt ihn auch von selbst zurück, aber auf eine einzige Zusage, die man
+        // vergessen kann, verlässt sich diese App nicht mehr.
+        audioDuck?.release()
+        audioDuck = null
         flushBudget(force = true, detached = true)
         ServiceHealth.onDisconnected()
         scope.cancel()
@@ -930,6 +1043,16 @@ class BlockerAccessibilityService : AccessibilityService() {
         const val SCAN_INTERVAL_MS = 150L
         const val BROWSER_SCAN_INTERVAL_MS = 500L
         const val BACK_COOLDOWN_MS = 800L
+
+        /**
+         * Pause nach einem harten Stopp.
+         *
+         * Deutlich länger als [BACK_COOLDOWN_MS]: Der Blockbildschirm braucht Zeit, um nach
+         * vorn zu kommen, und bis dahin liegt Instagrams Feed noch im Baum. Ohne diese Pause
+         * stoppte der nächste Scan sofort ein zweites Mal — und die Kettenprüfung würde einen
+         * Fehlalarm melden, wo nur unsere eigene Trägheit war.
+         */
+        const val HARD_STOP_COOLDOWN_MS = 3_000L
 
         /** Ab welcher Stille eine Aufwach-Reparatur überhaupt eine Protokollzeile wert ist. */
         const val REPAIR_LOG_MIN_SILENCE_MS = 60_000L

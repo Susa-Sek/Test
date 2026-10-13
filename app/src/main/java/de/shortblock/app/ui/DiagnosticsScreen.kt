@@ -217,6 +217,7 @@ private fun ServiceStateCard() {
         }
     }
     val batteryExempt = remember { SystemSettings.isIgnoringBatteryOptimizations(context) }
+    val canDrawOverlays = remember { SystemSettings.canDrawOverlays(context) }
 
     SectionHeader(
         title = stringResource(R.string.health_title),
@@ -225,6 +226,18 @@ private fun ServiceStateCard() {
     InfoCard {
         CodeLine(stringResource(R.string.health_last_event, ago(now, health.lastEventAtMs)))
         CodeLine(stringResource(R.string.health_last_repair, ago(now, health.lastRefreshAtMs)))
+        Text(
+            text = stringResource(
+                if (canDrawOverlays) R.string.overlay_ok else R.string.overlay_missing,
+            ),
+            style = MaterialTheme.typography.bodySmall,
+            color = if (canDrawOverlays) {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            } else {
+                MaterialTheme.colorScheme.error
+            },
+            modifier = Modifier.padding(top = 8.dp),
+        )
         Text(
             text = stringResource(
                 if (batteryExempt) R.string.health_battery_ok else R.string.health_battery_missing,

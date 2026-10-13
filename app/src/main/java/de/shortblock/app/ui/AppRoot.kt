@@ -81,6 +81,7 @@ fun AppRoot(openCheatOnStart: Boolean = false) {
 
     var serviceEnabled by remember { mutableStateOf(SystemSettings.isServiceEnabled(context)) }
     var batteryExempt by remember { mutableStateOf(SystemSettings.isIgnoringBatteryOptimizations(context)) }
+    var canDrawOverlays by remember { mutableStateOf(SystemSettings.canDrawOverlays(context)) }
     var onboardingSeen by rememberSaveable { mutableStateOf(false) }
     var screen by rememberSaveable { mutableStateOf(Screen.HOME) }
     var cheatDialog by rememberSaveable { mutableStateOf(openCheatOnStart) }
@@ -90,6 +91,7 @@ fun AppRoot(openCheatOnStart: Boolean = false) {
     LifecycleResumeEffect(Unit) {
         serviceEnabled = SystemSettings.isServiceEnabled(context)
         batteryExempt = SystemSettings.isIgnoringBatteryOptimizations(context)
+        canDrawOverlays = SystemSettings.canDrawOverlays(context)
         deviceAdminActive = SystemSettings.isDeviceAdminActive(context)
         // Beim Verlassen der App fällt die Sperre wieder zu. Das ist die einzige Stelle, an
         // der die Entsperrung endet — und sie darf nicht vergessen werden.
@@ -147,9 +149,11 @@ fun AppRoot(openCheatOnStart: Boolean = false) {
                 Screen.ONBOARDING -> OnboardingScreen(
                     serviceEnabled = serviceEnabled,
                     batteryExempt = batteryExempt,
+                    canDrawOverlays = canDrawOverlays,
                     onOpenAppInfo = { SystemSettings.openAppInfo(context) },
                     onOpenAccessibility = { SystemSettings.openAccessibilitySettings(context) },
                     onOpenBattery = { SystemSettings.openBatterySettings(context) },
+                    onOpenOverlay = { SystemSettings.openOverlaySettings(context) },
                     onContinue = {
                         onboardingSeen = true
                         screen = Screen.HOME

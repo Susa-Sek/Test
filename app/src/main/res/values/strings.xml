@@ -136,6 +136,17 @@
     <string name="health_minutes_ago">%1$d min ago</string>
     <string name="health_battery_ok">Battery exemption granted</string>
     <string name="health_battery_missing">Battery exemption missing — the process can be killed overnight</string>
+
+    <!-- Block screen and the overlay permission it needs -->
+    <string name="block_screen_title">That\'s enough for now</string>
+    <string name="block_screen_body">The For You feed is closed. That is what you asked for.</string>
+    <string name="block_screen_cooldown">It stays closed for %1$d more minutes.</string>
+    <string name="block_screen_home">Back to the home screen</string>
+    <string name="overlay_title">Show over other apps</string>
+    <string name="overlay_body">Needed for the stop screen. Without it the feed is left via the home button, which is weaker.</string>
+    <string name="overlay_button">Allow</string>
+    <string name="overlay_ok">Stop screen ready</string>
+    <string name="overlay_missing">Stop screen unavailable — only the home button is left</string>
     <string name="diagnostics_title">Diagnostics</string>
     <string name="diagnostics_toggle">Record view IDs</string>
     <string name="diagnostics_hint">When Instagram or YouTube change their layout, blocking silently stops working. Turn this on, open the screen that is no longer blocked, come back here and copy the matching IDs into Rules.kt.</string>

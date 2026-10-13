@@ -59,6 +59,23 @@ object SystemSettings {
         }
     }
 
+    // --- Über anderen Apps anzeigen -----------------------------------------------------
+    //
+    // Nicht für ein Overlay — ShortBlock legt seit v0.13 kein Fenster mehr über fremde Apps.
+    // Sondern weil Android nur mit dieser Berechtigung erlaubt, aus dem Hintergrund eine
+    // eigene Activity zu starten (offizielle Ausnahmeliste zu „background activity starts“).
+    // Genau deshalb verlangen ScreenZen, one sec und AppBlock sie ebenfalls: Sie ist der
+    // Schlüssel zum Blockbildschirm, nicht zu einer Wand.
+
+    fun canDrawOverlays(context: Context): Boolean =
+        runCatching { Settings.canDrawOverlays(context) }.getOrDefault(false)
+
+    fun openOverlaySettings(context: Context): Boolean = start(
+        context,
+        Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
+            .setData(Uri.fromParts("package", context.packageName, null)),
+    )
+
     // --- Partnersperre: Geräteadministrator ---------------------------------------------
     //
     // Der Deinstallationsschutz. Android verweigert die Deinstallation, solange ein Admin aktiv

@@ -9,6 +9,14 @@
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <!--
+      Nicht für ein Overlay. Seit v0.13 legt ShortBlock kein Fenster mehr über fremde Apps —
+      das hat in v0.11 ein Gerät unbenutzbar gemacht. Gebraucht wird sie, weil Android nur mit
+      dieser Berechtigung erlaubt, aus dem Hintergrund eine eigene Activity zu starten: den
+      Blockbildschirm. Fehlt sie, bleibt der Rückfall "einmal nach Hause".
+    -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <!--
       Nur für den freiwilligen Schalter "Dienst am Leben halten". Ohne ihn wird nichts davon
       benutzt — der Vordergrunddienst startet erst, wenn der Nutzer ihn einschaltet.
     -->
@@ -36,6 +44,24 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--
+          Der Blockbildschirm. Die Attribute sind nicht Kosmetik, sondern der Grund, warum er
+          nicht die Wand aus v0.11 wiederholen kann:
+            noHistory        - beendet sich, sobald der Nutzer weggeht. Es gibt nichts
+                               aufzuräumen, also auch nichts zu vergessen.
+            taskAffinity=""  - eigener Task, damit er die ShortBlock-Oberfläche nicht verdrängt.
+            excludeFromRecents - er gehört nicht in die Übersicht der letzten Apps.
+            exported=false    - niemand von aussen darf ihn starten.
+        -->
+        <activity
+            android:name=".ui.BlockScreenActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.ShortBlock" />
 
         <service
             android:name=".service.KeepAliveService"

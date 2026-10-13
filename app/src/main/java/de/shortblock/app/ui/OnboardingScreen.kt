@@ -32,9 +32,12 @@ import de.shortblock.app.R
 fun OnboardingScreen(
     serviceEnabled: Boolean,
     batteryExempt: Boolean,
+    /** Ob „Über anderen Apps anzeigen" erteilt ist — ohne sie gibt es keinen Blockbildschirm. */
+    canDrawOverlays: Boolean,
     onOpenAppInfo: () -> Unit,
     onOpenAccessibility: () -> Unit,
     onOpenBattery: () -> Unit,
+    onOpenOverlay: () -> Unit,
     onContinue: () -> Unit,
 ) {
     Column(
@@ -83,8 +86,20 @@ fun OnboardingScreen(
             buttonLabel = stringResource(R.string.step_battery_button),
             done = batteryExempt,
             showDoneState = true,
-            isLast = true,
             onClick = onOpenBattery,
+        )
+        // Schritt 4 ist nicht für ein Overlay — ShortBlock legt kein Fenster mehr über fremde
+        // Apps. Diese Berechtigung ist der Schlüssel zum Blockbildschirm: Ohne sie lässt
+        // Android aus dem Hintergrund keine Activity starten, und es bleibt die Home-Taste.
+        StepCard(
+            number = 4,
+            title = stringResource(R.string.overlay_title),
+            body = stringResource(R.string.overlay_body),
+            buttonLabel = stringResource(R.string.overlay_button),
+            done = canDrawOverlays,
+            showDoneState = true,
+            isLast = true,
+            onClick = onOpenOverlay,
         )
 
         Button(

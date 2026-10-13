@@ -23,8 +23,15 @@ object FeedGuard {
      */
     const val TAP_LIMIT = 2
 
-    /** So oft wird zurückgescrollt, bevor die harte Stufe kommt. */
-    const val BRAKE_LIMIT = 8
+    /**
+     * So oft wird zurückgescrollt, bevor der harte Stopp kommt.
+     *
+     * Seit v0.17.0 **zwei** statt acht. Acht Bremsungen waren als sanfte Stufe gedacht und
+     * haben sich in der Hand als Zähigkeitsprobe erwiesen: Wer gegen die Bremse anscrollt,
+     * scrollt achtmal an. Zwei Zurück-Scrolls sind der Hinweis, danach ist Schluss — so war
+     * „nach ein, zwei Beiträgen" gemeint.
+     */
+    const val BRAKE_LIMIT = 2
 
     /**
      * Wie lange nach einer Bremsung ein Scroll-Ereignis als eigenes Echo gilt.
@@ -79,19 +86,48 @@ object FeedGuard {
         /** Zurückscrollen: Der erste Beitrag bleibt, das Endlose ist unerreichbar. */
         BRAKE,
 
-        /** Bleibt jemand trotz Bremse dran, wird Instagram geschlossen. */
-        LEAVE,
+        /**
+         * Schluss: eigener Bildschirm davor, sonst nach Hause. Siehe [HardStop].
+         *
+         * Hiess bis v0.16.0 `LEAVE` und drückte Zurück. Zurück ist für einen Startfeed das
+         * falsche Werkzeug — es verlässt ihn nicht, es blättert eine Ebene zurück, und steht
+         * der Feed danach wieder vorne, beginnt die Kette, die in v0.11.4 YouTube zugedrückt
+         * hat.
+         */
+        HARD_STOP,
     }
 
     /**
-     * Die nächste Stufe — von der sanftesten aufwärts.
+     * Die nächste Stufe — von der sanftesten aufwärts. `null` heisst: nichts tun.
+     *
+     * Die Reihenfolge der Zweige ist die ganze Logik, und jeder einzelne ist einmal teuer
+     * gewesen:
+     *
+     * - **Tippen zuerst**, und zwar auch während der freien Beiträge: Auf „Gefolgt"
+     *   umzuschalten löst das Problem, anstatt es zu begrenzen. Das ist der beste Ausgang.
+     * - **Dann die Freigabe.** Sie steht seit v0.17.0 hier und nicht mehr erst in `brakeFeed`:
+     *   Nur so kann die Abklingzeit unter ihr liegen, statt sie zu überspringen. Wer Instagram
+     *   für eine Nachricht öffnet, kommt also auch in der Abklingzeit durch.
+     * - **Dann die Abklingzeit.** In ihr gibt es keine sanfte Stufe mehr: Der erste Beitrag
+     *   nach der Freigabe führt direkt zum Stopp. Ohne das wäre der Stopp wertlos — Instagram
+     *   neu öffnen, und die freien Beiträge begännen beliebig oft von vorn.
      *
      * @param tapTargetFound ob [FeedPolicy.followingTabToTap] ein Ziel geliefert hat.
+     * @param withinFreePosts ob noch frei gescrollt werden darf ([isWithinFreePosts]).
+     * @param inCooldown ob die Abklingzeit nach einem harten Stopp noch läuft ([HardStop]).
      */
-    fun next(tapTargetFound: Boolean, tapsTried: Int, brakesUsed: Int): Step = when {
+    fun next(
+        tapTargetFound: Boolean,
+        tapsTried: Int,
+        brakesUsed: Int,
+        withinFreePosts: Boolean,
+        inCooldown: Boolean,
+    ): Step? = when {
         tapTargetFound && tapsTried < TAP_LIMIT -> Step.TAP_FOLLOWING
+        withinFreePosts -> null
+        inCooldown -> Step.HARD_STOP
         brakesUsed < BRAKE_LIMIT -> Step.BRAKE
-        else -> Step.LEAVE
+        else -> Step.HARD_STOP
     }
 
     /**
